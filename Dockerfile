@@ -1,5 +1,5 @@
 # base = ubuntu + full apt update
-FROM ubuntu:xenial AS base
+FROM ubuntu:jammy AS base
 RUN dpkg --add-architecture i386 \
     && apt-get update \
     && apt-get upgrade -y \
@@ -36,7 +36,8 @@ FROM byond AS build
 WORKDIR /tgstation
 
 RUN apt-get install -y --no-install-recommends \
-        curl
+        curl \
+        unzip
 
 COPY . .
 
@@ -74,7 +75,7 @@ FROM byond
 WORKDIR /tgstation
 
 RUN apt-get install -y --no-install-recommends \
-        libssl1.0.0:i386 \
+        libssl3:i386 \
         zlib1g:i386
 
 COPY --from=build /deploy ./
