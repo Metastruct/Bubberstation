@@ -174,9 +174,13 @@
 /turf/open/misc/grass/planet,
 /area/centcom/holding/cafe/park)
 "afE" = (
-/obj/structure/fake_stairs/wood/directional/north,
-/turf/open/space/basic,
-/area/centcom/holding/cafe/station/commons/fitness/recreation/sauna)
+/mob/living/basic/slime{
+	name = "rob"
+	},
+/turf/open/indestructible{
+	icon_state = "engine"
+	},
+/area/centcom/holding/cafe/station/science/robotics/augments)
 "afY" = (
 /turf/open/floor/iron/stairs/right{
 	dir = 4
@@ -324,6 +328,7 @@
 /obj/structure/flora/rock/pile{
 	icon_state = "basalt3"
 	},
+/obj/structure/wall_torch/spawns_lit/directional/west,
 /turf/open/misc/grass/planet,
 /area/centcom/holding/cafe/park)
 "ajR" = (
@@ -513,7 +518,7 @@
 /obj/machinery/smartfridge/extract/preloaded,
 /obj/effect/turf_decal/tile/purple/fourcorners,
 /turf/open/floor/iron/white,
-/area/centcom/holding/cafe)
+/area/centcom/holding/cafe/station/science/robotics/augments)
 "aoR" = (
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
@@ -957,7 +962,7 @@
 	desc = "What could possibly be in here?";
 	name = "Laboraty"
 	},
-/turf/closed/indestructible/alien/nodiagonal,
+/turf/open/space/basic,
 /area/centcom/holding/cafe/dorms)
 "aAc" = (
 /obj/structure/flora/bush/flowers_pp,
@@ -1731,7 +1736,7 @@
 	},
 /obj/effect/turf_decal/tile/purple/fourcorners,
 /turf/open/floor/iron/white,
-/area/centcom/holding/cafe)
+/area/centcom/holding/cafe/station/science/robotics/augments)
 "aSC" = (
 /obj/structure/fake_stairs/wood/directional/south,
 /obj/structure/wall_torch/spawns_lit/directional/east,
@@ -2090,6 +2095,7 @@
 /area/centcom/holding/cafe)
 "bgi" = (
 /obj/structure/table/optable,
+/obj/machinery/vitals_reader/directional/north,
 /turf/open/indestructible,
 /area/centcom/holding/cafe/station/science/robotics/augments)
 "bgM" = (
@@ -3247,6 +3253,14 @@
 	},
 /turf/open/floor/iron/kitchen_coldroom/freezerfloor,
 /area/centcom/holding/cafe/station/service/kitchen/coldroom)
+"cdc" = (
+/obj/machinery/light/cold/no_nightlight/directional/west,
+/obj/effect/turf_decal/tile/dark_red/opposingcorners,
+/turf/open/indestructible/dark/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "dark_small_checker"
+	},
+/area/centcom/holding/cafe/station/security)
 "cdj" = (
 /obj/structure/table/wood,
 /obj/item/clipboard{
@@ -4860,7 +4874,9 @@
 "duG" = (
 /obj/structure/table/optable,
 /obj/effect/turf_decal/tile/blue/fourcorners,
-/obj/machinery/defibrillator_mount/directional/west,
+/obj/machinery/defibrillator_mount/loaded{
+	pixel_x = -28
+	},
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "duS" = (
@@ -5618,8 +5634,7 @@
 /area/centcom/central_command_areas/admin/interlink)
 "ect" = (
 /obj/machinery/chem_dispenser/drinks/fullupgrade{
-	density = 0;
-	pixel_y = 8
+	density = 0
 	},
 /obj/structure/table/reinforced/plastitaniumglass,
 /obj/effect/turf_decal/tile/bar/opposingcorners,
@@ -5642,6 +5657,7 @@
 	dir = 4
 	},
 /obj/structure/extinguisher_cabinet/directional/south,
+/obj/machinery/light/cold/no_nightlight/directional/south,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_edge";
@@ -6114,6 +6130,12 @@
 	},
 /turf/open/indestructible{
 	icon_state = "engine"
+	},
+/area/centcom/holding/cafe/station/science/robotics/augments)
+"eCq" = (
+/obj/machinery/light/no_nightlight/directional/west,
+/turf/open/indestructible/white{
+	icon_state = "white_small"
 	},
 /area/centcom/holding/cafe/station/science/robotics/augments)
 "eCz" = (
@@ -7887,7 +7909,9 @@
 	dir = 8
 	},
 /obj/machinery/door/firedoor,
-/obj/machinery/smartfridge/organ,
+/obj/machinery/smartfridge/organ{
+	opacity = 1
+	},
 /turf/open/indestructible/white{
 	icon_state = "white_half";
 	dir = 1
@@ -8364,13 +8388,8 @@
 /turf/open/floor/carpet/executive,
 /area/centcom/central_command_areas/admin/interlink)
 "gpy" = (
-/obj/structure/sink/directional/east,
-/obj/structure/mirror{
-	pixel_y = 32
-	},
-/obj/structure/toilet{
-	pixel_y = 14
-	},
+/obj/machinery/shower/directional/east,
+/obj/machinery/light/small/directional/north,
 /turf/open/indestructible/hoteltile{
 	icon_state = "titanium_tiled_blue"
 	},
@@ -8653,8 +8672,7 @@
 /area/centcom/holding/cafe/station/service/kitchen/coldroom)
 "gzM" = (
 /obj/machinery/chem_dispenser/drinks/beer/fullupgrade{
-	density = 0;
-	pixel_y = 8
+	density = 0
 	},
 /obj/structure/table/reinforced/plastitaniumglass,
 /obj/effect/turf_decal/tile/bar/opposingcorners,
@@ -8888,8 +8906,15 @@
 /turf/open/floor/iron/dark,
 /area/centcom/interlink)
 "gLa" = (
-/obj/machinery/shower/directional/west,
-/obj/machinery/light/small/directional/north,
+/obj/structure/toilet{
+	dir = 8;
+	pixel_x = 6;
+	pixel_y = 8
+	},
+/obj/structure/mirror/directional/north{
+	pixel_y = 32
+	},
+/obj/structure/sink/directional/south,
 /turf/open/indestructible/hoteltile{
 	icon_state = "titanium_tiled_blue"
 	},
@@ -9153,8 +9178,8 @@
 /obj/effect/turf_decal/tile/purple/half/contrasted{
 	dir = 8
 	},
-/obj/structure/disposalpipe/segment{
-	dir = 4
+/obj/structure/disposalpipe/junction{
+	dir = 8
 	},
 /turf/open/indestructible/large{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
@@ -9603,6 +9628,13 @@
 	icon_state = "dark_small_corner"
 	},
 /area/centcom/holding/cafe/station/science/robotics/augments)
+"hmm" = (
+/obj/structure/bed,
+/obj/effect/spawner/random/bedsheet,
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe/station/security)
 "hmG" = (
 /obj/structure/stone_tile/surrounding/cracked,
 /turf/open/misc/asteroid/basalt,
@@ -9844,6 +9876,10 @@
 	icon_state = "dark_small_checker"
 	},
 /area/centcom/holding/cafe/station/commons/lounge)
+"huS" = (
+/obj/structure/wall_torch/spawns_lit/directional/west,
+/turf/open/misc/grass/planet,
+/area/centcom/holding/cafe/park)
 "hvy" = (
 /obj/machinery/door/poddoor/shuttledock/interlink,
 /turf/open/floor/plating,
@@ -11677,6 +11713,23 @@
 /obj/effect/spawner/random/trash/cigpack,
 /turf/open/indestructible/plating,
 /area/centcom/holding/cafe/station/maint)
+"iUy" = (
+/obj/item/reagent_containers/spray/pepper{
+	pixel_y = 4;
+	pixel_x = -6
+	},
+/obj/structure/table,
+/obj/structure/reagent_dispensers/wall/peppertank/directional/north,
+/obj/item/book/manual/wiki/security_space_law{
+	pixel_x = 6;
+	pixel_y = 4
+	},
+/obj/item/restraints/handcuffs,
+/obj/item/assembly/flash/handheld,
+/obj/effect/turf_decal/tile/dark_red/fourcorners,
+/obj/effect/turf_decal/delivery/white,
+/turf/open/indestructible/dark,
+/area/centcom/holding/cafe/station/security)
 "iUz" = (
 /obj/structure/chair/office{
 	dir = 8
@@ -12343,6 +12396,9 @@
 /obj/effect/turf_decal/tile/purple/fourcorners,
 /obj/machinery/disposal/bin,
 /obj/effect/turf_decal/bot,
+/obj/structure/disposalpipe/trunk{
+	dir = 2
+	},
 /turf/open/indestructible,
 /area/centcom/holding/cafe)
 "juH" = (
@@ -12812,6 +12868,7 @@
 /area/centcom/holding/cafe/station/engineering)
 "jPs" = (
 /obj/machinery/door/airlock/maintenance_hatch,
+/obj/structure/cable,
 /turf/open/indestructible/plating,
 /area/centcom/holding/cafe/station/command/cap)
 "jPF" = (
@@ -14007,8 +14064,6 @@
 /area/centcom/holding/cafe/station/command)
 "kVi" = (
 /obj/effect/spawner/structure/window/reinforced/tinted,
-/obj/effect/spawner/structure/window/reinforced/tinted,
-/obj/effect/spawner/structure/window/reinforced/tinted,
 /turf/open/indestructible/dark,
 /area/centcom/holding/cafe)
 "kVs" = (
@@ -14359,12 +14414,13 @@
 /turf/open/floor/iron/dark,
 /area/centcom/interlink)
 "lnN" = (
-/obj/machinery/camera/autoname/directional/west{
-	network = list("secret")
-	},
 /obj/structure/table,
 /obj/machinery/reagentgrinder,
 /obj/effect/turf_decal/tile/purple/fourcorners,
+/obj/machinery/light/no_nightlight/directional/west,
+/obj/machinery/camera/autoname/directional/west{
+	network = list("secret")
+	},
 /turf/open/floor/iron/white,
 /area/centcom/holding/cafe/station/science/robotics/augments)
 "lom" = (
@@ -14545,6 +14601,23 @@
 /obj/item/modular_computer/pda/clear,
 /turf/open/floor/carpet/executive,
 /area/centcom/central_command_areas/admin/interlink)
+"luN" = (
+/obj/effect/turf_decal/siding/wideplating_new/light{
+	dir = 1
+	},
+/obj/effect/turf_decal/siding/wideplating_new/light,
+/obj/structure/fans/tiny/invisible,
+/obj/machinery/door/airlock/research{
+	name = "Xenobiology Lab"
+	},
+/obj/structure/disposalpipe/segment,
+/obj/effect/mapping_helpers/airlock/cyclelink_helper{
+	dir = 1
+	},
+/turf/open/indestructible/white{
+	icon_state = "white_half"
+	},
+/area/centcom/holding/cafe)
 "lvx" = (
 /obj/structure/railing/unbreakable{
 	dir = 1
@@ -15647,6 +15720,7 @@
 /obj/effect/turf_decal/tile/purple/half/contrasted{
 	dir = 1
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/visible,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_edge";
@@ -15840,7 +15914,7 @@
 /area/centcom/holding/cafe/dorms)
 "mCg" = (
 /obj/machinery/atmospherics/pipe/smart/simple/scrubbers/visible,
-/obj/machinery/airalarm/directional/west,
+/obj/structure/fireaxecabinet/directional/west,
 /turf/open/floor/pod/light/edge{
 	dir = 8
 	},
@@ -16187,11 +16261,12 @@
 	},
 /area/centcom/holding/cafe/station/command)
 "mWF" = (
-/obj/machinery/light/no_nightlight/directional/north,
-/turf/open/indestructible/white{
-	icon_state = "white_small"
+/obj/effect/turf_decal/tile/dark_red/opposingcorners,
+/turf/open/indestructible/dark/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "dark_small_checker"
 	},
-/area/centcom/holding/cafe/station/science/robotics/augments)
+/area/centcom/holding/cafe/station/security)
 "mWO" = (
 /obj/effect/turf_decal/siding/wideplating_new/dark{
 	dir = 8
@@ -16305,12 +16380,8 @@
 	},
 /area/centcom/holding/cafe/station/command/meeting_room)
 "nbW" = (
-/obj/machinery/shower/directional/west,
-/obj/structure/sink/directional/south,
-/turf/open/indestructible/hoteltile{
-	icon_state = "titanium_tiled_blue"
-	},
-/area/centcom/holding/cafe/station/commons/toilet)
+/turf/closed/indestructible/reinforced,
+/area/centcom/holding/cafe/station/security)
 "ncW" = (
 /obj/machinery/vending/wardrobe/law_wardrobe/ghost_cafe{
 	shut_up = 1
@@ -16959,9 +17030,12 @@
 /turf/open/floor/plating,
 /area/centcom/interlink)
 "nGt" = (
-/obj/effect/turf_decal/tile/purple/fourcorners,
-/turf/closed/indestructible/reinforced,
-/area/centcom/holding/cafe)
+/obj/machinery/atmospherics/pipe/smart/simple/scrubbers/visible,
+/obj/machinery/airalarm/directional/west,
+/turf/open/floor/pod/light/edge{
+	dir = 8
+	},
+/area/centcom/holding/cafe/station/engineering)
 "nGL" = (
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 1
@@ -17010,12 +17084,12 @@
 	},
 /area/centcom/holding/cafe/station/command/cap/private)
 "nId" = (
-/obj/structure/sink/directional/east,
-/obj/structure/mirror{
-	pixel_y = 32
-	},
 /obj/structure/toilet{
-	pixel_y = 14
+	dir = 4
+	},
+/obj/structure/sink/directional/south,
+/obj/structure/mirror/directional/north{
+	pixel_y = 32
 	},
 /turf/open/indestructible/hoteltile{
 	icon_state = "titanium_tiled_blue"
@@ -17386,6 +17460,7 @@
 	name = "Xenobiology Lab"
 	},
 /obj/structure/disposalpipe/segment,
+/obj/effect/mapping_helpers/airlock/cyclelink_helper,
 /turf/open/indestructible/white{
 	icon_state = "white_half"
 	},
@@ -17516,13 +17591,15 @@
 	},
 /area/centcom/holding/cafe/station/medical)
 "ocS" = (
-/obj/structure/mirror{
+/obj/structure/mirror/directional/north{
 	pixel_y = 32
 	},
 /obj/structure/toilet{
-	pixel_y = 14
+	dir = 4;
+	pixel_y = 8;
+	pixel_x = -6
 	},
-/obj/machinery/light/small/directional/west,
+/obj/structure/sink/directional/south,
 /turf/open/indestructible/hoteltile{
 	icon_state = "titanium_tiled_blue"
 	},
@@ -17912,7 +17989,7 @@
 	},
 /obj/effect/turf_decal/tile/purple/fourcorners,
 /turf/open/floor/iron/white,
-/area/centcom/holding/cafe)
+/area/centcom/holding/cafe/station/science/robotics/augments)
 "otf" = (
 /obj/machinery/atmospherics/components/binary/pump{
 	dir = 8;
@@ -18880,6 +18957,12 @@
 /obj/structure/fans/tiny/invisible,
 /turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/caves)
+"poB" = (
+/obj/machinery/light/small/directional/west{
+	bulb_colour = "#FFC85A"
+	},
+/turf/open/indestructible/hotelwood,
+/area/centcom/holding/cafe/dorms)
 "poR" = (
 /obj/structure/reagent_dispensers/fueltank,
 /turf/open/indestructible/plating,
@@ -18962,13 +19045,6 @@
 /obj/machinery/light/cold/directional/west,
 /turf/open/floor/iron/dark/textured_large,
 /area/cruiser_dock)
-"psY" = (
-/obj/machinery/atmospherics/pipe/smart/simple/scrubbers/visible,
-/obj/structure/fireaxecabinet/directional/west,
-/turf/open/floor/pod/light/edge{
-	dir = 8
-	},
-/area/centcom/holding/cafe/station/engineering)
 "ptt" = (
 /obj/effect/turf_decal/siding/white{
 	dir = 1
@@ -19468,6 +19544,7 @@
 	},
 /obj/structure/fans/tiny/invisible,
 /obj/machinery/door/airlock/maintenance_hatch,
+/obj/structure/cable,
 /turf/open/indestructible{
 	icon_state = "regular_hull"
 	},
@@ -20236,8 +20313,47 @@
 /turf/open/floor/plating,
 /area/centcom/interlink)
 "qpv" = (
-/turf/closed/indestructible/rock,
-/area/centcom/holding/cafe)
+/obj/effect/turf_decal/siding/white{
+	dir = 4
+	},
+/obj/effect/turf_decal/siding/white{
+	dir = 8
+	},
+/obj/effect/turf_decal/trimline/dark/line{
+	alpha = 160;
+	dir = 4
+	},
+/obj/effect/turf_decal/trimline/dark/line{
+	alpha = 160;
+	dir = 8
+	},
+/obj/effect/turf_decal/trimline/yellow/warning{
+	alpha = 255;
+	color = "#CACA4f";
+	dir = 4
+	},
+/obj/effect/turf_decal/trimline/yellow/warning{
+	alpha = 255;
+	color = "#CACA4f";
+	dir = 8
+	},
+/obj/effect/turf_decal/trimline/yellow/mid_joiner{
+	color = "#CACA4f";
+	alpha = 255;
+	dir = 8
+	},
+/obj/effect/turf_decal/trimline/yellow/mid_joiner{
+	color = "#CACA4f";
+	alpha = 255;
+	dir = 4
+	},
+/obj/structure/fans/tiny/invisible,
+/obj/structure/cable,
+/obj/machinery/door/airlock/maintenance_hatch,
+/turf/open/indestructible{
+	icon_state = "regular_hull"
+	},
+/area/centcom/holding/cafe/station/security)
 "qpx" = (
 /obj/structure/chair/comfy/shuttle,
 /obj/machinery/light/directional/north,
@@ -20253,6 +20369,15 @@
 /obj/structure/window/reinforced/spawner/directional/east,
 /turf/open/floor/iron,
 /area/centcom/interlink)
+"qrI" = (
+/obj/machinery/vending/wardrobe/sec_wardrobe/red{
+	shut_up = 1;
+	all_products_free = 1
+	},
+/obj/effect/turf_decal/tile/dark_red/fourcorners,
+/obj/effect/turf_decal/delivery/white,
+/turf/open/indestructible/dark,
+/area/centcom/holding/cafe/station/security)
 "qss" = (
 /obj/effect/turf_decal/tile/blue{
 	dir = 4
@@ -24074,6 +24199,14 @@
 	},
 /turf/open/misc/asteroid/basalt,
 /area/centcom/holding/cafe/ruin/ash_walkers)
+"tNW" = (
+/obj/structure/toilet{
+	dir = 1
+	},
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe/station/security)
 "tPL" = (
 /obj/structure/fans/tiny,
 /obj/effect/turf_decal/siding/wood{
@@ -24100,6 +24233,23 @@
 	dir = 1
 	},
 /area/centcom/holding/cafe/station/commons/toilet)
+"tQJ" = (
+/obj/machinery/door/airlock/security{
+	id_tag = "ghostcafecell1";
+	name = "Cell 1"
+	},
+/obj/effect/turf_decal/delivery/red,
+/obj/effect/turf_decal/siding/wideplating_new/dark{
+	dir = 4
+	},
+/obj/effect/turf_decal/siding/wideplating_new/dark{
+	dir = 8
+	},
+/turf/open/indestructible/dark{
+	icon_state = "dark_half";
+	dir = 1
+	},
+/area/centcom/holding/cafe/station/security)
 "tQM" = (
 /obj/structure/lavaland/ash_walker_fake{
 	pixel_y = 4;
@@ -24556,14 +24706,6 @@
 	},
 /turf/open/floor/plating,
 /area/centcom/interlink)
-"ujP" = (
-/mob/living/basic/slime{
-	name = "rob"
-	},
-/turf/open/indestructible{
-	icon_state = "engine"
-	},
-/area/centcom/holding/cafe/station/science/robotics/augments)
 "ujQ" = (
 /obj/item/toy/plush/lizard_plushie/green{
 	name = "Breaks-The-Maps"
@@ -24587,7 +24729,8 @@
 	},
 /obj/machinery/vending/wardrobe/bar_wardrobe/ghost_cafe{
 	shut_up = 1;
-	pixel_y = 32
+	pixel_y = 32;
+	density = 0
 	},
 /obj/structure/disposalpipe/segment{
 	dir = 4
@@ -24633,6 +24776,11 @@
 	},
 /turf/open/floor/iron,
 /area/centcom/interlink)
+"uma" = (
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe/station/security)
 "umR" = (
 /obj/machinery/chem_dispenser/mutagensaltpeter,
 /turf/open/indestructible/dark,
@@ -24753,6 +24901,19 @@
 	},
 /turf/open/floor/iron,
 /area/centcom/interlink)
+"usT" = (
+/obj/machinery/button/door/directional/west{
+	id = "ghostcafecell1";
+	name = "Prison Cell 1 Lock";
+	normaldoorcontrol = 1;
+	specialfunctions = 4
+	},
+/obj/structure/closet/secure_closet/brig,
+/obj/effect/turf_decal/delivery/red,
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe/station/security)
 "usW" = (
 /obj/structure/mirror{
 	pixel_y = 32
@@ -24981,6 +25142,12 @@
 	},
 /turf/open/floor/carpet/black,
 /area/centcom/interlink)
+"uBA" = (
+/obj/structure/sink/directional/east,
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe/station/security)
 "uCt" = (
 /obj/structure/stone_tile/block/cracked,
 /obj/structure/stone_tile/surrounding_tile/cracked{
@@ -25852,6 +26019,20 @@
 	},
 /turf/open/misc/beach/sand,
 /area/centcom/holding/cafe/beach)
+"vhh" = (
+/obj/structure/mirror/directional/north{
+	pixel_y = 32
+	},
+/obj/structure/sink/directional/south,
+/obj/structure/toilet{
+	dir = 4;
+	pixel_y = 8;
+	pixel_x = -6
+	},
+/turf/open/indestructible/hoteltile{
+	icon_state = "titanium_tiled_blue"
+	},
+/area/centcom/holding/cafe/station/commons/toilet)
 "vhm" = (
 /obj/effect/turf_decal/siding/wood{
 	dir = 5
@@ -26232,6 +26413,7 @@
 	},
 /obj/structure/fans/tiny/invisible,
 /obj/machinery/door/airlock/maintenance_hatch,
+/obj/structure/cable,
 /turf/open/indestructible{
 	icon_state = "regular_hull"
 	},
@@ -26747,8 +26929,11 @@
 /turf/open/floor/iron,
 /area/centcom/interlink)
 "vLn" = (
-/turf/closed/indestructible/alien/nodiagonal,
-/area/centcom/holding/cafe/ruin/caves)
+/obj/effect/turf_decal/bot,
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe)
 "vLt" = (
 /obj/structure/closet/crate/cardboard/tiziran,
 /obj/item/storage/box/foodpack/tizira/roll,
@@ -27404,9 +27589,7 @@
 /area/centcom/interlink)
 "wnb" = (
 /obj/effect/turf_decal/tile/bar/opposingcorners,
-/obj/machinery/jukebox{
-	pixel_x = -2
-	},
+/obj/machinery/jukebox/no_access,
 /turf/open/indestructible/dark/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "dark_small_checker"
@@ -27527,6 +27710,11 @@
 	icon_state = "small_corner"
 	},
 /area/centcom/holding/cafe)
+"wrj" = (
+/obj/machinery/light/small/red/directional/north,
+/obj/structure/cable,
+/turf/open/floor/catwalk_floor/iron_dark,
+/area/centcom/holding/cafe/station/maint)
 "wsu" = (
 /obj/structure/table/wood,
 /obj/item/folder/red{
@@ -27775,6 +27963,12 @@
 	},
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
+"wGp" = (
+/obj/machinery/light/directional/east,
+/turf/open/indestructible{
+	icon_state = "small"
+	},
+/area/centcom/holding/cafe/station/security)
 "wGV" = (
 /obj/effect/turf_decal/delivery/blue,
 /obj/structure/showcase/fake_cafe_console{
@@ -28471,7 +28665,7 @@
 /area/centcom/central_command_areas/admin/interlink)
 "xpj" = (
 /obj/machinery/atmospherics/components/unary/thermomachine/freezer/on{
-	dir = 4;
+	dir = 0;
 	name = "euthanization chamber freezer"
 	},
 /obj/effect/turf_decal/tile/purple/fourcorners,
@@ -73054,7 +73248,7 @@ aFP
 aMJ
 aBr
 aFP
-aFP
+huS
 aFP
 aFP
 aFP
@@ -73870,7 +74064,7 @@ azV
 eMm
 eMm
 eMm
-vLn
+eMm
 gjG
 lrm
 qPZ
@@ -76155,7 +76349,7 @@ aFP
 auf
 hDd
 lky
-lrq
+poB
 lrq
 lrq
 hDd
@@ -81037,7 +81231,7 @@ eDJ
 eDJ
 eDJ
 esk
-nbW
+rnV
 hDd
 qBF
 ski
@@ -82843,7 +83037,7 @@ oTC
 vUV
 kwD
 hDd
-nId
+vhh
 uDe
 uKZ
 bCX
@@ -85666,7 +85860,7 @@ qvV
 cHl
 tyI
 vpZ
-tyI
+vLn
 sCV
 avt
 amk
@@ -85682,8 +85876,8 @@ eHL
 bvw
 aRd
 lmG
+nGt
 mCg
-psY
 lWc
 jIu
 ker
@@ -86171,7 +86365,7 @@ uCR
 nVu
 fPU
 fPU
-nVu
+luN
 eXt
 iye
 gUn
@@ -86686,7 +86880,7 @@ gVj
 gVj
 gVj
 gVj
-mWF
+lMP
 lXw
 doK
 otd
@@ -86942,7 +87136,7 @@ jmk
 gVj
 pmm
 jLb
-lMP
+eCq
 lMP
 lXw
 rvO
@@ -87422,7 +87616,7 @@ vIB
 mDy
 wsI
 tPL
-afE
+ukG
 eGx
 pbG
 wnS
@@ -87716,7 +87910,7 @@ ubY
 wxY
 tnA
 dEh
-ujP
+afE
 kQP
 gVj
 dYF
@@ -89508,7 +89702,7 @@ jrP
 acD
 cyf
 uMr
-nGt
+gVj
 gVj
 nSw
 oWv
@@ -89731,8 +89925,8 @@ hHn
 kNq
 kNq
 jPs
-vQt
-vQt
+oPH
+oPH
 pNx
 fyM
 fnt
@@ -89989,7 +90183,7 @@ cMP
 eZQ
 jxc
 vQt
-vQt
+oPH
 vhU
 fyM
 ukO
@@ -90246,7 +90440,7 @@ iKu
 iKu
 iKu
 sPr
-afZ
+wrj
 vhU
 fyM
 nUD
@@ -90503,7 +90697,7 @@ qJU
 tQc
 uKi
 sPr
-vQt
+oPH
 vhU
 juW
 gWF
@@ -90760,7 +90954,7 @@ fOz
 jhT
 dLO
 sPr
-vQt
+oPH
 vhU
 vhU
 vhU
@@ -91017,7 +91211,7 @@ qHj
 wog
 nbH
 sPr
-vQt
+oPH
 vTT
 hFp
 hFp
@@ -91274,7 +91468,7 @@ xfK
 iKu
 iKu
 sPr
-vQt
+oPH
 vtY
 aGL
 hoV
@@ -91528,9 +91722,9 @@ iKu
 iKu
 iKu
 pES
-pES
-qpv
-qpv
+nbW
+nbW
+nbW
 qpv
 vTT
 eDe
@@ -91785,10 +91979,10 @@ nIa
 lYy
 iKu
 aaa
-aaa
-qpv
-qpv
-qpv
+nbW
+qrI
+cdc
+mWF
 vTT
 pWv
 eDe
@@ -92042,10 +92236,10 @@ nuH
 eEW
 iDN
 aaa
-aaa
-aaa
-qpv
-qpv
+nbW
+iUy
+mWF
+mWF
 vTT
 eDe
 fQU
@@ -92299,10 +92493,10 @@ hKs
 iDN
 iDN
 aaa
-aaa
-aaa
-qpv
-qpv
+nbW
+nbW
+tQJ
+nbW
 vTT
 aGL
 svN
@@ -92556,10 +92750,10 @@ iDN
 iDN
 aaa
 aaa
-aaa
-aaa
-aaa
-qpv
+nbW
+usT
+uma
+uBA
 vTT
 vTT
 lkc
@@ -92813,11 +93007,11 @@ aaa
 aaa
 aaa
 aaa
-aaa
-aaa
-aaa
-qpv
-qpv
+nbW
+hmm
+wGp
+tNW
+gVj
 vTT
 ahR
 kVi
@@ -93070,11 +93264,11 @@ aaa
 aaa
 aaa
 aaa
-aaa
-aaa
-aaa
-aaa
-qpv
+nbW
+nbW
+nbW
+nbW
+gVj
 vTT
 vTT
 vTT
