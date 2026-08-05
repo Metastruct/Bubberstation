@@ -17,6 +17,10 @@
 		. += limb_id == "digitigrade" ? ("digitigrade_1_" + body_zone) : body_zone
 		. += "-[key]_[markings[key][MARKING_INDEX_COLOR]]_[markings[key][MARKING_INDEX_EMISSIVE]]"
 
+	for(var/key in aux_zone_markings)
+		. += aux_zone
+		. += "-[key]_[aux_zone_markings[key][MARKING_INDEX_COLOR]]_[aux_zone_markings[key][MARKING_INDEX_EMISSIVE]]"
+
 	return .
 
 /**
