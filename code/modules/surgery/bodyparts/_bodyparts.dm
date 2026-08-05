@@ -1225,13 +1225,20 @@
 		limb_alpha = human_owner.dna.features[limb_alpha_key]
 	// BUBBER EDIT ADDITION END
 
+	// META EDIT - CHANGE - START - fix aux_markings
 	if(body_zone in owner_species.body_markings)
 		markings = LAZYCOPY(owner_species.body_markings[body_zone])
-		if(aux_zone && (aux_zone in owner_species.body_markings))
-			aux_zone_markings = LAZYCOPY(owner_species.body_markings[aux_zone])
 		markings_alpha = owner_species.markings_alpha
 	else
 		markings = list()
+
+	if(aux_zone)
+		if(aux_zone in owner_species.body_markings)
+			aux_zone_markings = LAZYCOPY(owner_species.body_markings[aux_zone])
+			markings_alpha = owner_species.markings_alpha
+		else
+			aux_zone_markings = list()
+	// META EDIT - CHANGE - END
 	// SKYRAT EDIT END
 	return TRUE
 
