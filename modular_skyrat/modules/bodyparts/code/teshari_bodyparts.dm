@@ -52,9 +52,13 @@
 		return .
 
 	var/matrix/hair_matrix = matrix(TESHARI_HAIR_SCALE_X, 0, TESHARI_HAIR_SHIFT_X, 0, 1, 0)
-	for(var/hair_overlay in .) // untyped - list mixes /image (hair) and /mutable_appearance (gradient)
+	// list mixes /image (hair itself) and /mutable_appearance (gradient) - neither type covers the other, so two passes
+	for(var/image/hair_overlay in .)
 		hair_overlay.transform = hair_matrix
 		hair_overlay.appearance_flags |= PIXEL_SCALE
+	for(var/mutable_appearance/gradient_overlay in .)
+		gradient_overlay.transform = hair_matrix
+		gradient_overlay.appearance_flags |= PIXEL_SCALE
 	return .
 
 
