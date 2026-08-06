@@ -4,7 +4,7 @@
 #define TESHARI_BRUTE_MODIFIER 1.2
 
 // Generic hairstyles are drawn centered on an odd-width head (has a middle) teshari's head is even-width
-// use these to adjust how it actually looks in-game
+// this seems to work the best
 #define TESHARI_HAIR_SCALE_X 0.95
 #define TESHARI_HAIR_SHIFT_X (0.5 * TESHARI_HAIR_SCALE_X)
 
@@ -37,12 +37,11 @@
 	worn_face_offset = new(
 		attached_part = src,
 		feature_key = OFFSET_FACE,
-		offset_x = list("north" = 1, "south" = 1, "east" = 1, "west" = -1, "northwest" = -1, "southwest" = -1, "northeast" = 1, "southeast" = 1),
 		offset_y = list("north" = -5, "south" = -5, "east" = -5, "west" = -5),
 	)
 	return ..()
 
-// Squeezes + recenters generic hair to close the seam from the odd/even head-width mismatch.
+// transforms generic hair to close the "seam" in the middle from the odd/even head-width mismatch.
 /obj/item/bodypart/head/mutant/teshari/get_hair_overlays(dropped)
 	. = ..()
 	var/obj/item/organ/brain/brain = locate() in src
@@ -52,7 +51,6 @@
 		return .
 
 	var/matrix/hair_matrix = matrix(TESHARI_HAIR_SCALE_X, 0, TESHARI_HAIR_SHIFT_X, 0, 1, 0)
-	// list mixes /image (hair itself) and /mutable_appearance (gradient) - neither type covers the other, so two passes
 	for(var/image/hair_overlay in .)
 		hair_overlay.transform = hair_matrix
 		hair_overlay.appearance_flags |= PIXEL_SCALE
