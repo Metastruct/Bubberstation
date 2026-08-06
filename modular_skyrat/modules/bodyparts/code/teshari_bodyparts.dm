@@ -3,6 +3,11 @@
 #define TESHARI_BURN_MODIFIER 1.25 // They take more damage from practically everything
 #define TESHARI_BRUTE_MODIFIER 1.2
 
+// Generic hairstyles are drawn centered on an odd-width head (has a middle) teshari's head is even-width
+// use these to adjust how it actually looks in-game
+#define TESHARI_HAIR_SCALE_X 0.95
+#define TESHARI_HAIR_SHIFT_X (0.5 * TESHARI_HAIR_SCALE_X)
+
 // teshari!
 /obj/item/bodypart/head/mutant/teshari
 	icon_greyscale = BODYPART_ICON_TESHARI
@@ -35,6 +40,21 @@
 		offset_y = list("north" = -5, "south" = -5, "east" = -5, "west" = -5),
 	)
 	return ..()
+
+// Squeezes + recenters generic hair to close the seam from the odd/even head-width mismatch.
+/obj/item/bodypart/head/mutant/teshari/get_hair_overlays(dropped)
+	. = ..()
+	var/obj/item/organ/brain/brain = locate() in src
+	if(QDELETED(brain) && (head_flags & HEAD_DEBRAIN))
+		return .
+	if(copytext(hairstyle, 1, 8) == "Teshari") // skip existing teshari headstyles
+		return .
+
+	var/matrix/hair_matrix = matrix(TESHARI_HAIR_SCALE_X, 0, TESHARI_HAIR_SHIFT_X, 0, 1, 0)
+	for(var/image/hair_overlay as anything in .)
+		hair_overlay.transform = hair_matrix
+		hair_overlay.appearance_flags |= PIXEL_SCALE
+	return .
 
 
 /obj/item/bodypart/chest/mutant/teshari
@@ -132,3 +152,5 @@
 #undef TESHARI_PUNCH_HIGH
 #undef TESHARI_BURN_MODIFIER
 #undef TESHARI_BRUTE_MODIFIER
+#undef TESHARI_HAIR_SCALE_X
+#undef TESHARI_HAIR_SHIFT_X
