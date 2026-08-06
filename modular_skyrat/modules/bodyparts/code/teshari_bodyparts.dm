@@ -37,6 +37,7 @@
 	worn_face_offset = new(
 		attached_part = src,
 		feature_key = OFFSET_FACE,
+		offset_x = list("north" = 1, "south" = 1, "east" = 1, "west" = -1, "northwest" = -1, "southwest" = -1, "northeast" = 1, "southeast" = 1),
 		offset_y = list("north" = -5, "south" = -5, "east" = -5, "west" = -5),
 	)
 	return ..()
@@ -51,7 +52,7 @@
 		return .
 
 	var/matrix/hair_matrix = matrix(TESHARI_HAIR_SCALE_X, 0, TESHARI_HAIR_SHIFT_X, 0, 1, 0)
-	for(var/image/hair_overlay as anything in .)
+	for(var/hair_overlay in .) // untyped - list mixes /image (hair) and /mutable_appearance (gradient)
 		hair_overlay.transform = hair_matrix
 		hair_overlay.appearance_flags |= PIXEL_SCALE
 	return .
