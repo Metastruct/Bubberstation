@@ -96,6 +96,7 @@
 				/obj/item/toy/plush/slimeplushie = 3,
 				/obj/item/toy/plush/snakeplushie = 3,
 				/obj/item/toy/plush/sunny_plush = 3,
+				/obj/item/toy/plush/tenn = 3,
 				/obj/item/toy/plush/tian_plush = 3,
 				/obj/item/toy/plush/tiredtesh = 3,
 				/obj/item/toy/plush/tunafish = 3,

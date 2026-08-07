@@ -1081,3 +1081,11 @@
 	. = proxy.attack(target, user)
 	playsound(user, 'modular_skyrat/modules/emotes/sound/emotes/dwoop.ogg', 50, TRUE)
 	qdel(proxy)
+
+//Plushie of Tenn
+/obj/item/toy/plush/tenn
+	name = "gray elephant plush"
+	desc = "Pour milk on it and slam it against the wall! Not actually an elephant."
+	icon = 'modular_zubbers/icons/obj/toys/plushes.dmi'
+	icon_state = "tenn"
+	gender = MALE
