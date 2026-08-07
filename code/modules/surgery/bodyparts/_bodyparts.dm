@@ -1463,6 +1463,16 @@
 			var/mutable_appearance/accessory_overlay
 			var/mutable_appearance/emissive
 			accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[render_limb_string][gender_modifier]", -BODYPARTS_LAYER)
+			// META EDIT - ADDITION - START - TESHARI_MARKING_OFFSET
+			if(limb_id == SPECIES_TESHARI && copytext(body_marking.icon_state, 1, 8) != "teshari")
+				if(body_zone == BODY_ZONE_HEAD)
+					accessory_overlay.pixel_z -= 5
+					// same transform as teshari hair (see teshari_bodyparts.dm)
+					accessory_overlay.transform = matrix(0.95, 0, 0.5 * 0.95, 0, 1, 0)
+					accessory_overlay.appearance_flags |= PIXEL_SCALE
+				else if(body_zone == BODY_ZONE_L_ARM || body_zone == BODY_ZONE_R_ARM)
+					accessory_overlay.pixel_z -= 5
+			// META EDIT - ADDITION - END
 			accessory_overlay.alpha = markings_alpha
 			if(markings[key][2])
 				emissive = emissive_appearance_copy(accessory_overlay, offset_spokesman)
@@ -1485,6 +1495,10 @@
 				var/mutable_appearance/emissive
 				var/mutable_appearance/accessory_overlay
 				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[render_limb_string]", -aux_layer)
+				// META EDIT - ADDITION - START - TESHARI_MARKING_OFFSET
+				if(limb_id == SPECIES_TESHARI && copytext(body_marking.icon_state, 1, 8) != "teshari")
+					accessory_overlay.pixel_z -= 5
+				// META EDIT - ADDITION - END
 				accessory_overlay.alpha = markings_alpha
 				if (aux_zone_markings[key][2])
 					emissive = emissive_appearance_copy(accessory_overlay, offset_spokesman)
