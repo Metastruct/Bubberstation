@@ -565,6 +565,9 @@ MAXFINE 2000
 ## Do keep in mind that this flag will not affect individual player's preferences: if they opt-out on your server, it will never play for them.
 DISALLOW_TITLE_MUSIC
 
+## If enabled, prevents falling back to the default title music (sound/music/lobby_music) when config/title_music/sounds is empty. Has no effect if a custom title music track is configured.
+#DISALLOW_DEFAULT_TITLE_MUSIC
+
 ## If enabled, then when the database is disabled, all players will get tutorials.
 ## This is primarily useful for developing tutorials. If you have a proper DB setup, you
 ## don't need (or want) this.

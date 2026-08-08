@@ -2,9 +2,20 @@
 	var/list/job_estimation_list = list()
 	/// Music played only while the server is still loading (current_state == GAME_STATE_STARTUP). Optional - if no loading tracks are configured, login_music plays immediately as before.
 	var/loading_music
+	/// TRUE if login_music was picked from the fallback (sound/music/lobby_music) rather than an admin-configured config/title_music/sounds track.
+	var/title_music_is_default = TRUE
 
 /datum/controller/subsystem/ticker/Initialize()
 	. = ..()
+
+	var/list/provisional_custom_title_music = flist("[global.config.directory]/title_music/sounds/")
+	for(var/S in provisional_custom_title_music)
+		if(LOWER_TEXT(S) == "exclude")
+			continue
+		if(!IS_SOUND_FILE(S))
+			continue
+		title_music_is_default = FALSE
+		break
 
 	var/list/provisional_loading_music = flist("[global.config.directory]/loading_music/sounds/")
 	var/list/music = list()
