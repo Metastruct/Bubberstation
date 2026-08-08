@@ -9411,6 +9411,7 @@
 #include "modular_zubbers\code\game\objects\structures\crates_lockers\closets\secure\security.dm"
 #include "modular_zubbers\code\game\objects\structures\flags\signs_flags.dm"
 #include "modular_zubbers\code\game\objects\structures\plaques\static_plaques.dm"
+#include "modular_zubbers\code\game\sound\sound.dm"
 #include "modular_zubbers\code\game\traits\neutral.dm"
 #include "modular_zubbers\code\game\turfs\change_turf.dm"
 #include "modular_zubbers\code\game\turfs\closed\lunar_cave.dm"
