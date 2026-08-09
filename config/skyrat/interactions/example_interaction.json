@@ -4,62 +4,11 @@
 	"usage": "usage",
 	"category": "hide",
 	"distance_allowed": 0,
-	"cooldown": 5,
 	"message": [
-		"%USER% pokes %TARGET%!"
+		"message1",
+		"message2"
 	],
-	"zone_overrides": {
-		"head": {
-			"message": [
-				"%USER% pokes %TARGET% in the head!"
-			],
-			"user_messages": [
-				"You poke %TARGET% in the head!"
-			],
-			"target_messages": [
-				"%USER% pokes you in the head!"
-			],
-			"target_status_effects": [
-				{
-					"type": "/datum/status_effect/dizziness",
-					"duration": 3,
-					"chance": 50
-				}
-			]
-		},
-		"l_arm": {
-			"message": [
-				"%USER% pokes %TARGET%'s arm!"
-			],
-			"decals": [
-				{
-					"type": "/obj/effect/decal/cleanable/glitter",
-					"spawn_on": "user",
-					"color": "#ff69b4",
-					"chance": 25
-				}
-			]
-		},
-		"r_arm": {
-			"message": [
-				"%USER% pokes %TARGET%'s arm!"
-			]
-		},
-		"mouth": {
-			"message": [
-				"%USER% pokes %TARGET% on the lips!"
-			],
-			"target_force_say": 1,
-			"target_force_say_phrases": [
-				"mmph!",
-				"shh!"
-			],
-			"target_force_say_chance": 30,
-			"sound_possible": [
-				"soundpath_smooch"
-			]
-		}
-	},
+	"sound_use": 0,
 	"sound_possible": [
 		"soundpath1",
 		"soundpath2"
@@ -69,30 +18,12 @@
 		"self_hand",
 		"target_hand"
 	],
-	"color": "blue",
-	"user_messages": [
-		"You poke %TARGET%!"
-	],
-	"user_required_parts": [],
-	"user_arousal": 0,
-	"user_pleasure": 0,
-	"user_pain": 0,
-	"user_force_say": 0,
-	"user_force_say_phrases": [],
-	"user_force_say_chance": 100,
-	"user_status_effects": [],
-	"target_messages": [
-		"%USER% pokes you!"
-	],
-	"target_required_parts": [],
-	"target_arousal": 0,
-	"target_pleasure": 0,
-	"target_pain": 0,
-	"target_force_say": 0,
-	"target_force_say_phrases": [],
-	"target_force_say_chance": 100,
-	"target_status_effects": [],
-	"decals": [],
-	"lewd": 0,
-	"sexuality": ""
+	"target_status_effects": [
+		{
+			"type": "/datum/status_effect/example",
+			"duration": 60,
+			"chance": 100,
+			"tether": true
+		}
+	]
 }
