@@ -4,6 +4,7 @@
 	"usage": "usage",
 	"category": "hide",
 	"distance_allowed": 0,
+	"cooldown": 5,
 	"message": [
 		"%USER% pokes %TARGET%!"
 	],
@@ -53,10 +54,12 @@
 				"mmph!",
 				"shh!"
 			],
-			"target_force_say_chance": 30
+			"target_force_say_chance": 30,
+			"sound_possible": [
+				"soundpath_smooch"
+			]
 		}
 	},
-	"sound_use": 0,
 	"sound_possible": [
 		"soundpath1",
 		"soundpath2"

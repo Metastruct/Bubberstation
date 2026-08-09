@@ -8,6 +8,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/description = "broken"
 	/// If it can be done at a distance.
 	var/distance_allowed = FALSE
+	/// How long (in deciseconds, to match world.time) before this specific interaction can be used again. Defaults
+	/// to INTERACTION_COOLDOWN; override to something longer for interactions with strong effects (status effects,
+	/// decals) that shouldn't be spammable. Stored in deciseconds, but the JSON field ("cooldown") is in whole seconds.
+	var/cooldown = INTERACTION_COOLDOWN
 	/// A list of possible messages displayed loaded by the JSON.
 	var/list/message = list()
 	/// A list of possible messages displayed directly to the USER.
@@ -18,8 +22,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/category = INTERACTION_CAT_HIDE
 	/// Defines how we interact with ourselves or others.
 	var/usage = INTERACTION_OTHER
-	/// Does this interaction play a sound?
-	var/sound_use = FALSE
 	/// If it plays a sound, how far does it travel?
 	var/sound_range = 1
 	/// Stores the sound for later.
@@ -67,10 +69,11 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// list that may set any of: "message", "user_messages", "target_messages", "user_pleasure", "user_arousal",
 	/// "user_pain", "target_pleasure", "target_arousal", "target_pain", "target_force_say", "target_force_say_phrases",
 	/// "target_force_say_chance", "user_force_say", "user_force_say_phrases", "user_force_say_chance",
-	/// "target_status_effects", "user_status_effects", "decals". Any key a zone's entry doesn't set falls back
-	/// to the matching base field.
+	/// "target_status_effects", "user_status_effects", "decals", "sound_possible". Any key a zone's entry doesn't
+	/// set falls back to the matching base field.
 	var/list/zone_overrides = list()
-	/// A list of possible sounds.
+	/// A list of possible sounds. A sound is played whenever this ends up non-empty (after zone_overrides are
+	/// applied) - there's no separate on/off flag, an interaction plays a sound simply by having one defined.
 	var/list/sound_possible = list()
 	/// What requirements does this interaction have? See defines.
 	var/list/interaction_requires = list()
@@ -229,14 +232,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			target_msg = replacetext(target_msg, "%USER%", "Unknown")
 		target_msg = replacetext(replacetext(target_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
 		to_chat(target, target_msg)
-	if(sound_use)
-		if(!sound_possible)
-			message_admins("Interaction has sound_use set to TRUE but does not set sound! '[name]'")
-			return
-		if(!islist(sound_possible) && istext(sound_possible))
-			message_admins("Deprecated sound handling for '[name]'. Correct format is a list with one entry. This message will only show once.")
-			sound_possible = list(sound_possible)
-		sound_cache = pick(sound_possible)
+	if(!islist(sound_possible) && istext(sound_possible))
+		message_admins("Deprecated sound handling for '[name]'. Correct format is a list with one entry. This message will only show once.")
+		sound_possible = list(sound_possible)
+	var/list/sound_pool = get_zone_pool(zone, "sound_possible", sound_possible)
+	if(sound_pool.len)
+		sound_cache = pick(sound_pool)
 		// playsound()'s range is always SOUND_RANGE (15) + extrarange, so we offset by -SOUND_RANGE to make
 		// extrarange effectively equal to the JSON-defined sound_range instead of stacking on top of it.
 		playsound(source = user, soundin = sound_cache, vol = 50, vary = FALSE, extrarange = sound_range - SOUND_RANGE, ignore_walls = FALSE, volume_preference = /datum/preference/numeric/volume/sound_emote)
@@ -288,14 +289,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	name = sanitize_text(json["name"])
 	description = sanitize_text(json["description"])
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
+	cooldown = sanitize_integer(json["cooldown"], 0, 600, INTERACTION_COOLDOWN / 10) SECONDS
 	message = sanitize_islist(json["message"], list("json error"))
 	zone_overrides = sanitize_islist(json["zone_overrides"], list())
 	decals = sanitize_islist(json["decals"], list())
 	category = sanitize_text(json["category"])
 	usage = sanitize_text(json["usage"])
-	sound_use = sanitize_integer(json["sound_use"], 0, 1, 0)
 	sound_range = sanitize_integer(json["sound_range"], 1, 7, 1)
-	sound_possible = sanitize_islist(json["sound_possible"], list("json error"))
+	sound_possible = sanitize_islist(json["sound_possible"], list())
 	interaction_requires = sanitize_islist(json["interaction_requires"], list())
 	color = sanitize_text(json["color"])
 
@@ -329,12 +330,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"name" = name,
 		"description" = description,
 		"distance_allowed" = distance_allowed,
+		"cooldown" = cooldown / 10,
 		"message" = message,
 		"zone_overrides" = zone_overrides,
 		"decals" = decals,
 		"category" = category,
 		"usage" = usage,
-		"sound_use" = sound_use,
 		"sound_range" = sound_range,
 		"sound_possible" = sound_possible,
 		"interaction_requires" = interaction_requires,
@@ -408,14 +409,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		var/datum/interaction/interaction = new()
 
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
+		interaction.cooldown = sanitize_integer(ijson["cooldown"], 0, 600, INTERACTION_COOLDOWN / 10) SECONDS
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))
 		interaction.zone_overrides = sanitize_islist(ijson["zone_overrides"], list())
 		interaction.decals = sanitize_islist(ijson["decals"], list())
 		interaction.category = sanitize_text(ijson["category"])
 		interaction.usage = sanitize_text(ijson["usage"])
-		interaction.sound_use = sanitize_integer(ijson["sound_use"], 0, 1, 0)
 		interaction.sound_range = sanitize_integer(ijson["sound_range"], 1, 7, 1)
-		interaction.sound_possible = sanitize_islist(ijson["sound_possible"], list("json error"))
+		interaction.sound_possible = sanitize_islist(ijson["sound_possible"], list())
 		interaction.interaction_requires = sanitize_islist(ijson["interaction_requires"], list())
 		interaction.color = sanitize_text(ijson["color"])
 

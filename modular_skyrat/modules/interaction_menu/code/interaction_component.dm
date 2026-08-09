@@ -182,17 +182,18 @@
 
 	if(params["interaction"])
 		var/interaction_id = params["interaction"]
-		if(GLOB.interaction_instances[interaction_id])
+		var/datum/interaction/performed = GLOB.interaction_instances[interaction_id]
+		if(performed)
 			var/mob/living/carbon/human/user = locate(params["userref"])
-			if(!can_interact(GLOB.interaction_instances[interaction_id], user))
+			if(!can_interact(performed, user))
 				return FALSE
 			if(body_relay && !can_see(user, self))
-				GLOB.interaction_instances[interaction_id].act(user, locate(params["selfref"]), body_relay)
+				performed.act(user, locate(params["selfref"]), body_relay)
 			else
-				GLOB.interaction_instances[interaction_id].act(user, locate(params["selfref"]))
+				performed.act(user, locate(params["selfref"]))
 			var/datum/component/interactable/interaction_component = user.GetComponent(/datum/component/interactable)
 			interaction_component.interact_last = world.time
-			interact_next = interaction_component.interact_last + INTERACTION_COOLDOWN
+			interact_next = interaction_component.interact_last + performed.cooldown
 			interaction_component.interact_next = interact_next
 			return TRUE
 
