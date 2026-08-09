@@ -112,6 +112,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			if(INTERACTION_REQUIRE_TARGET_HAND)
 				if(!target.get_active_hand())
 					return FALSE
+			if(INTERACTION_REQUIRE_USER_HORNS)
+				if(!user.get_organ_slot(ORGAN_SLOT_EXTERNAL_HORNS))
+					return FALSE
+			if(INTERACTION_REQUIRE_USER_TAIL)
+				if(!user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL))
+					return FALSE
 			else
 				CRASH("Unimplemented interaction requirement '[requirement]'")
 	return TRUE
