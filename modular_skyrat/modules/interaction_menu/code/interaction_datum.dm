@@ -18,6 +18,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/list/user_messages = list()
 	/// A list of possible messages displayed directly to the TARGET.
 	var/list/target_messages = list()
+	/// A list of possible messages displayed privately when this interaction is used on yourself (target ==
+	/// user). Replaces user_messages/target_messages in that case, since self-targeting should only send one
+	/// private message. Falls back to user_messages if empty.
+	var/list/self_messages = list()
 	/// What category this interaction will fall under in the menu.
 	var/category = INTERACTION_CAT_HIDE
 	/// Defines how we interact with ourselves or others.
@@ -44,6 +48,11 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/user_arousal = 0
 	/// The amount of pain the user receives.
 	var/user_pain = 0
+	/// Units of blood the target loses on use, via /mob/living/proc/bleed(). Unlike pleasure/arousal/pain,
+	/// this applies regardless of `lewd`, since it's a combat effect rather than a romance one.
+	var/target_bleed = 0
+	/// Units of blood the user loses on use. Same notes as `target_bleed`.
+	var/user_bleed = 0
 	/// If TRUE, interrupts whatever the target is currently typing and forces them to blurt it out (see /mob/living/carbon/human/proc/force_say).
 	var/target_force_say = FALSE
 	/// Suffixes to blurt out when `target_force_say` triggers. Empty means the default hurt phrases ("AUGH!" etc) are used.
@@ -66,14 +75,21 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// Spawned via /turf/proc/spawn_unique_cleanable, so they're mergeable/mopable like any other cleanable decal.
 	var/list/decals = list()
 	/// Optional per-zone overrides, keyed by BODY_ZONE_* (mob's zone_selected). Each entry is an associative
-	/// list that may set any of: "message", "user_messages", "target_messages", "user_pleasure", "user_arousal",
-	/// "user_pain", "target_pleasure", "target_arousal", "target_pain", "target_force_say", "target_force_say_phrases",
-	/// "target_force_say_chance", "user_force_say", "user_force_say_phrases", "user_force_say_chance",
-	/// "target_status_effects", "user_status_effects", "decals", "sound_possible". Any key a zone's entry doesn't
-	/// set falls back to the matching base field.
+	/// list that may set any of: "message", "self_messages", "user_messages", "target_messages",
+	/// "user_pleasure", "user_arousal", "user_pain", "target_pleasure", "target_arousal", "target_pain",
+	/// "target_bleed", "user_bleed", "target_force_say", "target_force_say_phrases", "target_force_say_chance",
+	/// "user_force_say", "user_force_say_phrases", "user_force_say_chance", "target_status_effects",
+	/// "user_status_effects", "decals", "sound_possible". Any key a zone's entry doesn't set falls back to the
+	/// matching base field. A zone can also be suffixed with "_self" (target == user), "_combat" (user has
+	/// combat mode on), or "_prone" (target is lying down), e.g. "mouth_self", "mouth_combat", "head_prone".
+	/// "_combat" and "_prone" can combine as "_combat_prone"; "_self" always takes priority on its own instead
+	/// of combining with them. For interactions with no single natural zone (e.g. a rougher variant of an act
+	/// that isn't tied to any particular BODY_ZONE), the same suffixes also work as standalone keys with no
+	/// zone prefix ("_self", "_combat", "_prone", "_combat_prone"), applying regardless of what zone happens
+	/// to be selected. See get_zone_data() for the exact fallback order.
 	var/list/zone_overrides = list()
-	/// A list of possible sounds. A sound is played whenever this ends up non-empty (after zone_overrides are
-	/// applied) - there's no separate on/off flag, an interaction plays a sound simply by having one defined.
+	/// A list of possible sounds. There's no separate on/off flag; a sound plays whenever this ends up
+	/// non-empty after zone_overrides are applied.
 	var/list/sound_possible = list()
 	/// What requirements does this interaction have? See defines.
 	var/list/interaction_requires = list()
@@ -122,10 +138,59 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 				CRASH("Unimplemented interaction requirement '[requirement]'")
 	return TRUE
 
-/// Returns `zone`'s override sub-list from `zone_overrides`, or null if it has none.
-/datum/interaction/proc/get_zone_data(zone)
+/**
+ * Returns `zone`'s override sub-list from `zone_overrides`, or null if it has none. `combat_mode` and
+ * `prone` (target lying down) each optionally suffix the zone key with "_combat"/"_prone" (e.g.
+ * "mouth_combat", "head_prone"). `is_self` (target == user) is checked first, above everything else,
+ * since self-targeting is a fundamentally different framing than a combat/prone intensity change.
+ * Checked most specific first:
+ *   1. "[zone]_self"
+ *   2. "_self" (self-targeting, zone-independent)
+ *   3. "[zone]_combat_prone" (both modifiers, tied to this specific zone)
+ *   4. "[zone]_combat"
+ *   5. "[zone]_prone"
+ *   6. "_combat_prone" (both modifiers, zone-independent, e.g. "Ass fuck" using "_combat" for a rougher
+ *      variant regardless of what zone happens to be selected)
+ *   7. "_combat"
+ *   8. "_prone"
+ *   9. the plain "[zone]" entry
+ * Only defined keys need to exist. Anything not defined just falls through to the next, less specific
+ * match, and ultimately to the interaction's base fields if nothing at all is defined.
+ */
+/datum/interaction/proc/get_zone_data(zone, combat_mode, prone, is_self)
 	if(!zone_overrides?.len)
 		return null
+	if(is_self)
+		var/list/zone_self_data = zone_overrides["[zone]_self"]
+		if(islist(zone_self_data))
+			return zone_self_data
+		var/list/global_self_data = zone_overrides["_self"]
+		if(islist(global_self_data))
+			return global_self_data
+	if(combat_mode && prone)
+		var/list/combat_prone_data = zone_overrides["[zone]_combat_prone"]
+		if(islist(combat_prone_data))
+			return combat_prone_data
+	if(combat_mode)
+		var/list/combat_data = zone_overrides["[zone]_combat"]
+		if(islist(combat_data))
+			return combat_data
+	if(prone)
+		var/list/prone_data = zone_overrides["[zone]_prone"]
+		if(islist(prone_data))
+			return prone_data
+	if(combat_mode && prone)
+		var/list/global_combat_prone_data = zone_overrides["_combat_prone"]
+		if(islist(global_combat_prone_data))
+			return global_combat_prone_data
+	if(combat_mode)
+		var/list/global_combat_data = zone_overrides["_combat"]
+		if(islist(global_combat_data))
+			return global_combat_data
+	if(prone)
+		var/list/global_prone_data = zone_overrides["_prone"]
+		if(islist(global_prone_data))
+			return global_prone_data
 	var/list/zone_data = zone_overrides[zone]
 	return islist(zone_data) ? zone_data : null
 
@@ -133,8 +198,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
  * Returns the list to actually use for `key` (e.g. "message", "target_status_effects"): `zone`'s
  * override if it sets a non-empty list for `key`, otherwise `fallback`.
  */
-/datum/interaction/proc/get_zone_pool(zone, key, list/fallback)
-	var/list/zone_data = get_zone_data(zone)
+/datum/interaction/proc/get_zone_pool(zone, combat_mode, prone, is_self, key, list/fallback)
+	var/list/zone_data = get_zone_data(zone, combat_mode, prone, is_self)
 	var/list/value = zone_data?[key]
 	if(islist(value) && length(value))
 		return value
@@ -144,12 +209,33 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
  * Returns the scalar value to actually use for `key` (e.g. "target_pain", "target_force_say"): `zone`'s
  * override if it sets one, otherwise `fallback`.
  */
-/datum/interaction/proc/get_zone_value(zone, key, fallback)
-	var/list/zone_data = get_zone_data(zone)
+/datum/interaction/proc/get_zone_value(zone, combat_mode, prone, is_self, key, fallback)
+	var/list/zone_data = get_zone_data(zone, combat_mode, prone, is_self)
 	var/value = zone_data?[key]
 	if(!isnull(value))
 		return value
 	return fallback
+
+/**
+ * Computes small feedback flags for the interactions menu UI, reflecting exactly what this interaction
+ * will do right now given `user`'s current zone selection/combat mode and `target`'s posture. Uses the
+ * same zone/combat_mode/prone/is_self resolution act() itself uses, so the UI can show "this plays a
+ * sound" or "this is a combat/prone-specialized variant right now" instead of showing nothing.
+ */
+/datum/interaction/proc/get_ui_feedback(mob/living/carbon/human/user, mob/living/carbon/human/target)
+	var/zone = user.zone_selected
+	var/combat_mode = user.combat_mode
+	var/prone = target.body_position == LYING_DOWN
+	var/is_self = (target == user)
+	var/list/feedback = list()
+	feedback["specialized"] = !isnull(get_zone_data(zone, combat_mode, prone, is_self))
+	feedback["sound"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "sound_possible", sound_possible)) > 0
+	feedback["status_effect"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects)) > 0 \
+		|| length(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects)) > 0
+	feedback["decal"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "decals", decals)) > 0
+	feedback["force_say"] = get_zone_value(zone, combat_mode, prone, is_self, "target_force_say", target_force_say) \
+		|| get_zone_value(zone, combat_mode, prone, is_self, "user_force_say", user_force_say)
+	return feedback
 
 /**
  * Applies a list of status effect entries (list("type" = typepath text, "duration" = optional number of
@@ -217,7 +303,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		message_admins("Deprecated message handling for '[name]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
 	var/zone = user.zone_selected
-	var/list/message_pool = get_zone_pool(zone, "message", message)
+	var/combat_mode = user.combat_mode
+	var/prone = target.body_position == LYING_DOWN
+	var/is_self = (target == user)
+	var/list/message_pool = get_zone_pool(zone, combat_mode, prone, is_self, "message", message)
 	var/msg = pick(message_pool)
 	if(!isnull(body_relay))
 		msg = replacetext(msg, "%TARGET%", "\the [body_relay.name]")
@@ -227,49 +316,65 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		user.emote("subtle", null, msg, TRUE)
 	else
 		user.manual_emote(msg)
-	var/list/user_message_pool = get_zone_pool(zone, "user_messages", user_messages)
-	if(user_message_pool.len)
-		var/user_msg = pick(user_message_pool)
-		if(!isnull(body_relay))
-			user_msg = replacetext(user_msg, "%TARGET%", "\the [body_relay.name]")
-		user_msg = replacetext(replacetext(user_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
-		to_chat(user, user_msg)
-	var/list/target_message_pool = get_zone_pool(zone, "target_messages", target_messages)
-	if(target_message_pool.len)
-		var/target_msg = pick(target_message_pool)
-		if(!isnull(body_relay))
-			target_msg = replacetext(target_msg, "%USER%", "Unknown")
-		target_msg = replacetext(replacetext(target_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
-		to_chat(target, target_msg)
+	if(is_self)
+		// Self-targeting only ever gets one private message, not both user_messages and target_messages,
+		// since sending both to the same person would just duplicate the same event.
+		var/list/self_message_pool = get_zone_pool(zone, combat_mode, prone, is_self, "self_messages", self_messages.len ? self_messages : user_messages)
+		if(self_message_pool.len)
+			var/self_msg = pick(self_message_pool)
+			self_msg = replacetext(replacetext(self_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
+			to_chat(user, self_msg)
+	else
+		var/list/user_message_pool = get_zone_pool(zone, combat_mode, prone, is_self, "user_messages", user_messages)
+		if(user_message_pool.len)
+			var/user_msg = pick(user_message_pool)
+			if(!isnull(body_relay))
+				user_msg = replacetext(user_msg, "%TARGET%", "\the [body_relay.name]")
+			user_msg = replacetext(replacetext(user_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
+			to_chat(user, user_msg)
+		var/list/target_message_pool = get_zone_pool(zone, combat_mode, prone, is_self, "target_messages", target_messages)
+		if(target_message_pool.len)
+			var/target_msg = pick(target_message_pool)
+			if(!isnull(body_relay))
+				target_msg = replacetext(target_msg, "%USER%", "Unknown")
+			target_msg = replacetext(replacetext(target_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
+			to_chat(target, target_msg)
 	if(!islist(sound_possible) && istext(sound_possible))
 		message_admins("Deprecated sound handling for '[name]'. Correct format is a list with one entry. This message will only show once.")
 		sound_possible = list(sound_possible)
-	var/list/sound_pool = get_zone_pool(zone, "sound_possible", sound_possible)
+	var/list/sound_pool = get_zone_pool(zone, combat_mode, prone, is_self, "sound_possible", sound_possible)
 	if(sound_pool.len)
 		sound_cache = pick(sound_pool)
 		// playsound()'s range is always SOUND_RANGE (15) + extrarange, so we offset by -SOUND_RANGE to make
 		// extrarange effectively equal to the JSON-defined sound_range instead of stacking on top of it.
 		playsound(source = user, soundin = sound_cache, vol = 50, vary = FALSE, extrarange = sound_range - SOUND_RANGE, ignore_walls = FALSE, volume_preference = /datum/preference/numeric/volume/sound_emote)
 
-	if(get_zone_value(zone, "target_force_say", target_force_say) && prob(get_zone_value(zone, "target_force_say_chance", target_force_say_chance)))
-		var/list/target_say_phrases = get_zone_pool(zone, "target_force_say_phrases", target_force_say_phrases)
+	if(get_zone_value(zone, combat_mode, prone, is_self, "target_force_say", target_force_say) && prob(get_zone_value(zone, combat_mode, prone, is_self, "target_force_say_chance", target_force_say_chance)))
+		var/list/target_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "target_force_say_phrases", target_force_say_phrases)
 		target.force_say(target_say_phrases.len ? target_say_phrases : null, immediate = TRUE)
-	if(get_zone_value(zone, "user_force_say", user_force_say) && prob(get_zone_value(zone, "user_force_say_chance", user_force_say_chance)))
-		var/list/user_say_phrases = get_zone_pool(zone, "user_force_say_phrases", user_force_say_phrases)
+	if(get_zone_value(zone, combat_mode, prone, is_self, "user_force_say", user_force_say) && prob(get_zone_value(zone, combat_mode, prone, is_self, "user_force_say_chance", user_force_say_chance)))
+		var/list/user_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "user_force_say_phrases", user_force_say_phrases)
 		user.force_say(user_say_phrases.len ? user_say_phrases : null, immediate = TRUE)
 
-	apply_zone_status_effects(get_zone_pool(zone, "target_status_effects", target_status_effects), target)
-	apply_zone_status_effects(get_zone_pool(zone, "user_status_effects", user_status_effects), user)
+	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects), target)
+	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects), user)
 
-	spawn_interaction_decals(get_zone_pool(zone, "decals", decals), user, target)
+	spawn_interaction_decals(get_zone_pool(zone, combat_mode, prone, is_self, "decals", decals), user, target)
+
+	var/target_bleed_amount = get_zone_value(zone, combat_mode, prone, is_self, "target_bleed", target_bleed)
+	if(target_bleed_amount)
+		target.bleed(target_bleed_amount)
+	var/user_bleed_amount = get_zone_value(zone, combat_mode, prone, is_self, "user_bleed", user_bleed)
+	if(user_bleed_amount)
+		user.bleed(user_bleed_amount)
 
 	if(lewd)
-		user.adjust_pleasure(get_zone_value(zone, "user_pleasure", user_pleasure))
-		user.adjust_arousal(get_zone_value(zone, "user_arousal", user_arousal))
-		user.adjust_pain(get_zone_value(zone, "user_pain", user_pain))
-		target.adjust_pleasure(get_zone_value(zone, "target_pleasure", target_pleasure))
-		target.adjust_arousal(get_zone_value(zone, "target_arousal", target_arousal))
-		target.adjust_pain(get_zone_value(zone, "target_pain", target_pain))
+		user.adjust_pleasure(get_zone_value(zone, combat_mode, prone, is_self, "user_pleasure", user_pleasure))
+		user.adjust_arousal(get_zone_value(zone, combat_mode, prone, is_self, "user_arousal", user_arousal))
+		user.adjust_pain(get_zone_value(zone, combat_mode, prone, is_self, "user_pain", user_pain))
+		target.adjust_pleasure(get_zone_value(zone, combat_mode, prone, is_self, "target_pleasure", target_pleasure))
+		target.adjust_arousal(get_zone_value(zone, combat_mode, prone, is_self, "target_arousal", target_arousal))
+		target.adjust_pain(get_zone_value(zone, combat_mode, prone, is_self, "target_pain", target_pain))
 		if(body_relay)
 			var/obj/lewd_portal_relay/body_portal_relay = body_relay
 			body_portal_relay.update_visuals()
@@ -300,6 +405,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
 	cooldown = sanitize_integer(json["cooldown"], 0, 600, INTERACTION_COOLDOWN / 10) SECONDS
 	message = sanitize_islist(json["message"], list("json error"))
+	self_messages = sanitize_islist(json["self_messages"], list())
 	zone_overrides = sanitize_islist(json["zone_overrides"], list())
 	decals = sanitize_islist(json["decals"], list())
 	category = sanitize_text(json["category"])
@@ -314,6 +420,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	user_arousal = sanitize_integer(json["user_arousal"], 0, 100, 0)
 	user_pleasure = sanitize_integer(json["user_pleasure"], 0, 100, 0)
 	user_pain = sanitize_integer(json["user_pain"], 0, 100, 0)
+	user_bleed = sanitize_integer(json["user_bleed"], 0, 100, 0)
 	user_force_say = sanitize_integer(json["user_force_say"], 0, 1, 0)
 	user_force_say_phrases = sanitize_islist(json["user_force_say_phrases"], list())
 	user_force_say_chance = sanitize_integer(json["user_force_say_chance"], 0, 100, 100)
@@ -323,6 +430,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	target_arousal = sanitize_integer(json["target_arousal"], 0, 100, 0)
 	target_pleasure = sanitize_integer(json["target_pleasure"], 0, 100, 0)
 	target_pain = sanitize_integer(json["target_pain"], 0, 100, 0)
+	target_bleed = sanitize_integer(json["target_bleed"], 0, 100, 0)
 	target_force_say = sanitize_integer(json["target_force_say"], 0, 1, 0)
 	target_force_say_phrases = sanitize_islist(json["target_force_say_phrases"], list())
 	target_force_say_chance = sanitize_integer(json["target_force_say_chance"], 0, 100, 100)
@@ -341,6 +449,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"distance_allowed" = distance_allowed,
 		"cooldown" = cooldown / 10,
 		"message" = message,
+		"self_messages" = self_messages,
 		"zone_overrides" = zone_overrides,
 		"decals" = decals,
 		"category" = category,
@@ -354,6 +463,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"user_arousal" = user_arousal,
 		"user_pleasure" = user_pleasure,
 		"user_pain" = user_pain,
+		"user_bleed" = user_bleed,
 		"user_force_say" = user_force_say,
 		"user_force_say_phrases" = user_force_say_phrases,
 		"user_force_say_chance" = user_force_say_chance,
@@ -363,6 +473,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"target_arousal" = target_arousal,
 		"target_pleasure" = target_pleasure,
 		"target_pain" = target_pain,
+		"target_bleed" = target_bleed,
 		"target_force_say" = target_force_say,
 		"target_force_say_phrases" = target_force_say_phrases,
 		"target_force_say_chance" = target_force_say_chance,
@@ -420,6 +531,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
 		interaction.cooldown = sanitize_integer(ijson["cooldown"], 0, 600, INTERACTION_COOLDOWN / 10) SECONDS
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))
+		interaction.self_messages = sanitize_islist(ijson["self_messages"], list())
 		interaction.zone_overrides = sanitize_islist(ijson["zone_overrides"], list())
 		interaction.decals = sanitize_islist(ijson["decals"], list())
 		interaction.category = sanitize_text(ijson["category"])
@@ -434,6 +546,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.user_arousal = sanitize_integer(ijson["user_arousal"], 0, 100, 0)
 		interaction.user_pleasure = sanitize_integer(ijson["user_pleasure"], 0, 100, 0)
 		interaction.user_pain = sanitize_integer(ijson["user_pain"], 0, 100, 0)
+		interaction.user_bleed = sanitize_integer(ijson["user_bleed"], 0, 100, 0)
 		interaction.user_force_say = sanitize_integer(ijson["user_force_say"], 0, 1, 0)
 		interaction.user_force_say_phrases = sanitize_islist(ijson["user_force_say_phrases"], list())
 		interaction.user_force_say_chance = sanitize_integer(ijson["user_force_say_chance"], 0, 100, 100)
@@ -443,6 +556,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.target_arousal = sanitize_integer(ijson["target_arousal"], 0, 100, 0)
 		interaction.target_pleasure = sanitize_integer(ijson["target_pleasure"], 0, 100, 0)
 		interaction.target_pain = sanitize_integer(ijson["target_pain"], 0, 100, 0)
+		interaction.target_bleed = sanitize_integer(ijson["target_bleed"], 0, 100, 0)
 		interaction.target_force_say = sanitize_integer(ijson["target_force_say"], 0, 1, 0)
 		interaction.target_force_say_phrases = sanitize_islist(ijson["target_force_say_phrases"], list())
 		interaction.target_force_say_chance = sanitize_integer(ijson["target_force_say_chance"], 0, 100, 100)

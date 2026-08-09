@@ -1,4 +1,5 @@
 // THIS IS A BUBBER UI FILE
+import { useState } from 'react';
 import { Icon, ProgressBar, Section, Stack } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 
@@ -31,50 +32,34 @@ export const InfoSection = () => {
     theirName,
     arousalLimit,
   } = data;
+  // Collapsed by default, since most of the time you don't need to see the pleasure/arousal/pain
+  // bars. Click a name to reveal them.
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <Section fill>
       <Stack vertical fill>
-        <Stack.Item grow>
-          <Stack>
+        <Stack.Item
+          grow
+          style={{ cursor: 'pointer' }}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <Stack align="center">
+            <Stack.Item>
+              <Icon name={expanded ? 'chevron-down' : 'chevron-right'} />
+            </Stack.Item>
             <Stack.Item grow>{yourName}</Stack.Item>
             {!isTargetSelf ? <Stack.Item grow>{theirName}</Stack.Item> : null}
           </Stack>
         </Stack.Item>
-        <Stack.Item>
-          <Stack fill>
-            <Stack.Item grow>
-              <Stack vertical>
-                <Stack.Item>
-                  <ProgressBar
-                    value={pleasure}
-                    maxValue={arousalLimit}
-                    color="purple"
-                  >
-                    <Icon name="heart" /> Pleasure
-                  </ProgressBar>
-                </Stack.Item>
-                <Stack.Item>
-                  <ProgressBar
-                    value={arousal}
-                    maxValue={arousalLimit}
-                    color="pink"
-                  >
-                    <Icon name="tint" /> Arousal
-                  </ProgressBar>
-                </Stack.Item>
-                <Stack.Item>
-                  <ProgressBar value={pain} maxValue={arousalLimit} color="red">
-                    <Icon name="bolt" /> Pain
-                  </ProgressBar>
-                </Stack.Item>
-              </Stack>
-            </Stack.Item>
-            {!isTargetSelf ? (
+        {expanded && (
+          <Stack.Item>
+            <Stack fill>
               <Stack.Item grow>
                 <Stack vertical>
                   <Stack.Item>
                     <ProgressBar
-                      value={theirPleasure}
+                      value={pleasure}
                       maxValue={arousalLimit}
                       color="purple"
                     >
@@ -83,7 +68,7 @@ export const InfoSection = () => {
                   </Stack.Item>
                   <Stack.Item>
                     <ProgressBar
-                      value={theirArousal}
+                      value={arousal}
                       maxValue={arousalLimit}
                       color="pink"
                     >
@@ -92,7 +77,7 @@ export const InfoSection = () => {
                   </Stack.Item>
                   <Stack.Item>
                     <ProgressBar
-                      value={theirPain}
+                      value={pain}
                       maxValue={arousalLimit}
                       color="red"
                     >
@@ -101,9 +86,42 @@ export const InfoSection = () => {
                   </Stack.Item>
                 </Stack>
               </Stack.Item>
-            ) : null}
-          </Stack>
-        </Stack.Item>
+              {!isTargetSelf ? (
+                <Stack.Item grow>
+                  <Stack vertical>
+                    <Stack.Item>
+                      <ProgressBar
+                        value={theirPleasure}
+                        maxValue={arousalLimit}
+                        color="purple"
+                      >
+                        <Icon name="heart" /> Pleasure
+                      </ProgressBar>
+                    </Stack.Item>
+                    <Stack.Item>
+                      <ProgressBar
+                        value={theirArousal}
+                        maxValue={arousalLimit}
+                        color="pink"
+                      >
+                        <Icon name="tint" /> Arousal
+                      </ProgressBar>
+                    </Stack.Item>
+                    <Stack.Item>
+                      <ProgressBar
+                        value={theirPain}
+                        maxValue={arousalLimit}
+                        color="red"
+                      >
+                        <Icon name="bolt" /> Pain
+                      </ProgressBar>
+                    </Stack.Item>
+                  </Stack>
+                </Stack.Item>
+              ) : null}
+            </Stack>
+          </Stack.Item>
+        )}
       </Stack>
     </Section>
   );

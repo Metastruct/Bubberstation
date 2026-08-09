@@ -87,6 +87,8 @@
 	var/list/categories = list()
 	var/list/display_categories = list()
 	var/list/colors = list()
+	var/list/feedback = list()
+	var/mob/living/carbon/human/human_user = user
 	for(var/datum/interaction/interaction in interactions)
 		if(!can_interact(interaction, user))
 			continue
@@ -98,8 +100,11 @@
 			categories[interaction.category] = sorted_category
 		descriptions[interaction.name] = interaction.description
 		colors[interaction.name] = interaction.color
+		if(ishuman(human_user))
+			feedback[interaction.name] = interaction.get_ui_feedback(human_user, self)
 	data["descriptions"] = descriptions
 	data["colors"] = colors
+	data["feedback"] = feedback
 	for(var/category in categories)
 		display_categories += category
 	data["categories"] = sort_list(display_categories)
@@ -113,7 +118,10 @@
 	data["interactions"] = categories
 	data["erp_interaction"] = self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
 
-	var/mob/living/carbon/human/human_user = user
+	if(ishuman(human_user))
+		data["combat_mode"] = human_user.combat_mode
+		data["target_zone"] = human_user.zone_selected
+	data["target_prone"] = (self.body_position == LYING_DOWN)
 
 	data["isTargetSelf"] = (user == self)
 
@@ -133,7 +141,7 @@
 		data["yourName"] = human_user.real_name
 
 
-	// self - the one who the interaction component belongs to, aka who it's opened on (confusing var name yep)
+	// self is the one who the interaction component belongs to, aka who it's opened on (confusing var name yep)
 	if(user != self)
 		data["theirPleasure"] = self.pleasure
 		data["theirArousal"] = self.arousal
