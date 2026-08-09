@@ -14,6 +14,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/list/user_messages = list()
 	/// A list of possible messages displayed directly to the TARGET.
 	var/list/target_messages = list()
+	/// Optional per-zone overrides for `message`. Keyed by BODY_ZONE_* (mob's zone_selected). If the user's selected zone has a non-empty entry here, it's used instead of `message`.
+	var/list/zone_messages = list()
+	/// Optional per-zone overrides for `user_messages`.
+	var/list/zone_user_messages = list()
+	/// Optional per-zone overrides for `target_messages`. Same keying/fallback rules as `zone_messages`.
+	var/list/zone_target_messages = list()
 	/// What category this interaction will fall under in the menu.
 	var/category = INTERACTION_CAT_HIDE
 	/// Defines how we interact with ourselves or others.
@@ -83,6 +89,15 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 				CRASH("Unimplemented interaction requirement '[requirement]'")
 	return TRUE
 
+/**
+ * Returns the message pool to actually use: the zone-specific override for `zone` if `zone_map` has
+ * a non-empty entry for it, otherwise `fallback`.
+ */
+/datum/interaction/proc/get_zone_pool(list/zone_map, zone, list/fallback)
+	if(zone_map?.len && islist(zone_map[zone]) && length(zone_map[zone]))
+		return zone_map[zone]
+	return fallback
+
 /datum/interaction/proc/act(mob/living/carbon/human/user, mob/living/carbon/human/target, obj/body_relay = null)
 	if(!allow_act(user, target))
 		return
@@ -92,7 +107,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(!islist(message) && istext(message))
 		message_admins("Deprecated message handling for '[name]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
-	var/msg = pick(message)
+	var/list/message_pool = get_zone_pool(zone_messages, user.zone_selected, message)
+	var/msg = pick(message_pool)
 	if(!isnull(body_relay))
 		msg = replacetext(msg, "%TARGET%", "\the [body_relay.name]")
 	// We replace %USER% with nothing because manual_emote already prepends it.
@@ -101,14 +117,16 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		user.emote("subtle", null, msg, TRUE)
 	else
 		user.manual_emote(msg)
-	if(user_messages.len)
-		var/user_msg = pick(user_messages)
+	var/list/user_message_pool = get_zone_pool(zone_user_messages, user.zone_selected, user_messages)
+	if(user_message_pool.len)
+		var/user_msg = pick(user_message_pool)
 		if(!isnull(body_relay))
 			user_msg = replacetext(user_msg, "%TARGET%", "\the [body_relay.name]")
 		user_msg = replacetext(replacetext(user_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
 		to_chat(user, user_msg)
-	if(target_messages.len)
-		var/target_msg = pick(target_messages)
+	var/list/target_message_pool = get_zone_pool(zone_target_messages, user.zone_selected, target_messages)
+	if(target_message_pool.len)
+		var/target_msg = pick(target_message_pool)
 		if(!isnull(body_relay))
 			target_msg = replacetext(target_msg, "%USER%", "Unknown")
 		target_msg = replacetext(replacetext(target_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
@@ -148,6 +166,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	description = sanitize_text(json["description"])
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
 	message = sanitize_islist(json["message"], list("json error"))
+	zone_messages = sanitize_islist(json["zone_messages"], list())
 	category = sanitize_text(json["category"])
 	usage = sanitize_text(json["usage"])
 	sound_use = sanitize_integer(json["sound_use"], 0, 1, 0)
@@ -157,11 +176,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	color = sanitize_text(json["color"])
 
 	user_messages = sanitize_islist(json["user_messages"], list())
+	zone_user_messages = sanitize_islist(json["zone_user_messages"], list())
 	user_required_parts = sanitize_islist(json["user_required_parts"], list())
 	user_arousal = sanitize_integer(json["user_arousal"], 0, 100, 0)
 	user_pleasure = sanitize_integer(json["user_pleasure"], 0, 100, 0)
 	user_pain = sanitize_integer(json["user_pain"], 0, 100, 0)
 	target_messages = sanitize_islist(json["target_messages"], list())
+	zone_target_messages = sanitize_islist(json["zone_target_messages"], list())
 	target_required_parts = sanitize_islist(json["target_required_parts"], list())
 	target_arousal = sanitize_integer(json["target_arousal"], 0, 100, 0)
 	target_pleasure = sanitize_integer(json["target_pleasure"], 0, 100, 0)
@@ -179,6 +200,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"description" = description,
 		"distance_allowed" = distance_allowed,
 		"message" = message,
+		"zone_messages" = zone_messages,
 		"category" = category,
 		"usage" = usage,
 		"sound_use" = sound_use,
@@ -187,11 +209,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"interaction_requires" = interaction_requires,
 		"color" = color,
 		"user_messages" = user_messages,
+		"zone_user_messages" = zone_user_messages,
 		"user_required_parts" = user_required_parts,
 		"user_arousal" = user_arousal,
 		"user_pleasure" = user_pleasure,
 		"user_pain" = user_pain,
 		"target_messages" = target_messages,
+		"zone_target_messages" = zone_target_messages,
 		"target_required_parts" = target_required_parts,
 		"target_arousal" = target_arousal,
 		"target_pleasure" = target_pleasure,
@@ -248,6 +272,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))
+		interaction.zone_messages = sanitize_islist(ijson["zone_messages"], list())
 		interaction.category = sanitize_text(ijson["category"])
 		interaction.usage = sanitize_text(ijson["usage"])
 		interaction.sound_use = sanitize_integer(ijson["sound_use"], 0, 1, 0)
@@ -257,11 +282,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.color = sanitize_text(ijson["color"])
 
 		interaction.user_messages = sanitize_islist(ijson["user_messages"], list())
+		interaction.zone_user_messages = sanitize_islist(ijson["zone_user_messages"], list())
 		interaction.user_required_parts = sanitize_islist(ijson["user_required_parts"], list())
 		interaction.user_arousal = sanitize_integer(ijson["user_arousal"], 0, 100, 0)
 		interaction.user_pleasure = sanitize_integer(ijson["user_pleasure"], 0, 100, 0)
 		interaction.user_pain = sanitize_integer(ijson["user_pain"], 0, 100, 0)
 		interaction.target_messages = sanitize_islist(ijson["target_messages"], list())
+		interaction.zone_target_messages = sanitize_islist(ijson["zone_target_messages"], list())
 		interaction.target_required_parts = sanitize_islist(ijson["target_required_parts"], list())
 		interaction.target_arousal = sanitize_integer(ijson["target_arousal"], 0, 100, 0)
 		interaction.target_pleasure = sanitize_integer(ijson["target_pleasure"], 0, 100, 0)

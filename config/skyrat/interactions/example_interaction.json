@@ -5,9 +5,35 @@
 	"category": "hide",
 	"distance_allowed": 0,
 	"message": [
-		"message1",
-		"message2"
+		"%USER% pokes %TARGET%!"
 	],
+	"zone_messages": {
+		"head": [
+			"%USER% pokes %TARGET% in the head!"
+		],
+		"l_arm": [
+			"%USER% pokes %TARGET%'s arm!"
+		],
+		"r_arm": [
+			"%USER% pokes %TARGET%'s arm!"
+		]
+	},
+	"user_messages": [
+		"You poke %TARGET%!"
+	],
+	"zone_user_messages": {
+		"head": [
+			"You poke %TARGET% in the head!"
+		]
+	},
+	"target_messages": [
+		"%USER% pokes you!"
+	],
+	"zone_target_messages": {
+		"head": [
+			"%USER% pokes you in the head!"
+		]
+	},
 	"sound_use": 0,
 	"sound_possible": [
 		"soundpath1",
