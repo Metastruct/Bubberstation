@@ -148,6 +148,7 @@
 
 /mob/dead/new_player/Login()
 	. = ..()
+	client.playlobbymusic()
 	show_title_screen()
 
 /**

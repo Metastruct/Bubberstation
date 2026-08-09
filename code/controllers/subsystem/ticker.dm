@@ -141,6 +141,10 @@ SUBSYSTEM_DEF(ticker)
 		// BUBBERSTATION EDIT END
 			SStitle.change_title_screen() //SKYRAT EDIT ADDITION - Title screen
 			addtimer(CALLBACK(SStitle, TYPE_PROC_REF(/datum/controller/subsystem/title, change_title_screen)), 1 SECONDS) //SKYRAT EDIT ADDITION - Title screen
+			// BUBBER EDIT - ADDITION - START - SWITCH_LOADING_MUSIC_TO_TITLE_MUSIC
+			for(var/mob/dead/new_player/new_player as anything in GLOB.new_player_list)
+				new_player?.client?.playtitlemusic()
+			// BUBBER EDIT - ADDITION - END
 			//Everyone who wants to be an observer is now spawned
 			SEND_SIGNAL(src, COMSIG_TICKER_ENTER_PREGAME)
 			fire()

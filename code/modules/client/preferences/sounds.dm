@@ -129,7 +129,9 @@
 
 /datum/preference/numeric/volume/sound_lobby_volume/apply_to_client_updated(client/client, value)
 	if (value && isnewplayer(client.mob))
-		client.playtitlemusic()
+		// BUBBER EDIT - CHANGE - START - LOADING_MUSIC
+		client.playlobbymusic()
+		// BUBBER EDIT - CHANGE - END
 	else
 		client.mob.stop_sound_channel(CHANNEL_LOBBYMUSIC)
 
