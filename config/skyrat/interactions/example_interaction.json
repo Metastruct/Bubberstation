@@ -18,11 +18,25 @@
 			"target_messages": [
 				"%USER% pokes you in the head!"
 			],
-			"target_pain": 0
+			"target_status_effects": [
+				{
+					"type": "/datum/status_effect/dizziness",
+					"duration": 30,
+					"chance": 50
+				}
+			]
 		},
 		"l_arm": {
 			"message": [
 				"%USER% pokes %TARGET%'s arm!"
+			],
+			"decals": [
+				{
+					"type": "/obj/effect/decal/cleanable/glitter",
+					"spawn_on": "user",
+					"color": "#ff69b4",
+					"chance": 25
+				}
 			]
 		},
 		"r_arm": {
@@ -30,8 +44,16 @@
 				"%USER% pokes %TARGET%'s arm!"
 			]
 		},
-		"eyes": {
-			"target_pain": 0
+		"mouth": {
+			"message": [
+				"%USER% pokes %TARGET% on the lips!"
+			],
+			"target_force_say": 1,
+			"target_force_say_phrases": [
+				"mmph!",
+				"shh!"
+			],
+			"target_force_say_chance": 30
 		}
 	},
 	"sound_use": 0,
@@ -52,6 +74,10 @@
 	"user_arousal": 0,
 	"user_pleasure": 0,
 	"user_pain": 0,
+	"user_force_say": 0,
+	"user_force_say_phrases": [],
+	"user_force_say_chance": 100,
+	"user_status_effects": [],
 	"target_messages": [
 		"%USER% pokes you!"
 	],
@@ -59,6 +85,11 @@
 	"target_arousal": 0,
 	"target_pleasure": 0,
 	"target_pain": 0,
+	"target_force_say": 0,
+	"target_force_say_phrases": [],
+	"target_force_say_chance": 100,
+	"target_status_effects": [],
+	"decals": [],
 	"lewd": 0,
 	"sexuality": ""
 }

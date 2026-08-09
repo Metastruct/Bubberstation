@@ -14,11 +14,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/list/user_messages = list()
 	/// A list of possible messages displayed directly to the TARGET.
 	var/list/target_messages = list()
-	/// Optional per-zone overrides, keyed by BODY_ZONE_* (mob's zone_selected). Each entry is an associative
-	/// list that may set any of: "message", "user_messages", "target_messages" (lists of strings, same format
-	/// as the matching base field) and "user_pleasure", "user_arousal", "user_pain", "target_pleasure",
-	/// "target_arousal", "target_pain" (numbers). Any key a zone's entry doesn't set falls back to the base field.
-	var/list/zone_overrides = list()
 	/// What category this interaction will fall under in the menu.
 	var/category = INTERACTION_CAT_HIDE
 	/// Defines how we interact with ourselves or others.
@@ -47,6 +42,34 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/user_arousal = 0
 	/// The amount of pain the user receives.
 	var/user_pain = 0
+	/// If TRUE, interrupts whatever the target is currently typing and forces them to blurt it out (see /mob/living/carbon/human/proc/force_say).
+	var/target_force_say = FALSE
+	/// Suffixes to blurt out when `target_force_say` triggers. Empty means the default hurt phrases ("AUGH!" etc) are used.
+	var/list/target_force_say_phrases = list()
+	/// Percent chance (0-100) that `target_force_say` actually triggers when TRUE. Defaults to always.
+	var/target_force_say_chance = 100
+	/// If TRUE, interrupts whatever the user is currently typing and forces them to blurt it out.
+	var/user_force_say = FALSE
+	/// Suffixes to blurt out when `user_force_say` triggers. Empty means the default hurt phrases are used.
+	var/list/user_force_say_phrases = list()
+	/// Percent chance (0-100) that `user_force_say` actually triggers when TRUE. Defaults to always.
+	var/user_force_say_chance = 100
+	/// Status effects applied to the target on use. Each entry is a list("type" = "/datum/status_effect/path",
+	/// "duration" = optional_number, "chance" = optional_percent_0_to_100_defaults_always).
+	var/list/target_status_effects = list()
+	/// Status effects applied to the user on use. Same format as `target_status_effects`.
+	var/list/user_status_effects = list()
+	/// Decals spawned on use. Each entry is a list("type" = "/obj/effect/decal/cleanable/path", "spawn_on" = "target" (default) or "user",
+	/// "icon_state" = optional_text, "color" = optional_text, "chance" = optional_percent_0_to_100_defaults_always).
+	/// Spawned via /turf/proc/spawn_unique_cleanable, so they're mergeable/mopable like any other cleanable decal.
+	var/list/decals = list()
+	/// Optional per-zone overrides, keyed by BODY_ZONE_* (mob's zone_selected). Each entry is an associative
+	/// list that may set any of: "message", "user_messages", "target_messages", "user_pleasure", "user_arousal",
+	/// "user_pain", "target_pleasure", "target_arousal", "target_pain", "target_force_say", "target_force_say_phrases",
+	/// "target_force_say_chance", "user_force_say", "user_force_say_phrases", "user_force_say_chance",
+	/// "target_status_effects", "user_status_effects", "decals". Any key a zone's entry doesn't set falls back
+	/// to the matching base field.
+	var/list/zone_overrides = list()
 	/// A list of possible sounds.
 	var/list/sound_possible = list()
 	/// What requirements does this interaction have? See defines.
@@ -96,8 +119,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	return islist(zone_data) ? zone_data : null
 
 /**
- * Returns the message pool to actually use for `key` ("message"/"user_messages"/"target_messages"):
- * `zone`'s override if it sets a non-empty list for `key`, otherwise `fallback`.
+ * Returns the list to actually use for `key` (e.g. "message", "target_status_effects"): `zone`'s
+ * override if it sets a non-empty list for `key`, otherwise `fallback`.
  */
 /datum/interaction/proc/get_zone_pool(zone, key, list/fallback)
 	var/list/zone_data = get_zone_data(zone)
@@ -107,8 +130,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	return fallback
 
 /**
- * Returns the numeric value to actually use for `key` (e.g. "target_pain"): `zone`'s override if it
- * sets one, otherwise `fallback`.
+ * Returns the scalar value to actually use for `key` (e.g. "target_pain", "target_force_say"): `zone`'s
+ * override if it sets one, otherwise `fallback`.
  */
 /datum/interaction/proc/get_zone_value(zone, key, fallback)
 	var/list/zone_data = get_zone_data(zone)
@@ -116,6 +139,61 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(!isnull(value))
 		return value
 	return fallback
+
+/**
+ * Applies a list of status effect entries (list("type" = typepath text, "duration" = optional number,
+ * "chance" = optional percent 0-100)) to `recipient`. Invalid/non status effect types are ignored and logged.
+ */
+/datum/interaction/proc/apply_zone_status_effects(list/effects, mob/living/carbon/human/recipient)
+	for(var/list/effect_data in effects)
+		if(!islist(effect_data))
+			continue
+		var/chance = effect_data["chance"]
+		if(isnum(chance) && !prob(chance))
+			continue
+		var/effect_type = effect_data["type"]
+		if(!istext(effect_type))
+			continue
+		var/effect_path = text2path(effect_type)
+		if(!ispath(effect_path, /datum/status_effect))
+			message_admins("Interaction '[name]' referenced an invalid status effect type '[effect_type]'.")
+			continue
+		var/duration = effect_data["duration"]
+		if(isnum(duration))
+			recipient.apply_status_effect(effect_path, duration)
+		else
+			recipient.apply_status_effect(effect_path)
+
+/**
+ * Spawns a list of decal entries (list("type" = typepath text, "spawn_on" = "target"/"user",
+ * "icon_state" = optional text, "color" = optional text, "chance" = optional percent 0-100)) on the
+ * relevant mob's turf. Invalid/non cleanable-decal types are ignored and logged.
+ */
+/datum/interaction/proc/spawn_interaction_decals(list/decal_specs, mob/living/carbon/human/user, mob/living/carbon/human/target)
+	for(var/list/decal_data in decal_specs)
+		if(!islist(decal_data))
+			continue
+		var/chance = decal_data["chance"]
+		if(isnum(chance) && !prob(chance))
+			continue
+		var/decal_type_text = decal_data["type"]
+		if(!istext(decal_type_text))
+			continue
+		var/decal_path = text2path(decal_type_text)
+		if(!ispath(decal_path, /obj/effect/decal/cleanable))
+			message_admins("Interaction '[name]' referenced an invalid decal type '[decal_type_text]'.")
+			continue
+		var/mob/living/carbon/human/spawn_source = (decal_data["spawn_on"] == "user") ? user : target
+		var/turf/spawn_turf = get_turf(spawn_source)
+		if(!spawn_turf)
+			continue
+		var/obj/effect/decal/cleanable/new_decal = spawn_turf.spawn_unique_cleanable(decal_path)
+		if(!new_decal)
+			continue
+		if(istext(decal_data["icon_state"]))
+			new_decal.icon_state = decal_data["icon_state"]
+		if(istext(decal_data["color"]))
+			new_decal.color = decal_data["color"]
 
 /datum/interaction/proc/act(mob/living/carbon/human/user, mob/living/carbon/human/target, obj/body_relay = null)
 	if(!allow_act(user, target))
@@ -126,7 +204,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(!islist(message) && istext(message))
 		message_admins("Deprecated message handling for '[name]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
-	var/list/message_pool = get_zone_pool(user.zone_selected, "message", message)
+	var/zone = user.zone_selected
+	var/list/message_pool = get_zone_pool(zone, "message", message)
 	var/msg = pick(message_pool)
 	if(!isnull(body_relay))
 		msg = replacetext(msg, "%TARGET%", "\the [body_relay.name]")
@@ -136,14 +215,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		user.emote("subtle", null, msg, TRUE)
 	else
 		user.manual_emote(msg)
-	var/list/user_message_pool = get_zone_pool(user.zone_selected, "user_messages", user_messages)
+	var/list/user_message_pool = get_zone_pool(zone, "user_messages", user_messages)
 	if(user_message_pool.len)
 		var/user_msg = pick(user_message_pool)
 		if(!isnull(body_relay))
 			user_msg = replacetext(user_msg, "%TARGET%", "\the [body_relay.name]")
 		user_msg = replacetext(replacetext(user_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
 		to_chat(user, user_msg)
-	var/list/target_message_pool = get_zone_pool(user.zone_selected, "target_messages", target_messages)
+	var/list/target_message_pool = get_zone_pool(zone, "target_messages", target_messages)
 	if(target_message_pool.len)
 		var/target_msg = pick(target_message_pool)
 		if(!isnull(body_relay))
@@ -162,16 +241,41 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		// extrarange effectively equal to the JSON-defined sound_range instead of stacking on top of it.
 		playsound(source = user, soundin = sound_cache, vol = 50, vary = FALSE, extrarange = sound_range - SOUND_RANGE, ignore_walls = FALSE, volume_preference = /datum/preference/numeric/volume/sound_emote)
 
+	if(get_zone_value(zone, "target_force_say", target_force_say) && prob(get_zone_value(zone, "target_force_say_chance", target_force_say_chance)))
+		var/list/target_say_phrases = get_zone_pool(zone, "target_force_say_phrases", target_force_say_phrases)
+		target.force_say(target_say_phrases.len ? target_say_phrases : null, immediate = TRUE)
+	if(get_zone_value(zone, "user_force_say", user_force_say) && prob(get_zone_value(zone, "user_force_say_chance", user_force_say_chance)))
+		var/list/user_say_phrases = get_zone_pool(zone, "user_force_say_phrases", user_force_say_phrases)
+		user.force_say(user_say_phrases.len ? user_say_phrases : null, immediate = TRUE)
+
+	apply_zone_status_effects(get_zone_pool(zone, "target_status_effects", target_status_effects), target)
+	apply_zone_status_effects(get_zone_pool(zone, "user_status_effects", user_status_effects), user)
+
+	spawn_interaction_decals(get_zone_pool(zone, "decals", decals), user, target)
+
 	if(lewd)
-		user.adjust_pleasure(get_zone_value(user.zone_selected, "user_pleasure", user_pleasure))
-		user.adjust_arousal(get_zone_value(user.zone_selected, "user_arousal", user_arousal))
-		user.adjust_pain(get_zone_value(user.zone_selected, "user_pain", user_pain))
-		target.adjust_pleasure(get_zone_value(user.zone_selected, "target_pleasure", target_pleasure))
-		target.adjust_arousal(get_zone_value(user.zone_selected, "target_arousal", target_arousal))
-		target.adjust_pain(get_zone_value(user.zone_selected, "target_pain", target_pain))
+		user.adjust_pleasure(get_zone_value(zone, "user_pleasure", user_pleasure))
+		user.adjust_arousal(get_zone_value(zone, "user_arousal", user_arousal))
+		user.adjust_pain(get_zone_value(zone, "user_pain", user_pain))
+		target.adjust_pleasure(get_zone_value(zone, "target_pleasure", target_pleasure))
+		target.adjust_arousal(get_zone_value(zone, "target_arousal", target_arousal))
+		target.adjust_pain(get_zone_value(zone, "target_pain", target_pain))
 		if(body_relay)
 			var/obj/lewd_portal_relay/body_portal_relay = body_relay
 			body_portal_relay.update_visuals()
+
+	/**
+	 * Lets other systems react to any interaction without editing this file. Example hook, e.g. for a
+	 * mood or achievement system tracking how often someone gets kissed:
+	 *
+	 *   RegisterSignal(mob, COMSIG_HUMAN_INTERACTION_RECEIVED, PROC_REF(on_interaction_received))
+	 *
+	 *   /datum/proc/on_interaction_received(mob/living/carbon/human/source, datum/interaction/performed, mob/living/carbon/human/user, zone)
+	 *       if(performed.name == "Kiss")
+	 *           track_kiss_count(source, user)
+	 */
+	SEND_SIGNAL(user, COMSIG_HUMAN_INTERACTION_PERFORMED, src, target, zone)
+	SEND_SIGNAL(target, COMSIG_HUMAN_INTERACTION_RECEIVED, src, user, zone)
 
 /datum/interaction/proc/load_from_json(path)
 	var/fpath = path
@@ -186,6 +290,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
 	message = sanitize_islist(json["message"], list("json error"))
 	zone_overrides = sanitize_islist(json["zone_overrides"], list())
+	decals = sanitize_islist(json["decals"], list())
 	category = sanitize_text(json["category"])
 	usage = sanitize_text(json["usage"])
 	sound_use = sanitize_integer(json["sound_use"], 0, 1, 0)
@@ -199,11 +304,19 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	user_arousal = sanitize_integer(json["user_arousal"], 0, 100, 0)
 	user_pleasure = sanitize_integer(json["user_pleasure"], 0, 100, 0)
 	user_pain = sanitize_integer(json["user_pain"], 0, 100, 0)
+	user_force_say = sanitize_integer(json["user_force_say"], 0, 1, 0)
+	user_force_say_phrases = sanitize_islist(json["user_force_say_phrases"], list())
+	user_force_say_chance = sanitize_integer(json["user_force_say_chance"], 0, 100, 100)
+	user_status_effects = sanitize_islist(json["user_status_effects"], list())
 	target_messages = sanitize_islist(json["target_messages"], list())
 	target_required_parts = sanitize_islist(json["target_required_parts"], list())
 	target_arousal = sanitize_integer(json["target_arousal"], 0, 100, 0)
 	target_pleasure = sanitize_integer(json["target_pleasure"], 0, 100, 0)
 	target_pain = sanitize_integer(json["target_pain"], 0, 100, 0)
+	target_force_say = sanitize_integer(json["target_force_say"], 0, 1, 0)
+	target_force_say_phrases = sanitize_islist(json["target_force_say_phrases"], list())
+	target_force_say_chance = sanitize_integer(json["target_force_say_chance"], 0, 100, 100)
+	target_status_effects = sanitize_islist(json["target_status_effects"], list())
 	lewd = sanitize_integer(json["lewd"], 0, 1, 0)
 	sexuality = sanitize_text(json["sexuality"])
 	return TRUE
@@ -218,6 +331,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"distance_allowed" = distance_allowed,
 		"message" = message,
 		"zone_overrides" = zone_overrides,
+		"decals" = decals,
 		"category" = category,
 		"usage" = usage,
 		"sound_use" = sound_use,
@@ -230,11 +344,19 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"user_arousal" = user_arousal,
 		"user_pleasure" = user_pleasure,
 		"user_pain" = user_pain,
+		"user_force_say" = user_force_say,
+		"user_force_say_phrases" = user_force_say_phrases,
+		"user_force_say_chance" = user_force_say_chance,
+		"user_status_effects" = user_status_effects,
 		"target_messages" = target_messages,
 		"target_required_parts" = target_required_parts,
 		"target_arousal" = target_arousal,
 		"target_pleasure" = target_pleasure,
 		"target_pain" = target_pain,
+		"target_force_say" = target_force_say,
+		"target_force_say_phrases" = target_force_say_phrases,
+		"target_force_say_chance" = target_force_say_chance,
+		"target_status_effects" = target_status_effects,
 		"lewd" = lewd,
 		"sexuality" = sexuality,
 	)
@@ -288,6 +410,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))
 		interaction.zone_overrides = sanitize_islist(ijson["zone_overrides"], list())
+		interaction.decals = sanitize_islist(ijson["decals"], list())
 		interaction.category = sanitize_text(ijson["category"])
 		interaction.usage = sanitize_text(ijson["usage"])
 		interaction.sound_use = sanitize_integer(ijson["sound_use"], 0, 1, 0)
@@ -301,11 +424,19 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.user_arousal = sanitize_integer(ijson["user_arousal"], 0, 100, 0)
 		interaction.user_pleasure = sanitize_integer(ijson["user_pleasure"], 0, 100, 0)
 		interaction.user_pain = sanitize_integer(ijson["user_pain"], 0, 100, 0)
+		interaction.user_force_say = sanitize_integer(ijson["user_force_say"], 0, 1, 0)
+		interaction.user_force_say_phrases = sanitize_islist(ijson["user_force_say_phrases"], list())
+		interaction.user_force_say_chance = sanitize_integer(ijson["user_force_say_chance"], 0, 100, 100)
+		interaction.user_status_effects = sanitize_islist(ijson["user_status_effects"], list())
 		interaction.target_messages = sanitize_islist(ijson["target_messages"], list())
 		interaction.target_required_parts = sanitize_islist(ijson["target_required_parts"], list())
 		interaction.target_arousal = sanitize_integer(ijson["target_arousal"], 0, 100, 0)
 		interaction.target_pleasure = sanitize_integer(ijson["target_pleasure"], 0, 100, 0)
 		interaction.target_pain = sanitize_integer(ijson["target_pain"], 0, 100, 0)
+		interaction.target_force_say = sanitize_integer(ijson["target_force_say"], 0, 1, 0)
+		interaction.target_force_say_phrases = sanitize_islist(ijson["target_force_say_phrases"], list())
+		interaction.target_force_say_chance = sanitize_integer(ijson["target_force_say_chance"], 0, 100, 100)
+		interaction.target_status_effects = sanitize_islist(ijson["target_status_effects"], list())
 		interaction.lewd = sanitize_integer(ijson["lewd"], 0, 1, 0)
 		interaction.sexuality = sanitize_text(ijson["sexuality"])
 
