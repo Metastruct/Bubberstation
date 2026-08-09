@@ -22,7 +22,7 @@
 			"target_status_effects": [
 				{
 					"type": "/datum/status_effect/dizziness",
-					"duration": 30,
+					"duration": 3,
 					"chance": 50
 				}
 			]

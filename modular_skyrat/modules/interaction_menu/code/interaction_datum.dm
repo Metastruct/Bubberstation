@@ -57,7 +57,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// Percent chance (0-100) that `user_force_say` actually triggers when TRUE. Defaults to always.
 	var/user_force_say_chance = 100
 	/// Status effects applied to the target on use. Each entry is a list("type" = "/datum/status_effect/path",
-	/// "duration" = optional_number, "chance" = optional_percent_0_to_100_defaults_always).
+	/// "duration" = optional_number_of_seconds, "chance" = optional_percent_0_to_100_defaults_always).
 	var/list/target_status_effects = list()
 	/// Status effects applied to the user on use. Same format as `target_status_effects`.
 	var/list/user_status_effects = list()
@@ -144,8 +144,9 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	return fallback
 
 /**
- * Applies a list of status effect entries (list("type" = typepath text, "duration" = optional number,
- * "chance" = optional percent 0-100)) to `recipient`. Invalid/non status effect types are ignored and logged.
+ * Applies a list of status effect entries (list("type" = typepath text, "duration" = optional number of
+ * seconds, "chance" = optional percent 0-100)) to `recipient`. Invalid/non status effect types are ignored
+ * and logged.
  */
 /datum/interaction/proc/apply_zone_status_effects(list/effects, mob/living/carbon/human/recipient)
 	for(var/list/effect_data in effects)
@@ -163,7 +164,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			continue
 		var/duration = effect_data["duration"]
 		if(isnum(duration))
-			recipient.apply_status_effect(effect_path, duration)
+			recipient.apply_status_effect(effect_path, duration SECONDS)
 		else
 			recipient.apply_status_effect(effect_path)
 
