@@ -10510,6 +10510,7 @@
 #include "modular_zubbers\modules\voskhod\code\mod_suit.dm"
 #include "modular_zubbers\modules\wood_walls\code\new_floors.dm"
 #include "modular_zzmeta\code\datums\world_topic.dm"
+#include "modular_zzmeta\code\datums\bodypart_overlays\emote_bodypart_overlay.dm"
 #include "modular_zzmeta\code\game\atoms_movable.dm"
 #include "modular_zzmeta\code\game\objects\items\plushes.dm"
 #include "modular_zzmeta\code\game\sound\sound.dm"

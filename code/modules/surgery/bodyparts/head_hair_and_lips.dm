@@ -141,7 +141,9 @@
 		if(hair_gradient_style != SPRITE_ACCESSORY_NONE)
 			var/hair_gradient_color = get_hair_gradient_color(GRADIENT_HAIR_KEY)
 			var/image/hair_gradient_overlay = get_gradient_overlay(base_icon, hair_overlay.layer, SSaccessories.hair_gradients_list[hair_gradient_style], hair_gradient_color, dropped)
-			hair_gradient_overlay.pixel_z = hair_sprite_accessory.y_offset
+			// META EDIT - CHANGE - START - offset incrementally (fixes teshari hair gradient)
+			hair_gradient_overlay.pixel_z += hair_sprite_accessory.y_offset
+			// META EDIT - CHANGE - END
 			. += hair_gradient_overlay
 
 	return .
