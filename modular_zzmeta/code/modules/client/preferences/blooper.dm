@@ -28,10 +28,14 @@
 	return "none"
 
 /datum/preference/choiced/whisper_blooper/apply_to_human(mob/living/carbon/human/target, value)
-	if(value == "none" || !(value in SSblooper.blooper_list))
+	if(value == "none")
 		target.whisper_blooper = null
-	else
-		target.whisper_blooper = SSblooper.blooper_list[value]
+		return
+	if(!(value in SSblooper.blooper_list))
+		stack_trace("whisper_blooper '[value]' for [target] ([target.ckey]) not in SSblooper.blooper_list ([length(SSblooper.blooper_list)] entries); falling back to normal voice.")
+		target.whisper_blooper = null
+		return
+	target.whisper_blooper = SSblooper.blooper_list[value]
 
 /datum/preference/choiced/whisper_blooper/is_accessible(datum/preferences/preferences)
 	return ..() && length(SSblooper.blooper_list)
