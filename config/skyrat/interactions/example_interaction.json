@@ -7,32 +7,32 @@
 	"message": [
 		"%USER% pokes %TARGET%!"
 	],
-	"zone_messages": {
-		"head": [
-			"%USER% pokes %TARGET% in the head!"
-		],
-		"l_arm": [
-			"%USER% pokes %TARGET%'s arm!"
-		],
-		"r_arm": [
-			"%USER% pokes %TARGET%'s arm!"
-		]
-	},
-	"user_messages": [
-		"You poke %TARGET%!"
-	],
-	"zone_user_messages": {
-		"head": [
-			"You poke %TARGET% in the head!"
-		]
-	},
-	"target_messages": [
-		"%USER% pokes you!"
-	],
-	"zone_target_messages": {
-		"head": [
-			"%USER% pokes you in the head!"
-		]
+	"zone_overrides": {
+		"head": {
+			"message": [
+				"%USER% pokes %TARGET% in the head!"
+			],
+			"user_messages": [
+				"You poke %TARGET% in the head!"
+			],
+			"target_messages": [
+				"%USER% pokes you in the head!"
+			],
+			"target_pain": 0
+		},
+		"l_arm": {
+			"message": [
+				"%USER% pokes %TARGET%'s arm!"
+			]
+		},
+		"r_arm": {
+			"message": [
+				"%USER% pokes %TARGET%'s arm!"
+			]
+		},
+		"eyes": {
+			"target_pain": 0
+		}
 	},
 	"sound_use": 0,
 	"sound_possible": [
@@ -43,5 +43,22 @@
 	"interaction_requires": [
 		"self_hand",
 		"target_hand"
-	]
+	],
+	"color": "blue",
+	"user_messages": [
+		"You poke %TARGET%!"
+	],
+	"user_required_parts": [],
+	"user_arousal": 0,
+	"user_pleasure": 0,
+	"user_pain": 0,
+	"target_messages": [
+		"%USER% pokes you!"
+	],
+	"target_required_parts": [],
+	"target_arousal": 0,
+	"target_pleasure": 0,
+	"target_pain": 0,
+	"lewd": 0,
+	"sexuality": ""
 }
