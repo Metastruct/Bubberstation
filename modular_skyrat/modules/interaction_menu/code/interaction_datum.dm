@@ -239,10 +239,15 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
 /**
  * Applies a list of status effect entries (list("type" = typepath text, "duration" = optional number of
- * seconds, "chance" = optional percent 0-100)) to `recipient`. Invalid/non status effect types are ignored
- * and logged.
+ * seconds, "chance" = optional percent 0-100, "tether" = optional bool)) to `recipient`. Invalid/non
+ * status effect types are ignored and logged.
+ *
+ * If "tether" is set, the effect is kept alive past its normal duration for as long as `other_party`
+ * stays adjacent to `recipient` (e.g. Cover's blindness/muffle lasting until the coverer steps back),
+ * and is stripped early the moment they separate. "duration" still applies as a safety cap in case the
+ * tether never breaks on its own.
  */
-/datum/interaction/proc/apply_zone_status_effects(list/effects, mob/living/carbon/human/recipient)
+/datum/interaction/proc/apply_zone_status_effects(list/effects, mob/living/carbon/human/recipient, mob/living/carbon/human/other_party)
 	for(var/list/effect_data in effects)
 		if(!islist(effect_data))
 			continue
@@ -257,10 +262,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			message_admins("Interaction '[name]' referenced an invalid status effect type '[effect_type]'.")
 			continue
 		var/duration = effect_data["duration"]
+		var/datum/status_effect/applied_effect
 		if(isnum(duration))
-			recipient.apply_status_effect(effect_path, duration SECONDS)
+			applied_effect = recipient.apply_status_effect(effect_path, duration SECONDS)
 		else
-			recipient.apply_status_effect(effect_path)
+			applied_effect = recipient.apply_status_effect(effect_path)
+		if(effect_data["tether"] && other_party && applied_effect)
+			recipient.apply_status_effect(/datum/status_effect/interaction_tether, other_party, effect_path)
 
 /**
  * Spawns a list of decal entries (list("type" = typepath text, "spawn_on" = "target"/"user",
@@ -356,8 +364,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		var/list/user_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "user_force_say_phrases", user_force_say_phrases)
 		user.force_say(user_say_phrases.len ? user_say_phrases : null, immediate = TRUE)
 
-	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects), target)
-	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects), user)
+	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects), target, user)
+	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects), user, target)
 
 	spawn_interaction_decals(get_zone_pool(zone, combat_mode, prone, is_self, "decals", decals), user, target)
 
