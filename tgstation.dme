@@ -9805,7 +9805,6 @@
 #include "modular_zubbers\code\modules\emotes\emotes.dm"
 #include "modular_zubbers\code\modules\emotes\hand_items.dm"
 #include "modular_zubbers\code\modules\emotes\scream_datums.dm"
-#include "modular_zubbers\code\modules\emotes\species_crys.dm"
 #include "modular_zubbers\code\modules\emotes\species_screams.dm"
 #include "modular_zubbers\code\modules\emotes\synth_emotes.dm"
 #include "modular_zubbers\code\modules\events\brain_trauma.dm"
@@ -10511,5 +10510,6 @@
 #include "modular_zubbers\modules\voskhod\code\mod_suit.dm"
 #include "modular_zubbers\modules\wood_walls\code\new_floors.dm"
 #include "modular_zzmeta\code\datums\world_topic.dm"
+#include "modular_zzmeta\code\modules\emotes\species_crys.dm"
 #include "modular_zzmeta\code\modules\mob\living\carbon\human\species_types\jellypeople.dm"
 // END_INCLUDE
