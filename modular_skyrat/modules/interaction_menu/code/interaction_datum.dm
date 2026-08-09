@@ -85,6 +85,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 /datum/interaction/proc/allow_act(mob/living/carbon/human/user, mob/living/carbon/human/target)
 	if(target == user && usage == INTERACTION_OTHER)
 		return FALSE
+	if(target != user && usage == INTERACTION_SELF)
+		return FALSE
 
 	if(user_required_parts.len)
 		for(var/thing in user_required_parts)

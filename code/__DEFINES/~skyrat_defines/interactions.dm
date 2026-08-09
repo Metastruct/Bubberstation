@@ -14,3 +14,4 @@
 // Interaction Types: Do we do it to ourself or someone else
 #define INTERACTION_SELF "self"
 #define INTERACTION_OTHER "other"
+#define INTERACTION_BOTH "both"
