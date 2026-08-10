@@ -87,6 +87,11 @@
 			"message": [
 				"%USER% pokes %TARGET% while they're on the ground!"
 			]
+		},
+		"_bothprone": {
+			"message": [
+				"%USER% pokes %TARGET% while they're both on the ground!"
+			]
 		}
 	},
 	"sound_possible": [

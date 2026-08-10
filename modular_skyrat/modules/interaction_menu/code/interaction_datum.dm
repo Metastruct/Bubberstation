@@ -81,12 +81,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// "user_force_say", "user_force_say_phrases", "user_force_say_chance", "target_status_effects",
 	/// "user_status_effects", "decals", "sound_possible". Any key a zone's entry doesn't set falls back to the
 	/// matching base field. A zone can also be suffixed with "_self" (target == user), "_combat" (user has
-	/// combat mode on), or "_prone" (target is lying down), e.g. "mouth_self", "mouth_combat", "head_prone".
-	/// "_combat" and "_prone" can combine as "_combat_prone"; "_self" always takes priority on its own instead
-	/// of combining with them. For interactions with no single natural zone (e.g. a rougher variant of an act
-	/// that isn't tied to any particular BODY_ZONE), the same suffixes also work as standalone keys with no
-	/// zone prefix ("_self", "_combat", "_prone", "_combat_prone"), applying regardless of what zone happens
-	/// to be selected. See get_zone_data() for the exact fallback order.
+	/// combat mode on), "_prone" (target is lying down, user isn't), or "_bothprone" (target and user are
+	/// both lying down), e.g. "mouth_self", "mouth_combat", "head_prone", "head_bothprone".
+	/// "_combat" can combine with either "_prone" or "_bothprone" ("_combat_prone"/"_combat_bothprone");
+	/// "_self" always takes priority on its own instead of combining with them. For interactions with no
+	/// single natural zone (e.g. a rougher variant of an act that isn't tied to any particular BODY_ZONE),
+	/// the same suffixes also work as standalone keys with no zone prefix ("_self", "_combat", "_prone",
+	/// "_bothprone", "_combat_prone", "_combat_bothprone"), applying regardless of what zone happens to be
+	/// selected. See get_zone_data() for the exact fallback order.
 	var/list/zone_overrides = list()
 	/// A list of possible sounds. There's no separate on/off flag; a sound plays whenever this ends up
 	/// non-empty after zone_overrides are applied.
@@ -140,19 +142,19 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
 /**
  * Returns `zone`'s override sub-list from `zone_overrides`, or null if it has none. `combat_mode` and
- * `prone` (target lying down) each optionally suffix the zone key with "_combat"/"_prone" (e.g.
- * "mouth_combat", "head_prone"). `is_self` (target == user) is checked first, above everything else,
- * since self-targeting is a fundamentally different framing than a combat/prone intensity change.
- * Checked most specific first:
+ * `prone` is "_prone" (target lying down, user isn't), "_bothprone" (both lying down), or "" (neither),
+ * and gets appended directly as the zone key suffix (e.g. "mouth_combat", "head_prone", "head_bothprone").
+ * `is_self` (target == user) is checked first, above everything else, since self-targeting is a
+ * fundamentally different framing than a combat/prone intensity change. Checked most specific first:
  *   1. "[zone]_self"
  *   2. "_self" (self-targeting, zone-independent)
- *   3. "[zone]_combat_prone" (both modifiers, tied to this specific zone)
+ *   3. "[zone]_combat[prone]" (both modifiers, tied to this specific zone)
  *   4. "[zone]_combat"
- *   5. "[zone]_prone"
- *   6. "_combat_prone" (both modifiers, zone-independent, e.g. "Ass fuck" using "_combat" for a rougher
+ *   5. "[zone][prone]"
+ *   6. "_combat[prone]" (both modifiers, zone-independent, e.g. "Ass fuck" using "_combat" for a rougher
  *      variant regardless of what zone happens to be selected)
  *   7. "_combat"
- *   8. "_prone"
+ *   8. "[prone]" (zone-independent, e.g. "_prone" or "_bothprone")
  *   9. the plain "[zone]" entry
  * Only defined keys need to exist. Anything not defined just falls through to the next, less specific
  * match, and ultimately to the interaction's base fields if nothing at all is defined.
@@ -168,7 +170,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		if(islist(global_self_data))
 			return global_self_data
 	if(combat_mode && prone)
-		var/list/combat_prone_data = zone_overrides["[zone]_combat_prone"]
+		var/list/combat_prone_data = zone_overrides["[zone]_combat[prone]"]
 		if(islist(combat_prone_data))
 			return combat_prone_data
 	if(combat_mode)
@@ -176,11 +178,11 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		if(islist(combat_data))
 			return combat_data
 	if(prone)
-		var/list/prone_data = zone_overrides["[zone]_prone"]
+		var/list/prone_data = zone_overrides["[zone][prone]"]
 		if(islist(prone_data))
 			return prone_data
 	if(combat_mode && prone)
-		var/list/global_combat_prone_data = zone_overrides["_combat_prone"]
+		var/list/global_combat_prone_data = zone_overrides["_combat[prone]"]
 		if(islist(global_combat_prone_data))
 			return global_combat_prone_data
 	if(combat_mode)
@@ -188,7 +190,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		if(islist(global_combat_data))
 			return global_combat_data
 	if(prone)
-		var/list/global_prone_data = zone_overrides["_prone"]
+		var/list/global_prone_data = zone_overrides[prone]
 		if(islist(global_prone_data))
 			return global_prone_data
 	var/list/zone_data = zone_overrides[zone]
@@ -225,7 +227,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 /datum/interaction/proc/get_ui_feedback(mob/living/carbon/human/user, mob/living/carbon/human/target)
 	var/zone = user.zone_selected
 	var/combat_mode = user.combat_mode
-	var/prone = target.body_position == LYING_DOWN
+	var/prone = target.body_position == LYING_DOWN ? (user.body_position == LYING_DOWN ? "_bothprone" : "_prone") : ""
 	var/is_self = (target == user)
 	var/list/feedback = list()
 	feedback["specialized"] = !isnull(get_zone_data(zone, combat_mode, prone, is_self))
@@ -312,7 +314,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		message = list(message)
 	var/zone = user.zone_selected
 	var/combat_mode = user.combat_mode
-	var/prone = target.body_position == LYING_DOWN
+	var/prone = target.body_position == LYING_DOWN ? (user.body_position == LYING_DOWN ? "_bothprone" : "_prone") : ""
 	var/is_self = (target == user)
 	var/list/message_pool = get_zone_pool(zone, combat_mode, prone, is_self, "message", message)
 	var/msg = pick(message_pool)
