@@ -10515,6 +10515,7 @@
 #include "modular_zzmeta\code\game\objects\items\plushes.dm"
 #include "modular_zzmeta\code\game\sound\sound.dm"
 #include "modular_zzmeta\code\modules\client\audio_browser.dm"
+#include "modular_zzmeta\code\modules\client\preferences\announcement_volume.dm"
 #include "modular_zzmeta\code\modules\client\preferences\blooper.dm"
 #include "modular_zzmeta\code\modules\client\preferences\middleware\blooper.dm"
 #include "modular_zzmeta\code\modules\emotes\species_crys.dm"
