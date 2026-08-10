@@ -551,33 +551,48 @@
 				play_snd('modular_zubbers/sound/arcade/minesweeper_explosion3.ogg')
 		return MINESWEEPER_DEAD
 
-	tiles_left--
+	// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+	// Flood fill is iterative (not recursive proc calls) since the connected empty
+	// region on a big sparse board can span thousands of tiles, and recursion that
+	// deep hits DM's call stack limit partway through, leaving the reveal incomplete.
+	var/list/queue = list(list(x,y))
+	var/qhead = 1
+	while(qhead <= length(queue))
+		var/list/coord = queue[qhead]
+		qhead++
+		var/cx = coord[1]
+		var/cy = coord[2]
+		if(board_data[cx][cy] != "minesweeper_hidden.png" && board_data[cx][cy] != "minesweeper_flag.png")
+			continue // Already processed via another neighbor.
 
-	var/mine_count = 0
-	for(var/scanx=-1, scanx<2, scanx++) // -1, 0, 1
-		for(var/scany=-1, scany<2, scany++)
-			if(scanx+x < 1 || scany+y < 1)
-				continue
-			if(scanx == 0 && scany == 0) // We know we aren't a mine
-				continue
-			if(board_data[scanx+x][scany+y] != "minesweeper_hidden.png" && board_data[scanx+x][scany+y] != "minesweeper_flag.png")
-				continue
-			if(find_in_mines(list(scanx+x-1,scany+y-1)))
-				mine_count++
+		tiles_left--
 
-	if(mine_count == FALSE) // There are no mines around me! Select every square adjacent!
-		board_data[x][y] = "minesweeper_empty.png"
+		var/mine_count = 0
 		for(var/scanx=-1, scanx<2, scanx++) // -1, 0, 1
 			for(var/scany=-1, scany<2, scany++)
-				if(scanx+x < 1 || scany+y < 1)
+				if(scanx+cx < 1 || scany+cy < 1)
 					continue
-				if(scanx == 0 && scany == 0)
+				if(scanx == 0 && scany == 0) // We know we aren't a mine
 					continue
-				if(board_data[scanx+x][scany+y] != "minesweeper_hidden.png")
+				if(board_data[scanx+cx][scany+cy] != "minesweeper_hidden.png" && board_data[scanx+cx][scany+cy] != "minesweeper_flag.png")
 					continue
-				select_square(scanx+x,scany+y)
-	else
-		board_data[x][y] = "minesweeper_[mine_count].png"
+				if(find_in_mines(list(scanx+cx-1,scany+cy-1)))
+					mine_count++
+
+		if(mine_count == FALSE) // There are no mines around me! Select every square adjacent!
+			board_data[cx][cy] = "minesweeper_empty.png"
+			for(var/scanx=-1, scanx<2, scanx++) // -1, 0, 1
+				for(var/scany=-1, scany<2, scany++)
+					if(scanx+cx < 1 || scany+cy < 1)
+						continue
+					if(scanx == 0 && scany == 0)
+						continue
+					if(board_data[scanx+cx][scany+cy] != "minesweeper_hidden.png")
+						continue
+					queue += list(list(scanx+cx, scany+cy))
+		else
+			board_data[cx][cy] = "minesweeper_[mine_count].png"
+	// META EDIT - CHANGE - END
 
 	return tiles_left <= mines ? MINESWEEPER_VICTORY : MINESWEEPER_CONTINUE
 
