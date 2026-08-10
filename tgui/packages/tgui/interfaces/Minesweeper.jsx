@@ -160,11 +160,11 @@ export const MinesweeperContent = (props, context) => {
             inline
             animated
             unit=" Width"
-            minValue="5"
-            maxValue="30"
-            stepPixelSize="10"
+            minValue={5}
+            maxValue={30}
+            stepPixelSize={10}
             value={custom_width}
-            onDrag={(e, value) =>
+            onChange={(e, value) =>
               act('PRG_width', {
                 width: value,
               })
@@ -175,11 +175,11 @@ export const MinesweeperContent = (props, context) => {
             animated
             color="blue"
             unit=" Height"
-            minValue="5"
-            maxValue="17"
-            stepPixelSize="20"
+            minValue={5}
+            maxValue={17}
+            stepPixelSize={20}
             value={custom_height}
-            onDrag={(e, value) =>
+            onChange={(e, value) =>
               act('PRG_height', {
                 height: value,
               })
@@ -190,11 +190,11 @@ export const MinesweeperContent = (props, context) => {
             animated
             color="bad"
             unit=" Mines"
-            minValue="5"
-            maxValue="250"
-            stepPixelSize="2"
+            minValue={5}
+            maxValue={250}
+            stepPixelSize={2}
             value={custom_mines}
-            onDrag={(e, value) =>
+            onChange={(e, value) =>
               act('PRG_mines', {
                 mines: value,
               })
