@@ -53,17 +53,15 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/target_bleed = 0
 	/// Units of blood the user loses on use. Same notes as `target_bleed`.
 	var/user_bleed = 0
-	/// If TRUE, interrupts whatever the target is currently typing and forces them to blurt it out (see /mob/living/carbon/human/proc/force_say).
-	var/target_force_say = FALSE
-	/// Suffixes to blurt out when `target_force_say` triggers. Empty means the default hurt phrases ("AUGH!" etc) are used.
+	/// Suffixes the target blurts out (see /mob/living/carbon/human/proc/force_say), interrupting whatever
+	/// they're currently typing. There's no separate on/off flag; this triggers whenever it ends up
+	/// non-empty after zone_overrides are applied.
 	var/list/target_force_say_phrases = list()
-	/// Percent chance (0-100) that `target_force_say` actually triggers when TRUE. Defaults to always.
+	/// Percent chance (0-100) that `target_force_say_phrases` actually triggers when non-empty. Defaults to always.
 	var/target_force_say_chance = 100
-	/// If TRUE, interrupts whatever the user is currently typing and forces them to blurt it out.
-	var/user_force_say = FALSE
-	/// Suffixes to blurt out when `user_force_say` triggers. Empty means the default hurt phrases are used.
+	/// Suffixes the user blurts out. Same notes as `target_force_say_phrases`.
 	var/list/user_force_say_phrases = list()
-	/// Percent chance (0-100) that `user_force_say` actually triggers when TRUE. Defaults to always.
+	/// Percent chance (0-100) that `user_force_say_phrases` actually triggers when non-empty. Defaults to always.
 	var/user_force_say_chance = 100
 	/// Status effects applied to the target on use. Each entry is a list("type" = "/datum/status_effect/path",
 	/// "duration" = optional_number_of_seconds, "chance" = optional_percent_0_to_100_defaults_always).
@@ -77,8 +75,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// Optional per-zone overrides, keyed by BODY_ZONE_* (mob's zone_selected). Each entry is an associative
 	/// list that may set any of: "message", "self_messages", "user_messages", "target_messages",
 	/// "user_pleasure", "user_arousal", "user_pain", "target_pleasure", "target_arousal", "target_pain",
-	/// "target_bleed", "user_bleed", "target_force_say", "target_force_say_phrases", "target_force_say_chance",
-	/// "user_force_say", "user_force_say_phrases", "user_force_say_chance", "target_status_effects",
+	/// "target_bleed", "user_bleed", "target_force_say_phrases", "target_force_say_chance",
+	/// "user_force_say_phrases", "user_force_say_chance", "target_status_effects",
 	/// "user_status_effects", "decals", "sound_possible". Any key a zone's entry doesn't set falls back to the
 	/// matching base field. A zone can also be suffixed with "_self" (target == user), "_combat" (user has
 	/// combat mode on), "_prone" (target is lying down, user isn't), or "_bothprone" (target and user are
@@ -208,7 +206,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	return fallback
 
 /**
- * Returns the scalar value to actually use for `key` (e.g. "target_pain", "target_force_say"): `zone`'s
+ * Returns the scalar value to actually use for `key` (e.g. "target_pain", "target_force_say_chance"): `zone`'s
  * override if it sets one, otherwise `fallback`.
  */
 /datum/interaction/proc/get_zone_value(zone, combat_mode, prone, is_self, key, fallback)
@@ -235,8 +233,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	feedback["status_effect"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects)) > 0 \
 		|| length(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects)) > 0
 	feedback["decal"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "decals", decals)) > 0
-	feedback["force_say"] = get_zone_value(zone, combat_mode, prone, is_self, "target_force_say", target_force_say) \
-		|| get_zone_value(zone, combat_mode, prone, is_self, "user_force_say", user_force_say)
+	feedback["force_say"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "target_force_say_phrases", target_force_say_phrases)) > 0 \
+		|| length(get_zone_pool(zone, combat_mode, prone, is_self, "user_force_say_phrases", user_force_say_phrases)) > 0
 	return feedback
 
 /**
@@ -359,12 +357,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		// extrarange effectively equal to the JSON-defined sound_range instead of stacking on top of it.
 		playsound(source = user, soundin = sound_cache, vol = 50, vary = FALSE, extrarange = sound_range - SOUND_RANGE, ignore_walls = FALSE, volume_preference = /datum/preference/numeric/volume/sound_emote)
 
-	if(get_zone_value(zone, combat_mode, prone, is_self, "target_force_say", target_force_say) && prob(get_zone_value(zone, combat_mode, prone, is_self, "target_force_say_chance", target_force_say_chance)))
-		var/list/target_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "target_force_say_phrases", target_force_say_phrases)
-		target.force_say(target_say_phrases.len ? target_say_phrases : null, immediate = TRUE)
-	if(get_zone_value(zone, combat_mode, prone, is_self, "user_force_say", user_force_say) && prob(get_zone_value(zone, combat_mode, prone, is_self, "user_force_say_chance", user_force_say_chance)))
-		var/list/user_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "user_force_say_phrases", user_force_say_phrases)
-		user.force_say(user_say_phrases.len ? user_say_phrases : null, immediate = TRUE)
+	var/list/target_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "target_force_say_phrases", target_force_say_phrases)
+	if(target_say_phrases.len && prob(get_zone_value(zone, combat_mode, prone, is_self, "target_force_say_chance", target_force_say_chance)))
+		target.force_say(target_say_phrases, immediate = TRUE)
+	var/list/user_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "user_force_say_phrases", user_force_say_phrases)
+	if(user_say_phrases.len && prob(get_zone_value(zone, combat_mode, prone, is_self, "user_force_say_chance", user_force_say_chance)))
+		user.force_say(user_say_phrases, immediate = TRUE)
 
 	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects), target, user)
 	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects), user, target)
@@ -431,7 +429,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	user_pleasure = sanitize_integer(json["user_pleasure"], 0, 100, 0)
 	user_pain = sanitize_integer(json["user_pain"], 0, 100, 0)
 	user_bleed = sanitize_integer(json["user_bleed"], 0, 100, 0)
-	user_force_say = sanitize_integer(json["user_force_say"], 0, 1, 0)
 	user_force_say_phrases = sanitize_islist(json["user_force_say_phrases"], list())
 	user_force_say_chance = sanitize_integer(json["user_force_say_chance"], 0, 100, 100)
 	user_status_effects = sanitize_islist(json["user_status_effects"], list())
@@ -441,7 +438,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	target_pleasure = sanitize_integer(json["target_pleasure"], 0, 100, 0)
 	target_pain = sanitize_integer(json["target_pain"], 0, 100, 0)
 	target_bleed = sanitize_integer(json["target_bleed"], 0, 100, 0)
-	target_force_say = sanitize_integer(json["target_force_say"], 0, 1, 0)
 	target_force_say_phrases = sanitize_islist(json["target_force_say_phrases"], list())
 	target_force_say_chance = sanitize_integer(json["target_force_say_chance"], 0, 100, 100)
 	target_status_effects = sanitize_islist(json["target_status_effects"], list())
@@ -474,7 +470,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"user_pleasure" = user_pleasure,
 		"user_pain" = user_pain,
 		"user_bleed" = user_bleed,
-		"user_force_say" = user_force_say,
 		"user_force_say_phrases" = user_force_say_phrases,
 		"user_force_say_chance" = user_force_say_chance,
 		"user_status_effects" = user_status_effects,
@@ -484,7 +479,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"target_pleasure" = target_pleasure,
 		"target_pain" = target_pain,
 		"target_bleed" = target_bleed,
-		"target_force_say" = target_force_say,
 		"target_force_say_phrases" = target_force_say_phrases,
 		"target_force_say_chance" = target_force_say_chance,
 		"target_status_effects" = target_status_effects,
@@ -557,7 +551,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.user_pleasure = sanitize_integer(ijson["user_pleasure"], 0, 100, 0)
 		interaction.user_pain = sanitize_integer(ijson["user_pain"], 0, 100, 0)
 		interaction.user_bleed = sanitize_integer(ijson["user_bleed"], 0, 100, 0)
-		interaction.user_force_say = sanitize_integer(ijson["user_force_say"], 0, 1, 0)
 		interaction.user_force_say_phrases = sanitize_islist(ijson["user_force_say_phrases"], list())
 		interaction.user_force_say_chance = sanitize_integer(ijson["user_force_say_chance"], 0, 100, 100)
 		interaction.user_status_effects = sanitize_islist(ijson["user_status_effects"], list())
@@ -567,7 +560,6 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.target_pleasure = sanitize_integer(ijson["target_pleasure"], 0, 100, 0)
 		interaction.target_pain = sanitize_integer(ijson["target_pain"], 0, 100, 0)
 		interaction.target_bleed = sanitize_integer(ijson["target_bleed"], 0, 100, 0)
-		interaction.target_force_say = sanitize_integer(ijson["target_force_say"], 0, 1, 0)
 		interaction.target_force_say_phrases = sanitize_islist(ijson["target_force_say_phrases"], list())
 		interaction.target_force_say_chance = sanitize_integer(ijson["target_force_say_chance"], 0, 100, 100)
 		interaction.target_status_effects = sanitize_islist(ijson["target_status_effects"], list())

@@ -52,7 +52,6 @@
 			"message": [
 				"%USER% pokes %TARGET% on the lips!"
 			],
-			"target_force_say": 1,
 			"target_force_say_phrases": [
 				"mmph!",
 				"shh!"
@@ -112,7 +111,6 @@
 	"user_pleasure": 0,
 	"user_pain": 0,
 	"user_bleed": 0,
-	"user_force_say": 0,
 	"user_force_say_phrases": [],
 	"user_force_say_chance": 100,
 	"user_status_effects": [],
@@ -124,7 +122,6 @@
 	"target_pleasure": 0,
 	"target_pain": 0,
 	"target_bleed": 0,
-	"target_force_say": 0,
 	"target_force_say_phrases": [],
 	"target_force_say_chance": 100,
 	"target_status_effects": [],

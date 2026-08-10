@@ -6,6 +6,5 @@
   "distance_allowed": 0,
   "message": ["%USER% bumps %TARGET%'s fist with theirs!"],
   "interaction_requires": ["self_hand", "target_hand"],
-  "sound_use": 1,
   "sound_possible": ["sound/effects/hit_punch.ogg"]
 }

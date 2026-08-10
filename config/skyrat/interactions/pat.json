@@ -6,7 +6,6 @@
   "distance_allowed": 0,
   "message": ["%USER% pats %TARGET% on their shoulder."],
   "interaction_requires": ["self_hand"],
-  "sound_use": 1,
   "sound_range": 3,
   "sound_possible": [
     "sound/effects/rustle/rustle1.ogg",
