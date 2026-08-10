@@ -1,5 +1,4 @@
-// Lets other players use the strip menu to trigger a suit's alt-click behavior
-// (zipping a coat, buttoning a jacket, etc) instead of only being able to alt-click it themselves.
+// Lets other players trigger a suit's alt-click behavior from the strip menu, not just the wearer.
 /datum/strippable_item/mob_item_slot/suit/get_alternate_actions(atom/source, mob/user, obj/item/item)
 	. = ..()
 	var/obj/item/clothing/suit/suit = item
@@ -38,7 +37,7 @@
 	to_chat(source, span_notice("[user] successfully adjusted your [suit]."))
 
 	// Mirrors /mob/proc/base_click_alt's dispatch order: signal handlers first, then the click_alt() proc fallback.
-	// can_perform_action() is skipped on purpose. Its reachability check assumes user is reaching into
+	// The can_perform_action proc is skipped on purpose. Its reachability check assumes user is reaching into
 	// their own inventory or a container with atom_storage, which a worn suit on another mob is not.
 	if(SEND_SIGNAL(suit, COMSIG_CLICK_ALT, user) & CLICK_ACTION_ANY)
 		return
