@@ -332,7 +332,7 @@
 	var/game_status = MINESWEEPER_IDLE
 
 	// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
-	var/board_data[101][101]
+	var/list/board_data[101][101]
 	// META EDIT - CHANGE - END
 	var/mine_spots = list()
 	var/height = 10
