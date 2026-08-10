@@ -67,7 +67,7 @@
 /obj/machinery/computer/arcade/minesweeper/ui_data(mob/user)
 	var/list/data = ..()
 
-	data["board_data"] = board.board_data
+	data["board_data"] = board.get_display_board()
 	data["game_status"] = board.game_status
 	data["difficulty"] = board.diff_text(board.difficulty)
 	data["current_difficulty"] = board.current_difficulty
@@ -122,8 +122,10 @@
 			if(!cin)
 				return
 			cin = text2num(cin)
-			if(cin < 5 || cin > 17)
-				cin = clamp(cin, 5, 17)
+			// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+			if(cin < 5 || cin > 100)
+				cin = clamp(cin, 5, 100)
+			// META EDIT - CHANGE - END
 			board.custom_height = cin
 			board.custom_mines = min(board.custom_mines, FLOOR(board.custom_width*board.custom_height/2,1))
 			board.difficulty = MINESWEEPER_CUSTOM
@@ -134,8 +136,10 @@
 			if(!cin)
 				return
 			cin = text2num(cin)
-			if(cin < 5 || cin > 30)
-				cin = clamp(cin, 5, 30)
+			// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+			if(cin < 5 || cin > 100)
+				cin = clamp(cin, 5, 100)
+			// META EDIT - CHANGE - END
 			board.custom_width = cin
 			board.custom_mines = min(board.custom_mines, FLOOR(board.custom_width*board.custom_height/2,1))
 			board.difficulty = MINESWEEPER_CUSTOM
@@ -146,8 +150,11 @@
 			if(!cin)
 				return
 			cin = text2num(cin)
-			if(cin < 5 || cin > FLOOR(board.custom_width*board.custom_height/2,1))
-				cin = clamp(cin, 5, FLOOR(board.custom_width*board.custom_height/2,1))
+			// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+			var/max_mines = min(2000, FLOOR(board.custom_width*board.custom_height/2,1))
+			if(cin < 5 || cin > max_mines)
+				cin = clamp(cin, 5, max_mines)
+			// META EDIT - CHANGE - END
 			board.custom_mines = cin
 			board.difficulty = MINESWEEPER_CUSTOM
 			return TRUE
@@ -216,7 +223,7 @@
 /datum/computer_file/program/minesweeper/ui_data(mob/user)
 	var/list/data = list()
 
-	data["board_data"] = board.board_data
+	data["board_data"] = board.get_display_board()
 	data["game_status"] = board.game_status
 	data["difficulty"] = board.diff_text(board.difficulty)
 	data["current_difficulty"] = board.current_difficulty
@@ -277,8 +284,10 @@
 			if(!cin)
 				return
 			cin = text2num(cin)
-			if(cin < 5 || cin > 30)
-				cin = clamp(cin, 5, 30)
+			// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+			if(cin < 5 || cin > 100)
+				cin = clamp(cin, 5, 100)
+			// META EDIT - CHANGE - END
 			board.custom_width = cin
 			board.custom_mines = min(board.custom_mines, FLOOR(board.custom_width*board.custom_height/2,1))
 			board.difficulty = MINESWEEPER_CUSTOM
@@ -289,8 +298,11 @@
 			if(!cin)
 				return
 			cin = text2num(cin)
-			if(cin < 5 || cin > FLOOR(board.custom_width*board.custom_height/2,1))
-				cin = clamp(cin, 5, FLOOR(board.custom_width*board.custom_height/2,1))
+			// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+			var/max_mines = min(2000, FLOOR(board.custom_width*board.custom_height/2,1))
+			if(cin < 5 || cin > max_mines)
+				cin = clamp(cin, 5, max_mines)
+			// META EDIT - CHANGE - END
 			board.custom_mines = cin
 			board.difficulty = MINESWEEPER_CUSTOM
 			return TRUE
@@ -319,7 +331,9 @@
 
 	var/game_status = MINESWEEPER_IDLE
 
-	var/board_data[31][18]
+	// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+	var/board_data[101][101]
+	// META EDIT - CHANGE - END
 	var/mine_spots = list()
 	var/height = 10
 	var/width = 10
@@ -343,8 +357,10 @@
 
 /datum/minesweeper/proc/set_custom_height(cin)
 	cin = text2num(cin)
-	if(cin < 5 || cin > 17)
-		cin = clamp(cin, 5, 17)
+	// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+	if(cin < 5 || cin > 100)
+		cin = clamp(cin, 5, 100)
+	// META EDIT - CHANGE - END
 	custom_height = cin
 	custom_mines = min(custom_mines, FLOOR(custom_width*custom_height/2,1))
 	difficulty = MINESWEEPER_CUSTOM
@@ -480,7 +496,9 @@
 	return TRUE
 
 /datum/minesweeper/proc/generate_new_board(diff)
-	board_data = new /list(31,18) // Fresh board
+	// META EDIT - CHANGE - START - MINESWEEPER_BIGGER_BOARDS
+	board_data = new /list(101,101) // Fresh board
+	// META EDIT - CHANGE - END
 	mine_spots = list()
 
 	switch(diff)
@@ -565,6 +583,15 @@
 
 /datum/minesweeper/proc/diff_text(diff)
 	return list("Beginner", "Intermediate", "Expert", "Custom")[diff]
+
+// META EDIT - ADDITION - START - MINESWEEPER_BIGGER_BOARDS
+/// Sends only the active width x height slice of board_data, since the array itself is allocated at the max custom size.
+/datum/minesweeper/proc/get_display_board()
+	var/list/trimmed = new /list(width)
+	for(var/x in 1 to width)
+		trimmed[x] = board_data[x].Copy(1, height + 1)
+	return trimmed
+// META EDIT - ADDITION - END
 
 /datum/minesweeper/proc/find_in_mines(list/coord)
 	var/order = 0
