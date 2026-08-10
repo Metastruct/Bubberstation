@@ -117,6 +117,13 @@ const ALTERNATE_ACTIONS: Record<string, AlternateAction> = {
     icon: 'mask',
     text: 'Adjust bridle',
   },
+
+  // META EDIT BEGIN - suit strip-menu adjust
+  adjust_suit: {
+    icon: 'vest',
+    text: 'Adjust suit',
+  },
+  // META EDIT END
 };
 
 const SLOTS: Record<
