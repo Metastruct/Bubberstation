@@ -63,7 +63,7 @@ export class DreamSeeker {
       return instances;
     }
 
-    const command = 'netstat -ano | findstr TCP | findstr 0.0.0.0:0';
+    const command = getListCommand();
 
     try {
       const { stdout } = await promisify(exec)(command, {
@@ -71,24 +71,9 @@ export class DreamSeeker {
         maxBuffer: 1024 * 1024,
       });
 
-      // Line format:
-      // proto addr mask mode pid
-      const entries: Entry[] = [];
-      const lines = stdout.split('\r\n');
-
-      for (const line of lines) {
-        const words = line.match(/\S+/g);
-        if (!words || words.length === 0) {
-          continue;
-        }
-        const entry: Entry = {
-          addr: words[1],
-          pid: parseInt(words[4], 10),
-        };
-        if (pidsToResolve.includes(entry.pid)) {
-          entries.push(entry);
-        }
-      }
+      const entries = parseEntries(stdout).filter((entry) =>
+        pidsToResolve.includes(entry.pid),
+      );
 
       const len = entries.length;
       logger.log('found', len, plural('instance', len));
@@ -112,4 +97,44 @@ export class DreamSeeker {
 
 function plural(word: string, n: number): string {
   return n !== 1 ? `${word}s` : word;
+}
+
+function getListCommand(): string {
+  if (process.platform === 'win32') {
+    return 'netstat -ano | findstr TCP | findstr 0.0.0.0:0';
+  }
+  // ss is part of iproute2, present on virtually every modern Linux distro.
+  return 'ss -tlnp';
+}
+
+function parseEntries(stdout: string): Entry[] {
+  const entries: Entry[] = [];
+
+  if (process.platform === 'win32') {
+    // Line format: proto addr mask mode pid
+    for (const line of stdout.split('\r\n')) {
+      const words = line.match(/\S+/g);
+      if (!words || words.length === 0) {
+        continue;
+      }
+      entries.push({ addr: words[1], pid: parseInt(words[4], 10) });
+    }
+    return entries;
+  }
+
+  // ss -tlnp output:
+  // State  Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+  // LISTEN 0      4096   0.0.0.0:1338        0.0.0.0:*         users:(("DreamDaemon",pid=1234,fd=3))
+  for (const line of stdout.split('\n').slice(1)) {
+    const words = line.match(/\S+/g);
+    if (!words || words.length < 4) {
+      continue;
+    }
+    const pidMatch = line.match(/pid=(\d+)/);
+    if (!pidMatch) {
+      continue;
+    }
+    entries.push({ addr: words[3], pid: parseInt(pidMatch[1], 10) });
+  }
+  return entries;
 }
