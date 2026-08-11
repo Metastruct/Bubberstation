@@ -134,6 +134,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			if(INTERACTION_REQUIRE_USER_TAIL)
 				if(!user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL))
 					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_HORNS)
+				if(!target.get_organ_slot(ORGAN_SLOT_EXTERNAL_HORNS))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_TAIL)
+				if(!target.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL))
+					return FALSE
 			else
 				CRASH("Unimplemented interaction requirement '[requirement]'")
 	return TRUE
@@ -246,6 +252,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
  * stays adjacent to `recipient` (e.g. Cover's blindness/muffle lasting until the coverer steps back),
  * and is stripped early the moment they separate. "duration" still applies as a safety cap in case the
  * tether never breaks on its own.
+ *
+ * "duration" is also enforced independently of whatever the target status effect type does with it:
+ * many status effects only read a duration argument if they specifically override on_creation() to
+ * accept one (e.g. dizziness) - others ignore it entirely and default to STATUS_EFFECT_PERMANENT
+ * (e.g. terrified), which would otherwise leave them applied indefinitely despite a "duration" being
+ * set here. Passing a numeric "duration" always schedules a hard qdel() at that time as a backstop, so
+ * interaction authors can rely on it actually expiring instead of having to check each effect's source.
  */
 /datum/interaction/proc/apply_zone_status_effects(list/effects, mob/living/carbon/human/recipient, mob/living/carbon/human/other_party)
 	for(var/list/effect_data in effects)
@@ -265,6 +278,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		var/datum/status_effect/applied_effect
 		if(isnum(duration))
 			applied_effect = recipient.apply_status_effect(effect_path, duration SECONDS)
+			// Not every status effect type reads the duration argument we just passed (only ones that
+			// override on_creation() to accept it do) - force it to expire regardless, so a "duration"
+			// set on an interaction is never silently ignored in favor of that effect's own default
+			// (often STATUS_EFFECT_PERMANENT). No-op if the effect already qdel'd itself earlier.
+			if(applied_effect)
+				QDEL_IN(applied_effect, duration SECONDS)
 		else
 			applied_effect = recipient.apply_status_effect(effect_path)
 		if(effect_data["tether"] && other_party && applied_effect)

@@ -12,6 +12,8 @@
 #define INTERACTION_REQUIRE_TARGET_HAND "target_hand"
 #define INTERACTION_REQUIRE_USER_HORNS "user_horns"
 #define INTERACTION_REQUIRE_USER_TAIL "user_tail"
+#define INTERACTION_REQUIRE_TARGET_HORNS "target_horns"
+#define INTERACTION_REQUIRE_TARGET_TAIL "target_tail"
 
 // Interaction Types: Do we do it to ourself or someone else
 #define INTERACTION_SELF "self"
