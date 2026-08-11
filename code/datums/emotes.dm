@@ -456,6 +456,10 @@
 	if(emote_type & EMOTE_AUDIBLE && !hands_use_check)
 		if(HAS_TRAIT(user, TRAIT_MUTE))
 			return FALSE
+		// META EDIT ADDITION START
+		if(HAS_TRAIT(user, TRAIT_MUFFLED_EMOTE_SOUND))
+			return FALSE
+		// META EDIT ADDITION END
 		if(ishuman(user))
 			var/mob/living/carbon/human/loud_mouth = user
 			if(HAS_MIND_TRAIT(loud_mouth, TRAIT_MIMING)) // vow of silence prevents outloud noises

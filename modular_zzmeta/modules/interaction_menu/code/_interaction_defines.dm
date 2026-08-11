@@ -1,4 +1,4 @@
-#define INTERACTION_JSON_FOLDER "config/skyrat/interactions/"
+#define INTERACTION_JSON_FOLDER "config/interactions/"
 
 // Special values
 #define INTERACTION_MAX_CHAR 255
@@ -10,7 +10,12 @@
 // If you add a new requirement you also need to implement its checking. See /datum/interaction/proc/allow_act
 #define INTERACTION_REQUIRE_SELF_HAND "self_hand"
 #define INTERACTION_REQUIRE_TARGET_HAND "target_hand"
+#define INTERACTION_REQUIRE_USER_HORNS "user_horns"
+#define INTERACTION_REQUIRE_USER_TAIL "user_tail"
+#define INTERACTION_REQUIRE_TARGET_HORNS "target_horns"
+#define INTERACTION_REQUIRE_TARGET_TAIL "target_tail"
 
 // Interaction Types: Do we do it to ourself or someone else
 #define INTERACTION_SELF "self"
 #define INTERACTION_OTHER "other"
+#define INTERACTION_BOTH "both"

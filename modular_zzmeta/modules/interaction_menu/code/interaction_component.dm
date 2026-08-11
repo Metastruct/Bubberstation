@@ -87,6 +87,8 @@
 	var/list/categories = list()
 	var/list/display_categories = list()
 	var/list/colors = list()
+	var/list/feedback = list()
+	var/mob/living/carbon/human/human_user = user
 	for(var/datum/interaction/interaction in interactions)
 		if(!can_interact(interaction, user))
 			continue
@@ -98,8 +100,11 @@
 			categories[interaction.category] = sorted_category
 		descriptions[interaction.name] = interaction.description
 		colors[interaction.name] = interaction.color
+		if(ishuman(human_user))
+			feedback[interaction.name] = interaction.get_ui_feedback(human_user, self)
 	data["descriptions"] = descriptions
 	data["colors"] = colors
+	data["feedback"] = feedback
 	for(var/category in categories)
 		display_categories += category
 	data["categories"] = sort_list(display_categories)
@@ -113,7 +118,10 @@
 	data["interactions"] = categories
 	data["erp_interaction"] = self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
 
-	var/mob/living/carbon/human/human_user = user
+	if(ishuman(human_user))
+		data["combat_mode"] = human_user.combat_mode
+		data["target_zone"] = human_user.zone_selected
+	data["target_prone"] = (self.body_position == LYING_DOWN)
 
 	data["isTargetSelf"] = (user == self)
 
@@ -133,7 +141,7 @@
 		data["yourName"] = human_user.real_name
 
 
-	// self - the one who the interaction component belongs to, aka who it's opened on (confusing var name yep)
+	// self is the one who the interaction component belongs to, aka who it's opened on (confusing var name yep)
 	if(user != self)
 		data["theirPleasure"] = self.pleasure
 		data["theirArousal"] = self.arousal
@@ -182,17 +190,18 @@
 
 	if(params["interaction"])
 		var/interaction_id = params["interaction"]
-		if(GLOB.interaction_instances[interaction_id])
+		var/datum/interaction/performed = GLOB.interaction_instances[interaction_id]
+		if(performed)
 			var/mob/living/carbon/human/user = locate(params["userref"])
-			if(!can_interact(GLOB.interaction_instances[interaction_id], user))
+			if(!can_interact(performed, user))
 				return FALSE
 			if(body_relay && !can_see(user, self))
-				GLOB.interaction_instances[interaction_id].act(user, locate(params["selfref"]), body_relay)
+				performed.act(user, locate(params["selfref"]), body_relay)
 			else
-				GLOB.interaction_instances[interaction_id].act(user, locate(params["selfref"]))
+				performed.act(user, locate(params["selfref"]))
 			var/datum/component/interactable/interaction_component = user.GetComponent(/datum/component/interactable)
 			interaction_component.interact_last = world.time
-			interact_next = interaction_component.interact_last + INTERACTION_COOLDOWN
+			interact_next = interaction_component.interact_last + performed.cooldown
 			interaction_component.interact_next = interact_next
 			return TRUE
 

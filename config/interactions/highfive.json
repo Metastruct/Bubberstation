@@ -1,0 +1,14 @@
+{
+  "name": "Highfive",
+  "description": "Gimme some!",
+  "usage": "other",
+  "category": "Miscellaneous",
+  "distance_allowed": 0,
+  "message": ["%USER% gives %TARGET% a highfive!"],
+  "interaction_requires": ["self_hand", "target_hand"],
+  "sound_range": 5,
+  "sound_possible": [
+    "modular_zubbers/sound/emotes/claponce1.ogg",
+    "modular_zubbers/sound/emotes/claponce2.ogg"
+  ]
+}

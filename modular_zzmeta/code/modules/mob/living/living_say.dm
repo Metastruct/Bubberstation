@@ -16,9 +16,9 @@
 		message_range++
 		if(whisper_blooper)
 			blooper_to_use = whisper_blooper
-		speed_to_use = whisper_blooper_speed
-		pitch_to_use = whisper_blooper_pitch
-		pitch_range_to_use = whisper_blooper_pitch_range
+			speed_to_use = whisper_blooper_speed
+			pitch_to_use = whisper_blooper_pitch
+			pitch_range_to_use = whisper_blooper_pitch_range
 	var/list/listeners = get_hearers_in_view(message_range, source)
 	var/is_yelling = (say_test(message_raw) == "2") // boost the volume if their message ends in !
 	blooper_to_use.play_bloop(source, listeners, message_raw, message_range, volume * (is_yelling ? 2 : 1), speed_to_use, pitch_to_use, pitch_range_to_use)
