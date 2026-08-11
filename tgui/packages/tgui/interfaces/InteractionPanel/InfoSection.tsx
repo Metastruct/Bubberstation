@@ -1,4 +1,4 @@
-// THIS IS A BUBBER UI FILE
+// THIS IS A META UI FILE
 import { useState } from 'react';
 import { Icon, ProgressBar, Section, Stack } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';

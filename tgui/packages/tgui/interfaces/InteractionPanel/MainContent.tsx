@@ -1,4 +1,4 @@
-// THIS IS A BUBBER UI FILE
+// THIS IS A NOVA SECTOR UI FILE
 
 import { useState } from 'react';
 import {

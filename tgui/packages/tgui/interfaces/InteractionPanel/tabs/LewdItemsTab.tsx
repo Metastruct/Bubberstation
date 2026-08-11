@@ -1,4 +1,4 @@
-// THIS IS A BUBBER UI FILE
+// THIS IS A NOVA SECTOR UI FILE
 import { Box, Button, Icon, Stack } from 'tgui-core/components';
 
 import { useBackend } from '../../../backend';

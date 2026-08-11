@@ -1,4 +1,4 @@
-// THIS IS A BUBBER UI FILE
+// THIS IS A META UI FILE
 import { useMemo } from 'react';
 import {
   Box,

@@ -251,11 +251,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
  * If "tether" is set, the effect is kept alive past its normal duration for as long as `other_party`
  * stays adjacent to `recipient` (e.g. Cover's blindness/muffle lasting until the coverer steps back),
  * and is stripped early the moment they separate. "duration" still applies as a safety cap in case the
- * tether never breaks on its own.
+ * tether never breaks on its own. Tethered effects are constructed with STATUS_EFFECT_PERMANENT instead
+ * of the real duration so this is actually enforced: effects that self-manage their own countdown via
+ * on_creation(duration = X) (e.g. temporary_blindness, muffled) would otherwise expire themselves on
+ * schedule regardless of whether the other party is still adjacent.
  *
  * "duration" is also enforced independently of whatever the target status effect type does with it:
  * many status effects only read a duration argument if they specifically override on_creation() to
- * accept one (e.g. dizziness) - others ignore it entirely and default to STATUS_EFFECT_PERMANENT
+ * accept one (e.g. dizziness); others ignore it entirely and default to STATUS_EFFECT_PERMANENT
  * (e.g. terrified), which would otherwise leave them applied indefinitely despite a "duration" being
  * set here. Passing a numeric "duration" always schedules a hard qdel() at that time as a backstop, so
  * interaction authors can rely on it actually expiring instead of having to check each effect's source.
@@ -275,18 +278,25 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			message_admins("Interaction '[name]' referenced an invalid status effect type '[effect_type]'.")
 			continue
 		var/duration = effect_data["duration"]
+		var/tether = effect_data["tether"]
 		var/datum/status_effect/applied_effect
 		if(isnum(duration))
-			applied_effect = recipient.apply_status_effect(effect_path, duration SECONDS)
+			// Tethered effects shouldn't self-expire on their own duration. The tether (adjacency) is
+			// what's supposed to control their lifetime; "duration" only applies as an outer safety
+			// cap (below) in case the tether never breaks on its own. Passing STATUS_EFFECT_PERMANENT
+			// here stops effects like temporary_blindness/muffled from counting themselves down via
+			// their own on_creation(duration = X) default and dying on schedule regardless of whether
+			// the other party is still adjacent, which would defeat the point of tethering them.
+			applied_effect = recipient.apply_status_effect(effect_path, tether ? STATUS_EFFECT_PERMANENT : duration SECONDS)
 			// Not every status effect type reads the duration argument we just passed (only ones that
-			// override on_creation() to accept it do) - force it to expire regardless, so a "duration"
+			// override on_creation() to accept it do). Force it to expire regardless, so a "duration"
 			// set on an interaction is never silently ignored in favor of that effect's own default
 			// (often STATUS_EFFECT_PERMANENT). No-op if the effect already qdel'd itself earlier.
 			if(applied_effect)
 				QDEL_IN(applied_effect, duration SECONDS)
 		else
 			applied_effect = recipient.apply_status_effect(effect_path)
-		if(effect_data["tether"] && other_party && applied_effect)
+		if(tether && other_party && applied_effect)
 			recipient.apply_status_effect(/datum/status_effect/interaction_tether, other_party, effect_path)
 
 /**

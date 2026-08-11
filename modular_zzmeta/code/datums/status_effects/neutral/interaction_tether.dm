@@ -1,5 +1,5 @@
-// META EDIT: watcher effect used by the interaction system to keep a status effect (e.g. Cover's
-// blindness/muffle) alive only while tether_source stays adjacent to the owner.
+/// Watcher effect used by the interaction system to keep a status effect (e.g. Cover's
+/// blindness/muffle) alive only while tether_source stays adjacent to the owner.
 /datum/status_effect/interaction_tether
 	id = "interaction_tether"
 	duration = STATUS_EFFECT_PERMANENT
