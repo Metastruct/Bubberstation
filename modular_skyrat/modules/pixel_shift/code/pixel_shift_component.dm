@@ -57,7 +57,10 @@
 /datum/component/pixel_shift/proc/pre_move_check(mob/source, new_loc, direct)
 	SIGNAL_HANDLER
 	if(shifting)
-		pixel_shift(source, direct)
+		// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+		if(pixel_shift(source, direct)) // already at the edge, let the real move through
+			return
+		// META EDIT - ADDITION - END
 		return COMSIG_MOB_CLIENT_BLOCK_PRE_LIVING_MOVE
 
 //procs for tilting parent
@@ -135,27 +138,41 @@
 					if(pulled_item.pixel_x >= -maximum_pixel_shift + pulled_item.base_pixel_x)
 						pulled_item.pixel_x--
 		if(SHIFTING_PARENT)
+			// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
 			switch(direct)
 				if(NORTH)
-					if(shift_y <= maximum_pixel_shift)
+					if(shift_y < maximum_pixel_shift)
 						shift_y++
-						owner.add_offsets(type, y_add = shift_y)
-						is_shifted = TRUE
+					else
+						shift_y = -maximum_pixel_shift
+						. = TRUE
+					owner.add_offsets(type, y_add = shift_y)
+					is_shifted = TRUE
 				if(EAST)
-					if(shift_x <= maximum_pixel_shift)
+					if(shift_x < maximum_pixel_shift)
 						shift_x++
-						owner.add_offsets(type, x_add = shift_x)
-						is_shifted = TRUE
+					else
+						shift_x = -maximum_pixel_shift
+						. = TRUE
+					owner.add_offsets(type, x_add = shift_x)
+					is_shifted = TRUE
 				if(SOUTH)
-					if(shift_y >= -maximum_pixel_shift)
+					if(shift_y > -maximum_pixel_shift)
 						shift_y--
-						owner.add_offsets(type, y_add = shift_y)
-						is_shifted = TRUE
+					else
+						shift_y = maximum_pixel_shift
+						. = TRUE
+					owner.add_offsets(type, y_add = shift_y)
+					is_shifted = TRUE
 				if(WEST)
-					if(shift_x >= -maximum_pixel_shift)
+					if(shift_x > -maximum_pixel_shift)
 						shift_x--
-						owner.add_offsets(type, x_add = shift_x)
-						is_shifted = TRUE
+					else
+						shift_x = maximum_pixel_shift
+						. = TRUE
+					owner.add_offsets(type, x_add = shift_x)
+					is_shifted = TRUE
+			// META EDIT - ADDITION - END
 		if(TILTING_PARENT)
 			switch(direct)
 				if(EAST)
