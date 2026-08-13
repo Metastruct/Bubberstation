@@ -22,6 +22,10 @@
 	var/passthroughable = NONE
 	//Amount of shifting necessary to make the parent passthroughable
 	var/passthrough_threshold = 8
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+	//Set while a deliberate tile-cross move is in flight, so unpixel_shift() doesn't tear us down for it
+	var/crossing_tile = FALSE
+	// META EDIT - ADDITION - END
 
 /datum/component/pixel_shift/Initialize(...)
 	. = ..()
@@ -58,7 +62,8 @@
 	SIGNAL_HANDLER
 	if(shifting)
 		// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
-		if(pixel_shift(source, direct)) // already at the edge, let the real move through
+		if(pixel_shift(source, direct, new_loc)) // already at the edge, let the real move through
+			crossing_tile = TRUE
 			return
 		// META EDIT - ADDITION - END
 		return COMSIG_MOB_CLIENT_BLOCK_PRE_LIVING_MOVE
@@ -107,6 +112,11 @@
 /// Sets parent pixel offsets to default and deletes the component.
 /datum/component/pixel_shift/proc/unpixel_shift()
 	SIGNAL_HANDLER
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+	if(crossing_tile) // our own tile-cross move, not a real unshift
+		crossing_tile = FALSE
+		return
+	// META EDIT - ADDITION - END
 	passthroughable = NONE
 	if(is_shifted)
 		var/mob/living/owner = parent
@@ -115,7 +125,7 @@
 	qdel(src)
 
 /// In-turf pixel movement which can allow things to pass through if the threshold is met.
-/datum/component/pixel_shift/proc/pixel_shift(mob/source, direct)
+/datum/component/pixel_shift/proc/pixel_shift(mob/source, direct, new_loc)
 	passthroughable = NONE
 	var/mob/living/owner = parent
 	switch(shifting)
@@ -139,39 +149,49 @@
 						pulled_item.pixel_x--
 		if(SHIFTING_PARENT)
 			// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+			var/turf/target_turf = isturf(new_loc) ? new_loc : null
+			var/turf_blocked = target_turf ? target_turf.is_blocked_turf(source_atom = owner) : TRUE
 			switch(direct)
 				if(NORTH)
 					if(shift_y < maximum_pixel_shift)
 						shift_y++
-					else
+						owner.add_offsets(type, y_add = shift_y)
+						is_shifted = TRUE
+					else if(!turf_blocked)
 						shift_y = -maximum_pixel_shift
 						. = TRUE
-					owner.add_offsets(type, y_add = shift_y)
-					is_shifted = TRUE
+						owner.add_offsets(type, y_add = shift_y, animate = FALSE)
+						is_shifted = TRUE
 				if(EAST)
 					if(shift_x < maximum_pixel_shift)
 						shift_x++
-					else
+						owner.add_offsets(type, x_add = shift_x)
+						is_shifted = TRUE
+					else if(!turf_blocked)
 						shift_x = -maximum_pixel_shift
 						. = TRUE
-					owner.add_offsets(type, x_add = shift_x)
-					is_shifted = TRUE
+						owner.add_offsets(type, x_add = shift_x, animate = FALSE)
+						is_shifted = TRUE
 				if(SOUTH)
 					if(shift_y > -maximum_pixel_shift)
 						shift_y--
-					else
+						owner.add_offsets(type, y_add = shift_y)
+						is_shifted = TRUE
+					else if(!turf_blocked)
 						shift_y = maximum_pixel_shift
 						. = TRUE
-					owner.add_offsets(type, y_add = shift_y)
-					is_shifted = TRUE
+						owner.add_offsets(type, y_add = shift_y, animate = FALSE)
+						is_shifted = TRUE
 				if(WEST)
 					if(shift_x > -maximum_pixel_shift)
 						shift_x--
-					else
+						owner.add_offsets(type, x_add = shift_x)
+						is_shifted = TRUE
+					else if(!turf_blocked)
 						shift_x = maximum_pixel_shift
 						. = TRUE
-					owner.add_offsets(type, x_add = shift_x)
-					is_shifted = TRUE
+						owner.add_offsets(type, x_add = shift_x, animate = FALSE)
+						is_shifted = TRUE
 			// META EDIT - ADDITION - END
 		if(TILTING_PARENT)
 			switch(direct)
