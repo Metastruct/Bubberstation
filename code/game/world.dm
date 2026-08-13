@@ -300,6 +300,9 @@ GLOBAL_VAR_INIT(last_maptick_time, 0)
 		return
 
 	handler = new handler()
+	// META EDIT - ADDITION - START - CLAUDE_DEBUG
+	input["__addr"] = addr // lets individual handlers gate on caller address, e.g. claude_debug's loopback-only check
+	// META EDIT - ADDITION - END
 	return handler.TryRun(input)
 
 /world/proc/AnnouncePR(announcement, list/payload)

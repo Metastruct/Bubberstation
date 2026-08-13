@@ -4,6 +4,16 @@
 /datum/config_entry/string/comms_key/ValidateAndSet(str_val)
 	return str_val != "default_pwd" && length(str_val) > 6 && ..()
 
+// META EDIT - ADDITION - START - CLAUDE_DEBUG
+/// Separate key for the claude_debug world/Topic() endpoint (code/datums/world_topic.dm), kept
+/// distinct from comms_key so it isn't tied to prod webhook/announcer secret rotation.
+/datum/config_entry/string/claude_debug_key
+	protection = CONFIG_ENTRY_HIDDEN
+
+/datum/config_entry/string/claude_debug_key/ValidateAndSet(str_val)
+	return str_val != "default_pwd" && length(str_val) > 6 && ..()
+// META EDIT - ADDITION - END
+
 /datum/config_entry/keyed_list/cross_server
 	key_mode = KEY_MODE_TEXT
 	value_mode = VALUE_MODE_TEXT

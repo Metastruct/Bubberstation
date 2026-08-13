@@ -210,7 +210,9 @@ ADMIN_VERB(sdql2_query, R_DEBUG, "SDQL2 Query", "Run a SDQL2 query.", ADMIN_CATE
 	if(!silent)
 		message_admins("[log_entry1] [query_log]")
 	query_log = "[log_entry2] [query_log]"
-	usr.log_message(query_log, LOG_ADMIN)
+	// META EDIT - CHANGE - START - CLAUDE_DEBUG (usr is null when this is called from world/Topic())
+	usr?.log_message(query_log, LOG_ADMIN)
+	// META EDIT - CHANGE - END
 	NOTICE(query_log)
 
 	var/start_time_total = REALTIMEOFDAY

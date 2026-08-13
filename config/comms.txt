@@ -2,6 +2,13 @@
 ## Must be set to something other than 'default_pwd' and at least 7 characters long to be valid.
 #COMMS_KEY default_pwd
 
+## Key for the claude_debug world/Topic() endpoint, used by local dev tooling (tools/claude-mcp)
+## to query/mutate a running server for debugging. Leave commented/unset outside of your own
+## dev environment - this endpoint grants elevated (superuser) SDQL access, gated only by this
+## key and a loopback-only check on the caller's address.
+## Must be set to something other than 'default_pwd' and at least 7 characters long to be valid.
+#CLAUDE_DEBUG_KEY default_pwd
+
 ## World address and port for server receiving cross server messages
 ## Use '+' to denote spaces in ServerName
 ## Repeat this entry to add more servers

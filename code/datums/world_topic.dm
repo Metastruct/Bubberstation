@@ -299,6 +299,61 @@
 /datum/world_topic/create_news_article
 	keyword = "create_news_article"
 
+// META EDIT - ADDITION - START - CLAUDE_DEBUG
+/// world/Topic() endpoint for local Claude/MCP dev tooling (modular_zzmeta/tools/claude-mcp) to inspect and
+/// mutate a running server for debugging without a full reboot cycle. Runs SDQL2 queries
+/// (code/modules/admin/verbs/SDQL2/SDQL_2.dm) by constructing /datum/sdql2_query directly rather
+/// than going through world/proc/SDQL2_query(): that wrapper is both much slower (it never
+/// passes SU/options through, so it always runs unprivileged with default tick-yield behavior)
+/// and unsafe to call here (its unguarded usr.log_message() runtimes when usr is null, which it
+/// always is for a Topic() caller).
+///
+/// Grants superuser SDQL access (arbitrary var get/set and proc calls via UPDATE/CALL), so it's
+/// gated on its own key (CLAUDE_DEBUG_KEY, kept separate from comms_key) plus a loopback-only
+/// check. Never enable this against a server other than your own local dev instance.
+/datum/world_topic/claude_debug
+	keyword = "claude_debug"
+	require_comms_key = FALSE // custom key check in TryRun() below, against a dedicated key rather than comms_key
+	log = TRUE
+
+/datum/world_topic/claude_debug/TryRun(list/input)
+	var/configured_key = CONFIG_GET(string/claude_debug_key)
+	var/key_ok = configured_key && (input["key"] == configured_key)
+	input -= "key"
+	if(!key_ok)
+		. = list("error" = "Bad key")
+	else if(input["__addr"] != "127.0.0.1")
+		. = list("error" = "Loopback only")
+	else
+		. = Run(input)
+	if(input["format"] == "json")
+		. = json_encode(.)
+	else if(islist(.))
+		. = list2params(.)
+	return .
+
+/datum/world_topic/claude_debug/Run(list/input)
+	var/query_text = input["q"]
+	if(!query_text)
+		return list("error" = "Missing q param")
+
+	var/list/query_list = SDQL2_tokenize(query_text)
+	var/list/querys = SDQL_parse(query_list)
+	if(!length(querys))
+		return list("error" = "Parse error, check the query syntax")
+	if(length(querys) > 1)
+		return list("error" = "Only a single query (no ';') is supported per call")
+
+	var/datum/sdql2_query/query = new /datum/sdql2_query(querys[1], TRUE, FALSE, 1) // SU=TRUE, admin_interact=FALSE, options=SDQL2_OPTIONS_DEFAULT (macro #undef'd outside SDQL_2.dm)
+	query.Run()
+	var/list/result = list(
+		"count" = length(query.select_refs),
+		"select_text" = query.select_text,
+	)
+	qdel(query)
+	return result
+// META EDIT - ADDITION - END
+
 /datum/world_topic/create_news_article/Run(list/input)
 	var/msg = input["msg"]
 	var/author = input["author"]
