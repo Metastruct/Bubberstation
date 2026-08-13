@@ -89,7 +89,10 @@ export function startSettingsMigration(next: MergedSettings): void {
       ...defaultSettings,
       initialized: true,
     };
-    storage.set('panel-settings', initialized);
+    // META EDIT - CHANGE - START - CHAT_SETTINGS_RESET
+    // Falsy can mean no stored settings, or a storage read that timed out on real data, so don't persist over it here
+    /* storage.set('panel-settings', initialized); */
+    // META EDIT - CHANGE - END - CHAT_SETTINGS_RESET
     store.set(settingsAtom, initialized);
     console.log('Initialized settings with defaults.');
     return;
