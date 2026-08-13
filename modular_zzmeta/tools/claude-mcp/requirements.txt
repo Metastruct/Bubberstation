@@ -1,1 +1,2 @@
 mcp==2.0.0
+websockets==17.0.1

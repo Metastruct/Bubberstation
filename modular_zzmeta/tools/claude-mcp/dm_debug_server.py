@@ -13,6 +13,7 @@ the server's secret key never has to pass through the model's context:
                    large object sets can legitimately take tens of seconds)
 """
 
+import asyncio
 import base64
 import glob
 import json
@@ -22,7 +23,9 @@ import socket
 import struct
 import subprocess
 import time
+import urllib.request
 
+import websockets
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Image
 
@@ -30,6 +33,14 @@ HOST = os.environ.get("DM_DEBUG_HOST", "127.0.0.1")
 PORT = os.environ.get("DM_DEBUG_PORT")
 KEY = os.environ.get("DM_DEBUG_KEY")
 TIMEOUT = float(os.environ.get("DM_DEBUG_TIMEOUT", "90"))
+
+# CDP (Chrome DevTools Protocol) access into tgui's embedded WebView2 browser.
+# Separate from the DM_DEBUG_* config above - doesn't go through world.Topic()
+# at all, talks directly to the browser. Needs the one-time setup described in
+# webview2-debugging.md before any of this works (nothing here can detect or
+# fix a missing setup, it'll just fail to connect).
+CDP_HOST = os.environ.get("TGUI_CDP_HOST", "127.0.0.1")
+CDP_PORT = int(os.environ.get("TGUI_CDP_PORT", "9222"))
 
 # Candidate BYOND screenshots folders, same shape as the cache-folder search in
 # tgui/packages/tgui-dev-server/reloader.ts (Windows/Wine/Lutris/Steam/WSL), just
@@ -275,6 +286,393 @@ def dm_debug_screenshot_full_window() -> Image:
         raise TopicError(f"grim failed: {result.stderr.decode(errors='replace')}")
 
     return Image(data=result.stdout, format="png")
+
+
+def _cdp_list_targets() -> list[dict]:
+    url = f"http://{CDP_HOST}:{CDP_PORT}/json"
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        raise TopicError(
+            f"Couldn't reach the CDP endpoint at {url} ({e}). Remote debugging is "
+            "probably not set up yet - see webview2-debugging.md for the one-time "
+            "setup this needs (a Wine/Windows registry key, not something this "
+            "tool can fix on its own)."
+        )
+
+
+def _resolve_target(name: str) -> dict:
+    """Resolve `name` to a single CDP target: exact id match first, else a
+    case-insensitive substring match against url/title. Raises clearly on zero
+    or multiple matches rather than guessing."""
+    targets = _cdp_list_targets()
+    for t in targets:
+        if t.get("id") == name:
+            return t
+
+    name_lower = name.lower()
+    matches = [
+        t for t in targets
+        if name_lower in t.get("url", "").lower() or name_lower in t.get("title", "").lower()
+    ]
+    if not matches:
+        available = "\n".join(f"  {t.get('title')} ({t.get('url')})" for t in targets)
+        raise TopicError(f"No CDP target matched '{name}'. Available targets:\n{available}")
+    if len(matches) > 1:
+        titles = ", ".join(t.get("title", "?") for t in matches)
+        raise TopicError(f"'{name}' matched multiple targets ({titles}) - be more specific.")
+    return matches[0]
+
+
+async def _cdp_send(ws_url: str, method: str, params: dict) -> dict:
+    async with websockets.connect(ws_url, max_size=None) as ws:
+        await ws.send(json.dumps({"id": 1, "method": method, "params": params}))
+        while True:
+            raw = await ws.recv()
+            data = json.loads(raw)
+            if data.get("id") == 1:
+                return data
+
+
+@mcp.tool()
+def tgui_list_targets() -> str:
+    """List debuggable tgui/pager browser targets over the Chrome DevTools
+    Protocol (CDP) - separate from and unrelated to the SDQL/world.Topic()
+    tools above, this talks directly to the embedded WebView2 browser.
+
+    Requires the one-time remote-debugging setup in webview2-debugging.md;
+    raises a clear error pointing there if it's not done yet.
+
+    Both the pager (byond.exe) and game client (dreamseeker.exe) share the
+    same debug port - tell them apart by title/url. Known game-client
+    targets: browseroutput.html (chat panel), statbrowser.html (stat panel),
+    tgui_say.html, typing_indicator.html, validate_assets.html, Tooltip.
+    Pager targets: pagerhome.html, byond.com/rsc/ad.html.
+
+    Returns JSON with each target's title, url, and id (pass the id, or any
+    unique substring of its title/url, as `target` to tgui_eval/tgui_click).
+    """
+    targets = _cdp_list_targets()
+    simplified = [{"id": t.get("id"), "title": t.get("title"), "url": t.get("url")} for t in targets]
+    return json.dumps(simplified, indent=2)
+
+
+@mcp.tool()
+def tgui_find_window(query: str) -> str:
+    """Find which open tgui window is which, by content rather than title.
+
+    Most tgui interfaces (crafting menus, vending machines, any UI opened
+    via browse() during normal gameplay - not the fixed chat/stat/say ones)
+    show up in tgui_list_targets as generic, indistinguishable names like
+    "tgui-window-1.html", "tgui-window-2.html" - the title/url alone can't
+    tell you which one is, say, a supply request console versus an audio
+    browser. This checks each open target's actual rendered text for `query`
+    (case-insensitive substring, e.g. "supply request console") and returns
+    the ones that match, with their id/title/url ready to pass to the other
+    tgui_* tools as `target`.
+
+    Slower than tgui_list_targets (queries every open target one at a time)
+    - use tgui_list_targets first if you already know which target you want
+    by its title/url.
+    """
+    targets = _cdp_list_targets()
+    query_lower = query.lower()
+
+    async def _check_all():
+        matches = []
+        for t in targets:
+            try:
+                result = await _cdp_send(t["webSocketDebuggerUrl"], "Runtime.evaluate", {
+                    "expression": "document.body ? document.body.textContent.slice(0, 300) : ''",
+                    "returnByValue": True,
+                })
+                text = result.get("result", {}).get("result", {}).get("value") or ""
+            except Exception:
+                continue
+            if query_lower in text.lower():
+                matches.append({
+                    "id": t.get("id"), "title": t.get("title"), "url": t.get("url"),
+                    "textSnippet": text[:150],
+                })
+        return matches
+
+    matches = asyncio.run(_check_all())
+    if not matches:
+        return f"No open tgui window's content matched {query!r}."
+    return json.dumps(matches, indent=2)
+
+
+@mcp.tool()
+def tgui_eval(target: str, expression: str) -> str:
+    """Evaluate JavaScript in a live tgui browser target and return the result.
+
+    `target` is a CDP target id from tgui_list_targets, or any unique
+    substring of its title/url (e.g. "browseroutput" for the chat panel).
+    `expression` is evaluated directly (not wrapped in a function) - for
+    anything beyond a single expression, wrap it yourself:
+    "(() => { ...; return x; })()".
+
+    Read-only by convention but not enforced - this can execute arbitrary JS
+    in the live page, including calling app functions or mutating state.
+    Only point this at your own dev client.
+    """
+    t = _resolve_target(target)
+    result = asyncio.run(_cdp_send(
+        t["webSocketDebuggerUrl"], "Runtime.evaluate",
+        {"expression": expression, "returnByValue": True},
+    ))
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def tgui_click(target: str, x: float, y: float) -> str:
+    """Dispatch a real mouse click at (x, y) in a live tgui browser target.
+
+    `target` is a CDP target id from tgui_list_targets, or any unique
+    substring of its title/url. Coordinates are CSS pixels relative to the
+    target's own viewport (use tgui_eval with
+    "el.getBoundingClientRect()" on the element first to find them).
+
+    This is a genuine Input.dispatchMouseEvent, not a JS .click() call - it
+    goes through the same input pipeline a real user's click would.
+    """
+    t = _resolve_target(target)
+    ws_url = t["webSocketDebuggerUrl"]
+
+    async def _click():
+        async with websockets.connect(ws_url, max_size=None) as ws:
+            for i, event_type in enumerate(("mousePressed", "mouseReleased"), start=1):
+                await ws.send(json.dumps({
+                    "id": i,
+                    "method": "Input.dispatchMouseEvent",
+                    "params": {"type": event_type, "x": x, "y": y, "button": "left", "clickCount": 1},
+                }))
+                while True:
+                    raw = await ws.recv()
+                    data = json.loads(raw)
+                    if data.get("id") == i:
+                        break
+
+    asyncio.run(_click())
+    return f"Clicked ({x}, {y}) on {t.get('title')}"
+
+
+@mcp.tool()
+def tgui_type(target: str, x: float, y: float, text: str) -> str:
+    """Click a text field/textarea at (x, y) and type `text` into it via real
+    keyboard events (Input.dispatchKeyEvent, one keyDown+keyUp per character)
+    - not a JS value assignment, so it goes through the same input pipeline a
+    real user typing would, including triggering React's onChange handlers.
+
+    `target` is a CDP target id from tgui_list_targets, or any unique
+    substring of its title/url. Coordinates are CSS pixels relative to the
+    target's own viewport (find them via tgui_eval +
+    getBoundingClientRect() on the field first).
+
+    Does not press Enter or otherwise submit - only types into the field.
+    """
+    t = _resolve_target(target)
+    ws_url = t["webSocketDebuggerUrl"]
+
+    async def _type():
+        async with websockets.connect(ws_url, max_size=None) as ws:
+            next_id = 0
+
+            async def send(method, params):
+                nonlocal next_id
+                next_id += 1
+                await ws.send(json.dumps({"id": next_id, "method": method, "params": params}))
+                while True:
+                    raw = await ws.recv()
+                    data = json.loads(raw)
+                    if data.get("id") == next_id:
+                        return data
+
+            await send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1})
+            await send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1})
+            for ch in text:
+                await send("Input.dispatchKeyEvent", {"type": "keyDown", "text": ch})
+                await send("Input.dispatchKeyEvent", {"type": "keyUp", "text": ch})
+
+    asyncio.run(_type())
+    return f"Typed {text!r} into ({x}, {y}) on {t.get('title')}"
+
+
+@mcp.tool()
+def tgui_screenshot(target: str) -> Image:
+    """Screenshot exactly one tgui target's rendered content as a PNG - not
+    the whole BYOND window, just this one panel's own viewport. No window
+    manager or OS-level tooling involved at all (unlike
+    dm_debug_screenshot_full_window), so this works the same on any platform
+    once CDP access is set up.
+
+    `target` is a CDP target id from tgui_list_targets, or any unique
+    substring of its title/url.
+    """
+    t = _resolve_target(target)
+    result = asyncio.run(_cdp_send(t["webSocketDebuggerUrl"], "Page.captureScreenshot", {"format": "png"}))
+    data = result.get("result", {}).get("data")
+    if not data:
+        raise TopicError(f"Page.captureScreenshot returned no data: {json.dumps(result)}")
+    return Image(data=base64.b64decode(data), format="png")
+
+
+@mcp.tool()
+def tgui_watch(target: str, duration: float = 5.0) -> str:
+    """Watch a tgui target for `duration` seconds and report what happened:
+    console output (console.log/warn/error), uncaught JS exceptions, browser
+    resource-load log entries, and any failed (4xx/5xx or network-level
+    failed) HTTP requests. Useful for catching intermittent bugs in the act -
+    reload the panel or interact with it while this is running.
+
+    `target` is a CDP target id from tgui_list_targets, or any unique
+    substring of its title/url. Blocks for the full duration.
+    """
+    t = _resolve_target(target)
+    ws_url = t["webSocketDebuggerUrl"]
+
+    async def _watch():
+        async with websockets.connect(ws_url, max_size=None) as ws:
+            next_id = 0
+
+            async def send(method, params=None):
+                nonlocal next_id
+                next_id += 1
+                await ws.send(json.dumps({"id": next_id, "method": method, "params": params or {}}))
+
+            await send("Runtime.enable")
+            await send("Network.enable")
+            await send("Log.enable")
+
+            lines = []
+            try:
+                async with asyncio.timeout(duration):
+                    while True:
+                        raw = await ws.recv()
+                        data = json.loads(raw)
+                        method = data.get("method")
+                        params = data.get("params", {})
+                        if method == "Runtime.consoleAPICalled":
+                            args = [a.get("value") or a.get("description") for a in params.get("args", [])]
+                            lines.append(f"[console.{params.get('type')}] {args}")
+                        elif method == "Runtime.exceptionThrown":
+                            desc = params.get("exceptionDetails", {})
+                            exc = desc.get("exception", {}).get("description", "")
+                            lines.append(f"[EXCEPTION] {desc.get('text')} {exc}")
+                        elif method == "Log.entryAdded":
+                            entry = params.get("entry", {})
+                            lines.append(f"[log/{entry.get('level')}] {entry.get('text')}")
+                        elif method == "Network.responseReceived":
+                            resp = params.get("response", {})
+                            status = resp.get("status")
+                            if status and status >= 400:
+                                lines.append(f"[HTTP {status}] {resp.get('url')}")
+                        elif method == "Network.loadingFailed":
+                            lines.append(f"[network failed] {params.get('type')} {params.get('errorText')}")
+            except TimeoutError:
+                pass
+            return lines
+
+    lines = asyncio.run(_watch())
+    if not lines:
+        return f"No console/log/network events on {t.get('title')} during {duration}s."
+    return "\n".join(lines)
+
+
+# Shared by tgui_react_props: finds a DOM node's React Fiber, then walks up
+# ancestors (fibers, not DOM elements - a single DOM element is often many
+# component layers deep). Safe-serializes values (functions/DOM nodes/React
+# elements/circular refs all become plain markers instead of crashing
+# JSON.stringify) since fiber props regularly contain all of those.
+_REACT_WALK_JS = """
+(() => {
+  const el = document.querySelector(%(selector)s);
+  if (!el) return JSON.stringify({found: false, reason: "no element matches selector"});
+  const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber$'));
+  if (!fiberKey) return JSON.stringify({found: true, hasFiber: false});
+
+  const seen = new WeakSet();
+  const safe = (key, value) => {
+    if (typeof value === 'function') return '[Function]';
+    if (value instanceof Node) return '[DOMNode ' + value.nodeName + ']';
+    if (value && typeof value === 'object') {
+      if (value.$$typeof) return '[ReactElement]';
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  };
+
+  const propName = %(prop_name)s;
+  let fiber = el[fiberKey];
+
+  if (propName) {
+    for (let i = 0; i < %(max_depth)s && fiber; i++) {
+      if (fiber.memoizedProps && fiber.memoizedProps[propName] !== undefined) {
+        return JSON.stringify({
+          found: true, hasFiber: true, propFound: true, depth: i,
+          value: fiber.memoizedProps[propName],
+        }, safe);
+      }
+      fiber = fiber.return;
+    }
+    return JSON.stringify({found: true, hasFiber: true, propFound: false});
+  }
+
+  const chain = [];
+  for (let i = 0; i < %(max_depth)s && fiber; i++) {
+    if (fiber.memoizedProps) {
+      const t = fiber.type;
+      chain.push({
+        depth: i,
+        componentType: t ? (t.name || t.displayName || String(t).slice(0, 40)) : String(fiber.tag),
+        propKeys: Object.keys(fiber.memoizedProps),
+      });
+    }
+    fiber = fiber.return;
+  }
+  return JSON.stringify({found: true, hasFiber: true, chain}, safe);
+})()
+"""
+
+
+@mcp.tool()
+def tgui_react_props(target: str, selector: str, prop_name: str = "", max_depth: int = 15) -> str:
+    """Inspect a live React component's actual props/state by walking up the
+    Fiber tree from a DOM element - a lighter, scriptable alternative to
+    React DevTools for when you already know roughly which element you care
+    about (find it first via tgui_eval + querySelector/getBoundingClientRect).
+
+    A single DOM node is usually wrapped by several component layers, so a
+    prop you want (e.g. the data an icon/button/row was actually rendered
+    with) often isn't on the element itself but on an ancestor - this walks
+    up from the element and either:
+      - with `prop_name` set: returns the value of the first ancestor
+        component that has that exact prop name, plus how many levels up it
+        was found. This is the fast path once you know the prop name.
+      - with `prop_name` empty (default): returns each ancestor's component
+        type and prop *names* (not values) up to `max_depth` levels, so you
+        can see what's available before drilling into a specific one.
+
+    `target` is a CDP target id from tgui_list_targets, or any unique
+    substring of its title/url. `selector` is any CSS selector
+    (document.querySelector semantics - matches the first element only).
+
+    This is exactly the technique that found a real lootpanel bug during
+    development: an item's spinner-forever icon turned out to be rendered
+    from a component prop with icon/icon_state both null, even though the
+    underlying game object's actual icon was fine - the bug was in
+    lootpanel's own data serialization, not asset loading.
+    """
+    t = _resolve_target(target)
+    expr = _REACT_WALK_JS % {
+        "selector": json.dumps(selector),
+        "prop_name": json.dumps(prop_name),
+        "max_depth": int(max_depth),
+    }
+    result = asyncio.run(_cdp_send(t["webSocketDebuggerUrl"], "Runtime.evaluate", {"expression": expr, "returnByValue": True}))
+    return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":
