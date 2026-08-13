@@ -183,6 +183,10 @@
 					else if(!turf_blocked)
 						shift_y = -maximum_pixel_shift
 						. = TRUE
+						// glide_size is still whatever our last ordinary step left it at here (client/Move() only
+						// re-syncs it further down in mob_movement.dm), so this write would otherwise inherit that
+						// stale, slow glide and visibly slide across the tile before the crossing Move() catches up.
+						owner.set_glide_size(0)
 						owner.add_offsets(type, y_add = shift_y, animate = FALSE)
 						is_shifted = TRUE
 				if(EAST)
@@ -193,6 +197,7 @@
 					else if(!turf_blocked)
 						shift_x = -maximum_pixel_shift
 						. = TRUE
+						owner.set_glide_size(0)
 						owner.add_offsets(type, x_add = shift_x, animate = FALSE)
 						is_shifted = TRUE
 				if(SOUTH)
@@ -203,6 +208,7 @@
 					else if(!turf_blocked)
 						shift_y = maximum_pixel_shift
 						. = TRUE
+						owner.set_glide_size(0)
 						owner.add_offsets(type, y_add = shift_y, animate = FALSE)
 						is_shifted = TRUE
 				if(WEST)
@@ -213,6 +219,7 @@
 					else if(!turf_blocked)
 						shift_x = maximum_pixel_shift
 						. = TRUE
+						owner.set_glide_size(0)
 						owner.add_offsets(type, x_add = shift_x, animate = FALSE)
 						is_shifted = TRUE
 			// META EDIT - ADDITION - END
