@@ -5,6 +5,9 @@
 /config/dev_preferences.json
 /config/dev_preferences.json.updatebac
 
+# Local MCP server config--contains the claude_debug key, don't commit
+/.mcp.json
+
 #Ignore everything in datafolder and subdirectories
 /data/**/*
 /tmp/**/*

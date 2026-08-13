@@ -333,6 +333,18 @@
 	return .
 
 /datum/world_topic/claude_debug/Run(list/input)
+	// META EDIT - ADDITION - render_ref: flatten a single atom's current appearance to a base64 PNG,
+	// for vision-capable debug tooling. Kept separate from the SDQL2 `q` path since SDQL2's CALL
+	// statement discards proc return values (see Execute() in SDQL_2.dm), so there's no way to get
+	// icon2base64() output back out through a query alone.
+	var/render_ref = input["render_ref"]
+	if(render_ref)
+		var/atom/target = locate(render_ref)
+		if(!istype(target))
+			return list("error" = "No atom found for that ref")
+		return list("icon_base64" = icon2base64(getFlatIcon(target, no_anim = TRUE)))
+	// META EDIT - ADDITION - END
+
 	var/query_text = input["q"]
 	if(!query_text)
 		return list("error" = "Missing q param")
