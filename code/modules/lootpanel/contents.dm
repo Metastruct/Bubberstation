@@ -62,7 +62,17 @@
 
 /// For: Resetting to empty. Ignores the searchable qdel event
 /datum/lootpanel/proc/reset_contents()
+	// META EDIT - CHANGE - START - LOOTPANEL_STALE_ICON_REFETCH
+	/* ORIGINAL:
 	for(var/datum/search_object/index as anything in contents)
+	*/
+	// Removing the current element from contents while iterating over that same live
+	// list causes BYOND's for-loop to skip every other entry, leaving stale search
+	// objects orphaned in contents/to_image (never qdel'd or unregistered) instead of
+	// being cleaned up here, which could leave their icons stuck spinning forever
+	// alongside a freshly recreated duplicate for the same atom. Iterate a snapshot.
+	for(var/datum/search_object/index as anything in contents.Copy())
+	// META EDIT - CHANGE - END - LOOTPANEL_STALE_ICON_REFETCH
 		contents -= index
 		to_image -= index
 
