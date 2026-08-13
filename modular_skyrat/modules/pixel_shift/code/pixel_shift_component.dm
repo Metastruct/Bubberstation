@@ -22,6 +22,14 @@
 	var/passthroughable = NONE
 	//Amount of shifting necessary to make the parent passthroughable
 	var/passthrough_threshold = 8
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+	//Set while a deliberate tile-cross move is in flight, so unpixel_shift() doesn't tear us down for it
+	var/crossing_tile = FALSE
+	//Facing direction to restore after a tile-cross move, since Move() auto-faces the movement direction
+	var/pre_cross_dir
+	//Movement slowdown to restore after a tile-cross move, zeroed so the crossing doesn't eat a full walk-speed cooldown
+	var/pre_cross_slowdown
+	// META EDIT - ADDITION - END
 
 /datum/component/pixel_shift/Initialize(...)
 	. = ..()
@@ -38,6 +46,9 @@
 	RegisterSignals(parent, list(COMSIG_LIVING_RESET_PULL_OFFSETS, COMSIG_LIVING_SET_PULL_OFFSET, COMSIG_MOVABLE_MOVED), PROC_REF(unpixel_shift))
 	RegisterSignal(parent, COMSIG_MOB_CLIENT_PRE_LIVING_MOVE, PROC_REF(pre_move_check))
 	RegisterSignal(parent, COMSIG_LIVING_CAN_ALLOW_THROUGH, PROC_REF(check_passable))
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+	RegisterSignal(parent, COMSIG_MOB_CLIENT_MOVED, PROC_REF(post_cross_move))
+	// META EDIT - ADDITION - END
 /datum/component/pixel_shift/UnregisterFromParent()
 	UnregisterSignal(parent, list(
 		COMSIG_KB_LIVING_ITEM_PIXEL_SHIFT_DOWN,
@@ -51,14 +62,32 @@
 		COMSIG_LIVING_SET_PULL_OFFSET,
 		COMSIG_MOVABLE_MOVED,
 		COMSIG_LIVING_CAN_ALLOW_THROUGH,
+		COMSIG_MOB_CLIENT_MOVED,
 	))
 
 //locks our movement when holding our keybinds
 /datum/component/pixel_shift/proc/pre_move_check(mob/source, new_loc, direct)
 	SIGNAL_HANDLER
 	if(shifting)
-		pixel_shift(source, direct)
+		// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+		if(pixel_shift(source, direct, new_loc)) // already at the edge, let the real move through
+			crossing_tile = TRUE
+			pre_cross_dir = source.dir
+			pre_cross_slowdown = source.cached_multiplicative_slowdown
+			source.cached_multiplicative_slowdown = 0 // crossing covers no new ground, don't charge a full walk-speed cooldown for it
+			return
+		// META EDIT - ADDITION - END
 		return COMSIG_MOB_CLIENT_BLOCK_PRE_LIVING_MOVE
+
+// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+/// Restores facing after a tile-cross move. Fires after Move()'s own auto-facing, so this must run later than unpixel_shift() to not get overwritten.
+/datum/component/pixel_shift/proc/post_cross_move(mob/source, direct, old_dir)
+	SIGNAL_HANDLER
+	if(!pre_cross_dir)
+		return
+	source.setDir(pre_cross_dir)
+	pre_cross_dir = null
+// META EDIT - ADDITION - END
 
 //procs for tilting parent
 
@@ -104,6 +133,13 @@
 /// Sets parent pixel offsets to default and deletes the component.
 /datum/component/pixel_shift/proc/unpixel_shift()
 	SIGNAL_HANDLER
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+	if(crossing_tile) // our own tile-cross move, not a real unshift
+		crossing_tile = FALSE
+		var/mob/living/owner = parent
+		owner.cached_multiplicative_slowdown = pre_cross_slowdown
+		return
+	// META EDIT - ADDITION - END
 	passthroughable = NONE
 	if(is_shifted)
 		var/mob/living/owner = parent
@@ -112,7 +148,7 @@
 	qdel(src)
 
 /// In-turf pixel movement which can allow things to pass through if the threshold is met.
-/datum/component/pixel_shift/proc/pixel_shift(mob/source, direct)
+/datum/component/pixel_shift/proc/pixel_shift(mob/source, direct, new_loc)
 	passthroughable = NONE
 	var/mob/living/owner = parent
 	switch(shifting)
@@ -135,27 +171,51 @@
 					if(pulled_item.pixel_x >= -maximum_pixel_shift + pulled_item.base_pixel_x)
 						pulled_item.pixel_x--
 		if(SHIFTING_PARENT)
+			// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+			var/turf/target_turf = isturf(new_loc) ? new_loc : null
+			var/turf_blocked = target_turf ? target_turf.is_blocked_turf(source_atom = owner) : TRUE
 			switch(direct)
 				if(NORTH)
-					if(shift_y <= maximum_pixel_shift)
+					if(shift_y < maximum_pixel_shift)
 						shift_y++
 						owner.add_offsets(type, y_add = shift_y)
 						is_shifted = TRUE
+					else if(!turf_blocked)
+						shift_y = -maximum_pixel_shift
+						. = TRUE
+						owner.add_offsets(type, y_add = shift_y, animate = FALSE)
+						is_shifted = TRUE
 				if(EAST)
-					if(shift_x <= maximum_pixel_shift)
+					if(shift_x < maximum_pixel_shift)
 						shift_x++
 						owner.add_offsets(type, x_add = shift_x)
 						is_shifted = TRUE
+					else if(!turf_blocked)
+						shift_x = -maximum_pixel_shift
+						. = TRUE
+						owner.add_offsets(type, x_add = shift_x, animate = FALSE)
+						is_shifted = TRUE
 				if(SOUTH)
-					if(shift_y >= -maximum_pixel_shift)
+					if(shift_y > -maximum_pixel_shift)
 						shift_y--
 						owner.add_offsets(type, y_add = shift_y)
 						is_shifted = TRUE
+					else if(!turf_blocked)
+						shift_y = maximum_pixel_shift
+						. = TRUE
+						owner.add_offsets(type, y_add = shift_y, animate = FALSE)
+						is_shifted = TRUE
 				if(WEST)
-					if(shift_x >= -maximum_pixel_shift)
+					if(shift_x > -maximum_pixel_shift)
 						shift_x--
 						owner.add_offsets(type, x_add = shift_x)
 						is_shifted = TRUE
+					else if(!turf_blocked)
+						shift_x = maximum_pixel_shift
+						. = TRUE
+						owner.add_offsets(type, x_add = shift_x, animate = FALSE)
+						is_shifted = TRUE
+			// META EDIT - ADDITION - END
 		if(TILTING_PARENT)
 			switch(direct)
 				if(EAST)
