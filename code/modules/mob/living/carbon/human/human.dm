@@ -934,7 +934,7 @@
 	return ..()
 
 /mob/living/carbon/human/mouse_buckle_handling(mob/living/M, mob/living/user)
-	// META EDIT START - CHANGE - piggyback/fireman carry no longer require an aggressive grab - Original: if(pulling != M || grab_state != GRAB_AGGRESSIVE || stat != CONSCIOUS)
+	// META EDIT START - CHANGE - piggyback no longer requires an aggressive grab - Original: if(pulling != M || grab_state != GRAB_AGGRESSIVE || stat != CONSCIOUS)
 	if(stat != CONSCIOUS)
 	// META EDIT END
 		return FALSE
@@ -946,10 +946,8 @@
 		piggyback(M)
 		return TRUE
 
-	// META EDIT START - CHANGE - no longer requires an aggressive grab - Original: "//If you dragged them to you and you're aggressively grabbing try to fireman carry them"
-	//If you dragged them to you try to fireman carry them
-	// META EDIT END
-	if(can_be_firemanned(M))
+	//If you dragged them to you and you're aggressively grabbing try to fireman carry them
+	if(pulling == M && grab_state == GRAB_AGGRESSIVE && can_be_firemanned(M))
 		fireman_carry(M)
 		return TRUE
 
