@@ -870,12 +870,23 @@ GLOBAL_LIST_EMPTY(friendly_animal_types)
 	if(!istext(icon_path) || !length(icon_path))
 		return FALSE
 
+	// META EDIT - CHANGE - START - ICON_REF_MAP_MODULAR_PATH
+	/* ORIGINAL:
 	var/is_in_icon_folder = findtextEx(icon_path, "icons/")
 	var/is_dmi_file = findtextEx(icon_path, ".dmi")
 
 	if(is_in_icon_folder && is_dmi_file)
 		return TRUE
 	return FALSE
+	*/
+	// Requiring "icons/" anywhere in the path silently rejected every modular icon
+	// (e.g. modular_skyrat/modules/aesthetics/plants/plants.dmi has no "icons/" segment
+	// at all), which meant get_icon_dmi_path() and therefore icon_ref_map, and
+	// therefore tgui's DmIcon permanently treated those files as unresolvable, even
+	// though the underlying resource was found and valid. A real dmi path just needs to
+	// actually end in ".dmi"; it doesn't need to live under a top-level icons/ folder.
+	return endswith(icon_path, ".dmi")
+	// META EDIT - CHANGE - END - ICON_REF_MAP_MODULAR_PATH
 
 /// given an icon object, dmi file path, or atom/image/mutable_appearance, attempts to find and return an associated dmi file path.
 /// a weird quirk about dm is that /icon objects represent both compile-time or dynamic icons in the rsc,
