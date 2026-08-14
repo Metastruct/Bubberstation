@@ -75,6 +75,12 @@
 			pre_cross_dir = source.dir
 			pre_cross_slowdown = source.cached_multiplicative_slowdown
 			source.cached_multiplicative_slowdown = 0 // crossing covers no new ground, don't charge a full walk-speed cooldown for it
+			// DELAY_TO_GLIDE_SIZE() clamps to MAX_GLIDE_SIZE for a zero delay, never a literal 0/instant glide, so
+			// client/Move() re-syncing glide_size right after this returns would still leave the crossing Move()
+			// with a real (if fast) animated slide instead of a true snap. TRAIT_NO_GLIDE blocks that re-sync;
+			// we set glide_size directly since the setter itself is what the trait guards.
+			ADD_TRAIT(source, TRAIT_NO_GLIDE, type)
+			source.glide_size = 0
 			return
 		// META EDIT - ADDITION - END
 		return COMSIG_MOB_CLIENT_BLOCK_PRE_LIVING_MOVE
@@ -138,6 +144,7 @@
 		crossing_tile = FALSE
 		var/mob/living/owner = parent
 		owner.cached_multiplicative_slowdown = pre_cross_slowdown
+		REMOVE_TRAIT(owner, TRAIT_NO_GLIDE, type) // let client/Move() manage glide_size normally again
 		return
 	// META EDIT - ADDITION - END
 	passthroughable = NONE

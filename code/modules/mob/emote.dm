@@ -213,7 +213,14 @@
 
 /datum/emote/jump/proc/jump_animation(mob/user)
 	var/original_transform = user.transform
+	// META EDIT - CHANGE - START - JUMP_LANDING_DRIFT
+	// Random sideways drift so repeated jumps in place don't all land in the exact same spot.
+	var/horizontal_drift = rand(-2, 2)
+	animate(user, transform = user.transform.Translate(horizontal_drift, 4), time = 0.1 SECONDS, flags = ANIMATION_PARALLEL)
+	/*
 	animate(user, transform = user.transform.Translate(0, 4), time = 0.1 SECONDS, flags = ANIMATION_PARALLEL)
+	*/
+	// META EDIT - CHANGE - END
 	animate(transform = original_transform, time = 0.1 SECONDS)
 
 /datum/emote/jump/get_sound(mob/user)
