@@ -10514,6 +10514,7 @@
 #include "modular_zzmeta\code\game\objects\items\plushes.dm"
 #include "modular_zzmeta\code\game\sound\sound.dm"
 #include "modular_zzmeta\code\modules\admin\verbs\jukebox_moderation.dm"
+#include "modular_zzmeta\code\modules\admin\verbs\playsound.dm"
 #include "modular_zzmeta\code\modules\client\audio_browser.dm"
 #include "modular_zzmeta\code\modules\client\client_procs.dm"
 #include "modular_zzmeta\code\modules\client\preferences\announcement_volume.dm"
