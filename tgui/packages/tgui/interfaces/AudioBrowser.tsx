@@ -24,8 +24,12 @@ function copyText(text: string): void {
   document.body.removeChild(input);
 }
 
+type AudioBrowserData = {
+  is_admin: boolean;
+};
+
 export function AudioBrowser() {
-  const { act } = useBackend();
+  const { act, data } = useBackend<AudioBrowserData>();
 
   const [sounds, setSounds] = useState<string[]>([]);
   const [query, setQuery] = useState('');
@@ -59,6 +63,20 @@ export function AudioBrowser() {
     if (!path) return;
     copyText(path);
     setCopiedPath(path);
+  }
+
+  function handlePlayGlobal(path?: string): void {
+    if (!path) return;
+    act('play_global', { path });
+  }
+
+  function handlePlayTarget(path?: string): void {
+    if (!path) return;
+    act('play_target', { path });
+  }
+
+  function handleStop(): void {
+    act('stop');
   }
 
   function handleSearch(newQuery: string): void {
@@ -102,15 +120,31 @@ export function AudioBrowser() {
       <Window.Content onKeyDown={handleKeyDown}>
         <Stack fill vertical>
           <Stack.Item>
-            <Input
-              autoFocus
-              autoSelect
-              expensive
-              fluid
-              onChange={handleSearch}
-              placeholder={`Search ${sounds.length} sounds...`}
-              value={query}
-            />
+            <Stack fill>
+              <Stack.Item grow>
+                <Input
+                  autoFocus
+                  autoSelect
+                  expensive
+                  fluid
+                  onChange={handleSearch}
+                  placeholder={`Search ${sounds.length} sounds...`}
+                  value={query}
+                />
+              </Stack.Item>
+              {!!data.is_admin && (
+                <Stack.Item>
+                  <Button
+                    color="bad"
+                    icon="stop"
+                    tooltip="Stop all sounds played via the audio browser"
+                    onClick={handleStop}
+                  >
+                    Stop All Sounds
+                  </Button>
+                </Stack.Item>
+              )}
+            </Stack>
           </Stack.Item>
           <Stack.Item grow>
             <Section fill scrollable>
@@ -152,6 +186,24 @@ export function AudioBrowser() {
                         onClick={() => handleCopy(path)}
                       />
                     </Stack.Item>
+                    {!!data.is_admin && (
+                      <>
+                        <Stack.Item>
+                          <Button
+                            icon="bullhorn"
+                            tooltip="Play to everyone"
+                            onClick={() => handlePlayGlobal(path)}
+                          />
+                        </Stack.Item>
+                        <Stack.Item>
+                          <Button
+                            icon="crosshairs"
+                            tooltip="Play to target"
+                            onClick={() => handlePlayTarget(path)}
+                          />
+                        </Stack.Item>
+                      </>
+                    )}
                   </Stack>
                 ))}
               </VirtualList>
