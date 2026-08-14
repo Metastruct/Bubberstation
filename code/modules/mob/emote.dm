@@ -200,6 +200,10 @@
 	// Allows ghosts to jump
 	mob_type_ignore_stat_typecache = list(/mob/dead/observer)
 	affected_by_pitch = FALSE
+	// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+	/// Per-user jump-spam tracking: mob -> list(streak count, currently applied pixel_x offset, currently applied pixel_y offset)
+	var/list/jump_spam_state = list()
+	// META EDIT - ADDITION - END
 
 /datum/emote/jump/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
@@ -213,15 +217,44 @@
 
 /datum/emote/jump/proc/jump_animation(mob/user)
 	var/original_transform = user.transform
-	// META EDIT - CHANGE - START - JUMP_LANDING_DRIFT
-	// Random sideways drift so repeated jumps in place don't all land in the exact same spot.
-	var/horizontal_drift = rand(-2, 2)
-	animate(user, transform = user.transform.Translate(horizontal_drift, 4), time = 0.1 SECONDS, flags = ANIMATION_PARALLEL)
-	/*
 	animate(user, transform = user.transform.Translate(0, 4), time = 0.1 SECONDS, flags = ANIMATION_PARALLEL)
-	*/
-	// META EDIT - CHANGE - END
 	animate(transform = original_transform, time = 0.1 SECONDS)
+	// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+	apply_jump_landing_drift(user)
+	// META EDIT - ADDITION - END
+
+// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+#define JUMP_DRIFT_REPEAT_WINDOW (2 SECONDS)
+#define JUMP_DRIFT_STREAK_THRESHOLD 6
+/// Nudges the user a couple pixels off-center, but only once they've jumped several times in a row (not on the first jump or two), so spamming jump in place doesn't keep landing on the exact same spot. Snaps back once the spam stops.
+/datum/emote/jump/proc/apply_jump_landing_drift(mob/user)
+	var/list/state = jump_spam_state[user]
+	var/is_repeat = !TIMER_COOLDOWN_FINISHED(user, "jump_landing_drift")
+	TIMER_COOLDOWN_START(user, "jump_landing_drift", JUMP_DRIFT_REPEAT_WINDOW)
+
+	if(!is_repeat)
+		if(state) // spam streak just ended, snap back to neutral
+			user.pixel_x -= state[2]
+			user.pixel_y -= state[3]
+			jump_spam_state -= user
+		return
+
+	var/streak = (state ? state[1] : 1) + 1
+	if(streak < JUMP_DRIFT_STREAK_THRESHOLD)
+		jump_spam_state[user] = list(streak, 0, 0)
+		return
+
+	if(state)
+		user.pixel_x -= state[2]
+		user.pixel_y -= state[3]
+	var/drift_x = rand(-2, 2)
+	var/drift_y = rand(-2, 2)
+	user.pixel_x += drift_x
+	user.pixel_y += drift_y
+	jump_spam_state[user] = list(streak, drift_x, drift_y)
+#undef JUMP_DRIFT_REPEAT_WINDOW
+#undef JUMP_DRIFT_STREAK_THRESHOLD
+// META EDIT - ADDITION - END
 
 /datum/emote/jump/get_sound(mob/user)
 	return 'sound/items/weapons/thudswoosh.ogg'
