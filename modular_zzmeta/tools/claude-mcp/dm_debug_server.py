@@ -163,6 +163,28 @@ def dm_debug_query(query: str) -> str:
     - Config file edits (e.g. CLAUDE_DEBUG_KEY in config/comms.txt) are not
       reliably picked up by the in-game "Reload Configuration" admin verb -
       a full DreamDaemon restart is the dependable way to apply them.
+    - A `SELECT /datum/some/type` that returns
+      {"error":"Parse error, check the query syntax"} can simply mean that
+      type isn't compiled into the CURRENTLY RUNNING build - not a real
+      syntax problem. Confirmed live: a brand-new .dm file's type gave this
+      exact generic error because its #include line was actually missing
+      from tgstation.dme (compiled fine, but the type genuinely didn't
+      exist), which looked identical to a query-syntax bug and cost real
+      debugging time. Before assuming your query is wrong, grep
+      tgstation.dme for the file's #include line, especially for a type from
+      a file added earlier the same session - "it compiled with 0 errors
+      before" does not guarantee every intended #include line is still
+      present (see the missing-#include write-up in project memory).
+    - If a query ever returns a "Parse error", treat every CALL for the rest
+      of that boot's session with suspicion afterward. Confirmed live: after
+      one such parse error, subsequent CALLs silently resolved their proc
+      name to null server-side (visible in the boot log as
+      "SDQL function blocking(<obj>, null, ...)") regardless of what proc
+      was actually requested, with no error surfaced back through
+      dm_debug_query itself - the call just quietly did nothing. Not
+      root-caused. The reliable fix is booting a fresh disposable instance
+      (dm_debug_stop_server + dm_debug_boot_server) rather than continuing
+      to debug CALL behavior on a connection that already hit a parse error.
     - For CALL queries specifically, the returned "count" is NOT a
       success/match indicator - it's frequently 0 even when the call matched
       objects and ran successfully (Execute() only populates the
@@ -249,6 +271,13 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
     testing only because enough real time passed between boot and the first
     query for the round to finish starting anyway.
 
+    Also forces the round to start immediately rather than sitting through
+    the normal ~120s pregame lobby countdown (config/config.txt's
+    LOBBY_COUNTDOWN) - flips SSticker.start_immediately (the same var the
+    in-game "Start Now" admin verb sets) as soon as world.Topic() answers,
+    which is well before that. Doesn't touch config.txt at all, so this has
+    no effect on the user's own real server.
+
     Boots on DM_DEBUG_PORT (the same port dm_debug_query already targets),
     so no extra config is needed - just call this, then start calling
     dm_debug_query once it returns success.
@@ -310,6 +339,17 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
     with open(BOOT_PID_FILE, "w") as f:
         f.write(str(proc.pid))
 
+    # Best-effort: skip the ~120s LOBBY_COUNTDOWN (config/config.txt) by flipping
+    # SSticker.start_immediately as soon as world.Topic() answers - which is
+    # reachable well before "Initializations complete"/"Game start took" show up
+    # in the log, since Topic() is a low-level engine hook independent of
+    # subsystem readiness. This is the same var the in-game "Start Now" admin
+    # verb sets (code/modules/admin/verbs/server.dm:125) - never touches
+    # config.txt, so it can't affect the user's own real server. Retried every
+    # poll iteration (cheap, and the topic handler genuinely isn't up in the
+    # first second or so) until it succeeds once.
+    forced_immediate_start = not KEY
+
     deadline = time.time() + boot_timeout
     while time.time() < deadline:
         if proc.poll() is not None:
@@ -321,6 +361,17 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
                 f"DreamDaemon exited early (code {proc.returncode}) before finishing boot. "
                 f"Tail of boot.log:\n{tail}"
             )
+        if not forced_immediate_start:
+            try:
+                _send_topic(
+                    HOST, int(PORT),
+                    f"claude_debug=1&key={KEY}&format=json&q="
+                    "UPDATE /datum/controller/subsystem/ticker SET start_immediately = TRUE",
+                    5,
+                )
+                forced_immediate_start = True
+            except Exception:
+                pass
         with open(BOOT_LOG_FILE, "rb") as f:
             content = f.read().decode(errors="replace")
         if "Game start took" in content:
