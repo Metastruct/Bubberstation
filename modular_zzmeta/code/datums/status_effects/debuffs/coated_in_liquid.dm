@@ -1,4 +1,6 @@
 #define ALERT_SHAKE_OFF "shake_off"
+/// Highest a mob's coating stacks can reach, so standing in a body of water (or anything else that keeps re-exposing you) can't pile up an unbounded puddle/splash. Tweak this single define to rebalance.
+#define MAX_LIQUID_COATING_STACKS 30
 
 /**
  * Tracks a mob being coated in liquid, independent of wet_stacks/fire_stacks, so a
@@ -25,14 +27,17 @@
 	apply_coating(add_stacks, reagent_type, reagent_amount)
 
 /datum/status_effect/coated_in_liquid/proc/apply_coating(add_stacks, reagent_type, reagent_amount)
-	stacks = max(stacks + add_stacks, 0)
-	if(!reagent_type)
+	var/old_stacks = stacks
+	stacks = clamp(stacks + add_stacks, 0, MAX_LIQUID_COATING_STACKS)
+	// If the cap clipped some of the requested gain, scale the recorded reagent amount down to match, so soaked_reagents stays proportional to stacks instead of growing past what the cap actually allowed.
+	var/actual_added = stacks - old_stacks
+	if(!reagent_type || actual_added <= 0)
 		return
 	if(!soaked_reagents)
 		soaked_reagents = list()
 	if(!soaked_reagents[reagent_type])
 		soaked_reagents[reagent_type] = 0
-	soaked_reagents[reagent_type] += reagent_amount
+	soaked_reagents[reagent_type] += reagent_amount * (actual_added / add_stacks)
 
 /datum/status_effect/coated_in_liquid/on_apply()
 	owner.throw_alert(ALERT_SHAKE_OFF, /atom/movable/screen/alert/shake_off)
