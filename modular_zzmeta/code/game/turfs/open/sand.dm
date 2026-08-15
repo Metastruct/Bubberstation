@@ -11,5 +11,6 @@
 		span_notice("You rake over the footprints in [src]."),
 		vision_distance = COMBAT_MESSAGE_RANGE,
 	)
+	playsound(src, pick('sound/items/cigs/cig_pack_insert3.ogg', 'sound/items/cigs/cig_pack_insert4.ogg'), 50, TRUE)
 	clear_footprints()
 	return ITEM_INTERACT_SUCCESS
