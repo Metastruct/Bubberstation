@@ -19,6 +19,7 @@ import glob
 import json
 import os
 import shutil
+import signal
 import socket
 import struct
 import subprocess
@@ -33,6 +34,15 @@ HOST = os.environ.get("DM_DEBUG_HOST", "127.0.0.1")
 PORT = os.environ.get("DM_DEBUG_PORT")
 KEY = os.environ.get("DM_DEBUG_KEY")
 TIMEOUT = float(os.environ.get("DM_DEBUG_TIMEOUT", "90"))
+
+# Repo root, derived from this file's location (modular_zzmeta/tools/claude-mcp/)
+# rather than hardcoded, so this still works if the checkout ever moves.
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DMB_PATH = os.path.join(REPO_ROOT, "tgstation.dmb")
+BOOT_STATE_DIR = os.path.join(REPO_ROOT, "data", "logs", "claude_debug_boot")
+BOOT_PID_FILE = os.path.join(BOOT_STATE_DIR, "pid")
+BOOT_LOG_FILE = os.path.join(BOOT_STATE_DIR, "boot.log")
+NEXT_MAP_FILE = os.path.join(REPO_ROOT, "data", "next_map.json")
 
 # CDP (Chrome DevTools Protocol) access into tgui's embedded WebView2 browser.
 # Separate from the DM_DEBUG_* config above - doesn't go through world.Topic()
@@ -153,6 +163,55 @@ def dm_debug_query(query: str) -> str:
     - Config file edits (e.g. CLAUDE_DEBUG_KEY in config/comms.txt) are not
       reliably picked up by the in-game "Reload Configuration" admin verb -
       a full DreamDaemon restart is the dependable way to apply them.
+    - For CALL queries specifically, the returned "count" is NOT a
+      success/match indicator - it's frequently 0 even when the call matched
+      objects and ran successfully (Execute() only populates the
+      select_refs/select_text that "count" reflects for SELECT queries).
+      Never treat count==0 from a CALL as "nothing matched" or "it failed" -
+      verify with a separate follow-up SELECT/MAP instead.
+    - WHERE clauses combining a comparator with a boolean operator (e.g.
+      `WHERE loc.x == 110 && loc.y == 79`) are evaluated by a flat,
+      left-to-right pass with NO operator precedence between comparators and
+      &&/||/and/or - confirmed live to silently produce wrong matches (not a
+      parse error) rather than the "both conditions must hold" you'd expect.
+      Stick to a single condition per WHERE, or pick one already-unique
+      scalar field, rather than combining conditions with &&/and.
+    - A quoted string literal containing parentheses (e.g.
+      `WHERE name == "the monkey (905)"`) fails to match anything, silently
+      (no parse error, just zero results) - confirmed live. Don't filter on
+      names/text that may contain parens; use a numeric/unique field instead,
+      or rename the object first (e.g. `CALL SetName(...) ON ...`) then
+      filter on the new plain name.
+    - `locate(x,y,z)` used as a WHERE comparison value (e.g.
+      `WHERE loc == locate(110,79,2)`) does not resolve to the real turf -
+      confirmed live it actually matched objects whose loc is null instead
+      (as if locate() had evaluated to null). Don't use locate() inside a
+      WHERE comparison; reach a specific turf via a mob's `loc` var chain
+      (`MAP loc`, `MAP loc.someturfvar`) instead.
+    - Bare `/turf` (or other whole-map-scale types) SELECTs, even with a
+      WHERE filter, can time out - SDQL2 fetches every object of the type
+      across the ENTIRE loaded world (all z-levels, including lavaland/ruin/
+      space z-levels that exist regardless of which map was booted) before
+      applying WHERE. Prefer reaching a specific turf via a mob already in
+      hand (`SELECT /mob/... WHERE ... MAP loc` or `MAP loc.somevar`) over a
+      direct `/turf` SELECT.
+    - A MAP expression referencing a var name that doesn't actually exist on
+      the object (e.g. guessing a mob has `var/wet_stacks` when the real var
+      is on an attached status-effect datum, not the mob itself) fails
+      silently - you get back a technically-200 response with an empty/
+      truncated select_text instead of a clear "unknown var" error. If a MAP
+      query comes back empty for a var you were confident should have a
+      value, first double check the var actually exists on that exact type
+      by grepping its source `.dm` file, before concluding the underlying
+      game state is wrong.
+    - This dev world always carries persistent-world content (lavaland
+      dwellers, virology/genetics monkeys, morgue body bags) regardless of
+      which map is booted, dating from disk-persisted saves under
+      data/npc_saves and data/player_saves - don't assume a fresh boot means
+      zero pre-existing /mob/living/carbon/human objects. Note also that
+      those monkeys ARE /mob/living/carbon/human under the hood (monkey is
+      just another species), so `SELECT /mob/living/carbon/human` picks them
+      up too - no separate monkey type needed to test on one.
 
     Returns the raw text response from the server (JSON-formatted).
     """
@@ -163,6 +222,153 @@ def dm_debug_query(query: str) -> str:
 
     topic = f"claude_debug=1&key={KEY}&format=json&q={query}"
     return _send_topic(HOST, int(PORT), topic, TIMEOUT)
+
+
+@mcp.tool()
+def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.0) -> str:
+    """Boot a disposable DreamDaemon instance in THIS checkout, for live
+    testing via dm_debug_query - and block until it's ready (or timed out).
+
+    Automates the whole manual recipe (this used to be done by hand every
+    time: mkdir the log dir, write data/next_map.json, launch DreamDaemon,
+    poll the boot log for readiness, and separately remember to clean
+    everything up afterward - error-prone and slow enough in practice that a
+    real test session previously let the disposable server hit a too-short
+    shell `timeout` mid-investigation and die).
+
+    Waits specifically for "Game start took" in the boot log, NOT just
+    "Initializations complete" - those are two different points in boot and
+    the gap matters. "Initializations complete" only means the subsystems
+    have finished loading; the round itself (SSticker's setup, runlevel
+    transitioning to RUNLEVEL_GAME) happens after that and logs "Game start
+    took Ns" once it's done. Confirmed live: round-dependent systems (the
+    liquids subsystem, some status-effect-driven behavior) did not work
+    correctly when exercised in the gap between those two log lines, only
+    after "Game start took" appeared. An earlier version of this tool waited
+    for "Initializations complete" alone, which worked by accident in manual
+    testing only because enough real time passed between boot and the first
+    query for the round to finish starting anyway.
+
+    Boots on DM_DEBUG_PORT (the same port dm_debug_query already targets),
+    so no extra config is needed - just call this, then start calling
+    dm_debug_query once it returns success.
+
+    `map` defaults to "runtimestation" - the small debug/CI map (~11k line
+    .dmm vs. 100k+ for a production station map), which boots noticeably
+    faster and keeps SELECT-heavy queries snappier. Must be a name under
+    _maps/ with a matching _maps/map_files/**/<map>.dmm (e.g.
+    "runtimestation_minimal" is even smaller; "deltastation" etc. for a
+    full production map if you specifically need one). Note: even the
+    smallest debug map still carries the full persistent-world save data
+    (lavaland dwellers, monkeys, morgue occupants) - "smaller" cuts the
+    station's own footprint, not the persistent content layered on top.
+
+    IMPORTANT - this writes real, live state in the checkout for as long as
+    the server is running: data/next_map.json (which map boots next) and a
+    data/logs/claude_debug_boot/ directory. ALWAYS call dm_debug_stop_server
+    when done testing, even if you hit an error partway through - it is the
+    only thing that removes next_map.json again, and leaving it in place
+    would silently hijack the map choice of the user's own next real
+    DreamDaemon boot in this checkout, not just yours.
+
+    Only one boot at a time is tracked (a second call while one is already
+    running raises rather than launching a duplicate) - call
+    dm_debug_stop_server first if you need to switch maps.
+    """
+    if not PORT:
+        raise TopicError("DM_DEBUG_PORT is not set")
+    if not os.path.exists(DMB_PATH):
+        raise TopicError(f"{DMB_PATH} doesn't exist - compile first (tools/build/build.sh dm).")
+
+    map_json = os.path.join(REPO_ROOT, "_maps", f"{map}.json")
+    if not os.path.exists(map_json):
+        raise TopicError(f"No _maps/{map}.json - check the map name (e.g. 'runtimestation').")
+
+    if os.path.exists(BOOT_PID_FILE):
+        with open(BOOT_PID_FILE) as f:
+            old_pid = f.read().strip()
+        raise TopicError(
+            f"A boot is already tracked (pid {old_pid}). Call dm_debug_stop_server first "
+            "- only one disposable boot is tracked at a time."
+        )
+
+    os.makedirs(BOOT_STATE_DIR, exist_ok=True)
+    shutil.copy(map_json, NEXT_MAP_FILE)
+
+    log_f = open(BOOT_LOG_FILE, "wb")
+    proc = subprocess.Popen(
+        [
+            "DreamDaemon", DMB_PATH, str(int(PORT)),
+            "-trusted", "-verbose", "-close",
+            "-params", "log-directory=claude_debug_boot",
+        ],
+        cwd=REPO_ROOT,
+        stdout=log_f,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,  # own process group, so stop can kill it precisely
+    )
+    with open(BOOT_PID_FILE, "w") as f:
+        f.write(str(proc.pid))
+
+    deadline = time.time() + boot_timeout
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            log_f.close()
+            with open(BOOT_LOG_FILE, "rb") as f:
+                tail = f.read()[-4000:].decode(errors="replace")
+            os.remove(BOOT_PID_FILE)
+            raise TopicError(
+                f"DreamDaemon exited early (code {proc.returncode}) before finishing boot. "
+                f"Tail of boot.log:\n{tail}"
+            )
+        with open(BOOT_LOG_FILE, "rb") as f:
+            content = f.read().decode(errors="replace")
+        if "Game start took" in content:
+            return (
+                f"Booted on port {PORT} with map={map!r} (pid {proc.pid}), round started. "
+                "dm_debug_query is ready to use. Remember to call "
+                "dm_debug_stop_server when done."
+            )
+        time.sleep(1)
+
+    raise TopicError(
+        f"Still not ready after {boot_timeout}s. It may just need more time (a full "
+        "production map's Atoms/Lighting subsystems alone can take 20-40s) - call "
+        "dm_debug_stop_server if you want to give up, or just keep calling "
+        "dm_debug_query anyway (it'll simply connection-refuse until actually ready)."
+    )
+
+
+@mcp.tool()
+def dm_debug_stop_server() -> str:
+    """Stop the disposable DreamDaemon instance started by dm_debug_boot_server,
+    and clean up everything it left behind: kills the process (group),
+    removes data/next_map.json (restoring normal map rotation for the next
+    real boot in this checkout), and removes its data/logs/claude_debug_boot/
+    directory.
+
+    Safe to call even if nothing is currently tracked as booted (e.g. after
+    a crash) - it no-ops the process-kill step but still clears
+    next_map.json/the log dir if they happen to be present, since those are
+    the parts that actually matter to get rid of.
+    """
+    killed = False
+    if os.path.exists(BOOT_PID_FILE):
+        with open(BOOT_PID_FILE) as f:
+            pid = int(f.read().strip())
+        try:
+            os.killpg(pid, signal.SIGKILL)
+            killed = True
+        except ProcessLookupError:
+            pass
+        os.remove(BOOT_PID_FILE)
+
+    if os.path.exists(NEXT_MAP_FILE):
+        os.remove(NEXT_MAP_FILE)
+    if os.path.isdir(BOOT_STATE_DIR):
+        shutil.rmtree(BOOT_STATE_DIR)
+
+    return "Stopped and cleaned up." if killed else "Nothing was tracked as running; cleaned up any leftover state anyway."
 
 
 @mcp.tool()

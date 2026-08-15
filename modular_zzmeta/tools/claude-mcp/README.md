@@ -2,21 +2,52 @@
 
 Lets Claude query, mutate, and visually inspect a running DreamDaemon dev
 server directly over `world.Topic()`, instead of always cold-booting a
-disposable instance to check something. Talks to the `claude_debug` topic
-handler in `code/datums/world_topic.dm`. Also has eight tools that bypass
-`world.Topic()` entirely and drive tgui's embedded browser directly over the
-Chrome DevTools Protocol. Twelve tools total:
+disposable instance to check something — and, when there isn't one running
+yet, boot and tear down a disposable one itself. Talks to the `claude_debug`
+topic handler in `code/datums/world_topic.dm`. Also has eight tools that
+bypass `world.Topic()` entirely and drive tgui's embedded browser directly
+over the Chrome DevTools Protocol. Fourteen tools total:
 
+- `dm_debug_boot_server(map="runtimestation", boot_timeout=180.0)` — boots a
+  disposable DreamDaemon in this checkout on `DM_DEBUG_PORT` and blocks until
+  it's ready for `dm_debug_query` (or raises with the boot log tail if it
+  died or timed out first). Automates what used to be a slow, error-prone
+  manual dance: `mkdir` the log dir, drop a map into `data/next_map.json`,
+  launch, poll the log for readiness. Waits for `Game start took` specifically,
+  not just `Initializations complete` — those are different points in boot
+  (subsystems loaded vs. the round itself finished starting/`RUNLEVEL_GAME`),
+  and the gap matters: round-dependent systems (confirmed live for the
+  liquids subsystem and some status-effect-driven behavior) don't work
+  correctly until the round has actually started, not merely once subsystems
+  are done loading. Defaults to the small `runtimestation` debug map (~11k
+  lines vs. 100k+ for a production station) for noticeably faster boots and
+  snappier queries — though the persistent world save data (lavaland
+  dwellers, monkeys, morgue occupants) loads regardless of map, so don't
+  assume a fresh boot means zero pre-existing `/mob/living/carbon/human`
+  objects. **Always pair with
+  `dm_debug_stop_server`** — this writes real state (`data/next_map.json`)
+  in the live checkout that would otherwise hijack the user's own next real
+  boot's map choice.
+- `dm_debug_stop_server()` — kills the tracked disposable boot and removes
+  everything it left behind (`data/next_map.json`, its log directory). Safe
+  to call speculatively even if nothing is tracked as running.
 - `dm_debug_query(query)` — runs SDQL2 queries (see
   `code/modules/admin/verbs/SDQL2/SDQL_2.dm` for syntax) with elevated
   permissions. Returns the JSON-formatted text response, including any
   object refs (e.g. `[0x20008be]`) in a SELECT's `select_text`. The tool's
   own docstring has a full "Tips" section learned against a real dev
   server — the short version: scope to the narrowest type + a WHERE clause
-  (never a bare `/mob`), compare scalar fields in WHERE rather than ref
-  literals (`self.name == "..."`, not `self == [mob_123]`), and remember
-  `/datum/component/*` types are selectable/callable too while `/client`
-  is not.
+  (never a bare `/mob`, and even a filtered `/turf` can time out — reach a
+  turf via a mob's `loc` instead), compare scalar fields in WHERE rather
+  than ref literals or `locate()` (`self.name == "..."`, not
+  `self == [mob_123]` or `WHERE loc == locate(x,y,z)`), keep each WHERE to
+  one condition (`&&`/`and` between a comparator and another comparator
+  evaluates left-to-right with no precedence and silently gives wrong
+  matches), avoid parens inside quoted string filters (silently matches
+  nothing), don't trust a CALL's `count` as a success signal (it's normally
+  0 even on a successful call — verify with a follow-up SELECT/MAP), and
+  remember `/datum/component/*` types are selectable/callable too while
+  `/client` is not.
 - `dm_debug_render_atom(ref)` — flattens one atom's current sprite (icon +
   overlays, via `getFlatIcon()`) to a PNG and returns it as an image, given
   a ref from a prior `dm_debug_query` SELECT. Separate from the query path
@@ -173,18 +204,21 @@ check on the caller's address.
    for the eight `tgui_*` tools, and only if you set up remote debugging on
    a port other than 9222.
 
-4. Boot your dev DreamDaemon as usual. All twelve tools will now be
-   available in Claude Code sessions in this repo — except the eight
-   `tgui_*` ones, which additionally need the one-time setup in
+4. Boot your dev DreamDaemon as usual — or call `dm_debug_boot_server` to
+   have Claude boot a disposable one itself. Either way, all fourteen tools
+   will now be available in Claude Code sessions in this repo — except the
+   eight `tgui_*` ones, which additionally need the one-time setup in
    [`webview2-debugging.md`](webview2-debugging.md) done first.
 
 ## What it can't do
 
 - Only one query per call (no `;`-separated batches) — keeps each call's
   blast radius auditable.
-- Nothing here replaces booting a disposable instance to test code that
-  isn't running on your dev server yet — this only inspects/mutates a
-  server that's already up.
+- `dm_debug_boot_server` only starts a fresh disposable instance from
+  whatever's already compiled to `tgstation.dmb` in this checkout — it does
+  not compile for you, so run `tools/build/build.sh dm` (or with
+  `--skip-icon-cutter` for plain code changes) first if you've changed code
+  since the last build.
 - `dm_debug_render_atom` renders one atom's own sprite only — no client HUD
   (screen objects aren't part of an atom's appearance), no surrounding
   tiles/map.
