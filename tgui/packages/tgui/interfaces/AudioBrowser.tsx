@@ -1,3 +1,4 @@
+// THIS IS A META UI FILE
 import { useEffect, useMemo, useState } from 'react';
 import {
   Autofocus,
@@ -28,6 +29,8 @@ type AudioBrowserData = {
   is_admin: boolean;
 };
 
+const MAX_VISIBLE_RESULTS = 200;
+
 export function AudioBrowser() {
   const { act, data } = useBackend<AudioBrowserData>();
 
@@ -53,6 +56,11 @@ export function AudioBrowser() {
     const lowerQuery = query.toLowerCase();
     return sounds.filter((path) => path.toLowerCase().includes(lowerQuery));
   }, [query, sounds]);
+
+  const visibleSounds = useMemo(
+    () => filteredSounds.slice(0, MAX_VISIBLE_RESULTS),
+    [filteredSounds],
+  );
 
   function handlePreview(path?: string): void {
     if (!path) return;
@@ -86,8 +94,8 @@ export function AudioBrowser() {
   }
 
   function handleArrowKey(key: number): void {
-    if (!filteredSounds.length) return;
-    const len = filteredSounds.length - 1;
+    if (!visibleSounds.length) return;
+    const len = visibleSounds.length - 1;
     if (key === KEY_DOWN) {
       const next = selected >= len ? 0 : selected + 1;
       setSelected(next);
@@ -111,7 +119,7 @@ export function AudioBrowser() {
     }
     if (keyCode === KEY_ENTER) {
       event.preventDefault();
-      handlePreview(filteredSounds[selected]);
+      handlePreview(visibleSounds[selected]);
     }
   }
 
@@ -146,11 +154,19 @@ export function AudioBrowser() {
               )}
             </Stack>
           </Stack.Item>
+          {filteredSounds.length > MAX_VISIBLE_RESULTS && (
+            <Stack.Item>
+              <Box color="label">
+                Showing first {MAX_VISIBLE_RESULTS} of {filteredSounds.length}{' '}
+                matches. Refine your search to narrow it down.
+              </Box>
+            </Stack.Item>
+          )}
           <Stack.Item grow>
             <Section fill scrollable>
               <Autofocus />
               <VirtualList>
-                {filteredSounds.map((path, index) => (
+                {visibleSounds.map((path, index) => (
                   <Stack
                     key={path}
                     id={index.toString()}
