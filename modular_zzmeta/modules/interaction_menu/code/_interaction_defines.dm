@@ -14,6 +14,8 @@
 #define INTERACTION_REQUIRE_USER_TAIL "user_tail"
 #define INTERACTION_REQUIRE_TARGET_HORNS "target_horns"
 #define INTERACTION_REQUIRE_TARGET_TAIL "target_tail"
+#define INTERACTION_REQUIRE_USER_WINGS "user_wings"
+#define INTERACTION_REQUIRE_TARGET_WINGS "target_wings"
 
 // Interaction Types: Do we do it to ourself or someone else
 #define INTERACTION_SELF "self"

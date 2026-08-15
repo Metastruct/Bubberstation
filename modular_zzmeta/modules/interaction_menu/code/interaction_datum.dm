@@ -140,6 +140,12 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			if(INTERACTION_REQUIRE_TARGET_TAIL)
 				if(!target.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL))
 					return FALSE
+			if(INTERACTION_REQUIRE_USER_WINGS)
+				if(!user.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_WINGS)
+				if(!target.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS))
+					return FALSE
 			else
 				CRASH("Unimplemented interaction requirement '[requirement]'")
 	return TRUE

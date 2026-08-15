@@ -7,7 +7,9 @@
 #define ITS_PRETTY_HOT_IN_HERE_MODIFIER 0.1
 
 #define BASE_AROUSAL_ADJUSTMENT -0.1
-#define BASE_PAIN_AND_PLEASURE_ADJUSTMENT -0.5
+// Split from a shared pain+pleasure rate so pleasure can decay slower without changing pain's rate.
+#define BASE_PLEASURE_ADJUSTMENT -0.1
+#define BASE_PAIN_ADJUSTMENT -0.5
 
 /datum/status_effect/aroused
 	id = "aroused"
@@ -21,8 +23,8 @@
 
 	var/mob/living/carbon/human/affected_mob = owner
 	var/temp_arousal = BASE_AROUSAL_ADJUSTMENT
-	var/temp_pleasure = BASE_PAIN_AND_PLEASURE_ADJUSTMENT
-	var/temp_pain = BASE_PAIN_AND_PLEASURE_ADJUSTMENT
+	var/temp_pleasure = BASE_PLEASURE_ADJUSTMENT
+	var/temp_pain = BASE_PAIN_ADJUSTMENT
 
 	if(HAS_TRAIT(affected_mob, TRAIT_MASOCHISM))
 		temp_pain -= MASOCHISM_PAIN_OFFSET
@@ -54,4 +56,5 @@
 #undef ITS_PRETTY_HOT_IN_HERE_MODIFIER
 
 #undef BASE_AROUSAL_ADJUSTMENT
-#undef BASE_PAIN_AND_PLEASURE_ADJUSTMENT
+#undef BASE_PLEASURE_ADJUSTMENT
+#undef BASE_PAIN_ADJUSTMENT
