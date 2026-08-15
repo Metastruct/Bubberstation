@@ -55,7 +55,7 @@ export const Jukebox = () => {
   // META EDIT - CHANGE - START - JUKEBOX_SEARCH_UI
   /* ORIGINAL: const songs_sorted: Song[] = sortBy(songs, [(song: Song) => song.name]); */
   const songs_sorted: Song[] = useMemo(
-    () => sortBy(songs, [(song: Song) => song.name]),
+    () => sortBy(songs, [(song: Song) => song.name.toLowerCase()]),
     [songs],
   );
   // META EDIT - CHANGE - END - JUKEBOX_SEARCH_UI
@@ -315,13 +315,12 @@ export const Jukebox = () => {
                   <Stack>
                     <Stack.Item>
                       <Button
-                        color="transparent"
+                        color={active ? 'bad' : 'transparent'}
                         tooltip={active ? 'Stop' : 'Play'}
                         tooltipPosition="top"
                         icon={active ? 'pause' : 'play'}
                         iconSize={4}
                         verticalAlignContent="middle"
-                        selected={active}
                         disabled={!song_selected}
                         onClick={() => act('toggle')}
                         width="100px"
@@ -331,17 +330,26 @@ export const Jukebox = () => {
                     </Stack.Item>
                     <Stack.Item>
                       <Button.Checkbox
+                        color={looping ? 'green' : 'transparent'}
                         tooltip="Repeat"
                         tooltipPosition="top"
                         icon="arrow-rotate-left"
                         iconSize={4}
                         verticalAlignContent="middle"
                         checked={looping}
-                        disabled={!!active}
-                        onClick={() => act('loop', { looping: !looping })}
+                        onClick={() => {
+                          if (active) {
+                            return;
+                          }
+                          act('loop', { looping: !looping });
+                        }}
                         width="100px"
                         height="100px"
-                        style={{ borderRadius: '12px' }}
+                        style={{
+                          borderRadius: '12px',
+                          cursor: active ? 'not-allowed' : 'pointer',
+                          opacity: active ? 0.6 : 1,
+                        }}
                       />
                     </Stack.Item>
                   </Stack>
