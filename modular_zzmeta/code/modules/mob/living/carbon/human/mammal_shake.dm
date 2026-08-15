@@ -74,7 +74,7 @@
 	qdel(puddle)
 
 	manual_emote("shakes off, sending liquid flying everywhere!")
-	playsound(our_turf, 'sound/effects/fish_splash.ogg', 50, TRUE)
+	playsound(our_turf, 'modular_zubbers/sound/misc/dogshake.ogg', 50, TRUE)
 
 	animate(src, pixel_w = 2, time = 0.05 SECONDS, flags = ANIMATION_RELATIVE|ANIMATION_PARALLEL)
 	animate(pixel_w = -4, time = 0.05 SECONDS, flags = ANIMATION_RELATIVE)

@@ -54,3 +54,6 @@
 /// Coats a mob in a liquid, marking them shake-off-able and remembering the reagent, without touching wet_stacks/fire_stacks at all.
 /mob/living/proc/get_coated_in_liquid(reagent_type, amount)
 	apply_status_effect(/datum/status_effect/coated_in_liquid, amount, reagent_type, amount)
+
+#undef ALERT_SHAKE_OFF
+#undef MAX_LIQUID_COATING_STACKS
