@@ -438,7 +438,12 @@
 /datum/sdql_parser/proc/bool_operator(i, list/node)
 
 	if(tokenl(i) in list("and", "or", "&&", "||"))
-		node += token(i)
+		// META EDIT - CHANGE - START - SDQL2_BOOL_OPERATOR_CASE (stored the token with its
+		// original case, but SDQL_expression()'s switch in SDQL_2.dm only matches lowercase
+		// "and"/"or" - so typing AND/OR in caps silently dropped every row. tokenl() normalizes
+		// to lowercase like the recognition check just above already does.)
+		node += tokenl(i)
+		// META EDIT - CHANGE - END
 
 	else
 		parse_error("Unknown comparator [token(i)]")
