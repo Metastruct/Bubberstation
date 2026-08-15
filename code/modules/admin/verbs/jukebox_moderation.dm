@@ -10,8 +10,11 @@ ADMIN_VERB(upload_jukebox_music, R_SERVER, "Jukebox Upload Music", "Upload a val
 
 	var/list/track_data = splittext(file, "+")
 	if(track_data.len < 2)
-		if(tgui_alert(user, "Your song currently does not have a beat in deciseconds added to its title, e.g: SS13+5.ogg. Continue?", "Confirmation", list("Yes", "No")) != "Yes")
+		// META EDIT - CHANGE - START - JUKEBOX_BEAT_OPTIONAL_CLARITY
+		/* ORIGINAL: if(tgui_alert(user, "Your song currently does not have a beat in deciseconds added to its title, e.g: SS13+5.ogg. Continue?", "Confirmation", list("Yes", "No")) != "Yes") */
+		if(tgui_alert(user, "Your song currently does not have a beat in deciseconds added to its title, e.g: SS13+5.ogg. This is optional, the song will still work fine. Continue?", "Confirmation", list("Yes", "No")) != "Yes")
 			return
+		// META EDIT - CHANGE - END - JUKEBOX_BEAT_OPTIONAL_CLARITY
 	if(track_data.len > 2)
 		tgui_alert(user, "Titles should only have its title and beat in deciseconds, e.g: SS13+5.ogg", "Loading error", list("Ok"))
 		return
