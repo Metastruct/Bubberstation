@@ -127,6 +127,33 @@ def dm_debug_query(query: str) -> str:
       UPDATE /mob/living/carbon/human SET name = "test"
       CALL forceMove(locate(1,1,1)) ON /mob/living/carbon/human
 
+    Tips (learned the hard way against a real dev server):
+    - Always scope the type as narrowly as you can (e.g.
+      /mob/living/carbon/human, not the bare /mob - which walks every mob,
+      ghosts and NPCs included, and is visibly slower) and add a WHERE
+      clause. Never SELECT/CALL/DELETE an unfiltered broad type just to
+      eyeball the results.
+    - WHERE compares scalar fields reliably (name, type, numeric/text vars,
+      including dotted paths like `self.name == "..."`). Comparing a var to
+      a bracketed ref literal in WHERE (e.g. `WHERE self == [mob_123]`) does
+      NOT reliably match - go through a scalar field instead. Ref literals
+      passed as CALL *arguments* (e.g. `CALL foo([mob_123]) ON ...`) work
+      fine; it's specifically WHERE-clause ref-equality that's flaky.
+    - Components are selectable/callable too, not just atoms - e.g.
+      `SELECT /datum/component/interactable WHERE self.name == "..."` or
+      `CALL some_proc(...) ON /datum/component/some_type WHERE ...` reaches
+      component-only procs that the owning atom doesn't expose directly.
+    - /client is NOT a selectable SDQL type (always returns empty) - to
+      find a connected player's mob, use
+      `SELECT /mob/living/carbon/human WHERE client != null` (or narrow
+      further with a name/ckey if you already know it).
+    - DELETE calls qdel() under the hood - a deleted object's `loc` goes
+      null (shows as "nonexistent location" in a follow-up SELECT) rather
+      than the object vanishing from query results entirely.
+    - Config file edits (e.g. CLAUDE_DEBUG_KEY in config/comms.txt) are not
+      reliably picked up by the in-game "Reload Configuration" admin verb -
+      a full DreamDaemon restart is the dependable way to apply them.
+
     Returns the raw text response from the server (JSON-formatted).
     """
     if not PORT:

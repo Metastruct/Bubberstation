@@ -10,7 +10,13 @@ Chrome DevTools Protocol. Twelve tools total:
 - `dm_debug_query(query)` — runs SDQL2 queries (see
   `code/modules/admin/verbs/SDQL2/SDQL_2.dm` for syntax) with elevated
   permissions. Returns the JSON-formatted text response, including any
-  object refs (e.g. `[0x20008be]`) in a SELECT's `select_text`.
+  object refs (e.g. `[0x20008be]`) in a SELECT's `select_text`. The tool's
+  own docstring has a full "Tips" section learned against a real dev
+  server — the short version: scope to the narrowest type + a WHERE clause
+  (never a bare `/mob`), compare scalar fields in WHERE rather than ref
+  literals (`self.name == "..."`, not `self == [mob_123]`), and remember
+  `/datum/component/*` types are selectable/callable too while `/client`
+  is not.
 - `dm_debug_render_atom(ref)` — flattens one atom's current sprite (icon +
   overlays, via `getFlatIcon()`) to a PNG and returns it as an image, given
   a ref from a prior `dm_debug_query` SELECT. Separate from the query path
@@ -124,7 +130,9 @@ check on the caller's address.
    ```
 
    Leave it commented out (the default) on anything other than your own dev
-   box.
+   box. If you change this on a server that's already running, use a full
+   DreamDaemon restart to apply it — the in-game "Reload Configuration"
+   admin verb was tested directly and did not reliably pick up the new key.
 
 2. Create the venv and install dependencies (only needs doing once):
 
