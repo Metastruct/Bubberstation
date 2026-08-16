@@ -14,6 +14,6 @@
 	// so examine_limb_id must be read with initial() rather than direct access, and falls back to id the
 	// same way /datum/species/New() does at runtime for species that never set examine_limb_id explicitly.
 	var/limb_id = initial(mob_species.examine_limb_id) || initial(mob_species.id)
-	if(limb_id != SPECIES_MAMMAL)
+	if(!(limb_id in WET_DOG_SHAKE_LIMB_IDS))
 		return FALSE
 	return ..()

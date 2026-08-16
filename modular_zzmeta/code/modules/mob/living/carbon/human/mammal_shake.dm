@@ -18,7 +18,7 @@
 	if(!ishuman(living_mob))
 		return FALSE
 	var/mob/living/carbon/human/human_mob = living_mob
-	return human_mob.dna && human_mob.dna.species.examine_limb_id == SPECIES_MAMMAL
+	return human_mob.dna && (human_mob.dna.species.examine_limb_id in WET_DOG_SHAKE_LIMB_IDS)
 
 /atom/movable/screen/alert/shake_off
 	name = "Covered in Liquid"
