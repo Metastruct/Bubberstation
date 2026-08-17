@@ -64,7 +64,6 @@
 	// so each category sets its own single-entry priority instead of relying on it.
 	slot_equipment_priority = list(ITEM_SLOT_UNDERWEAR)
 	body_parts_covered = GROIN
-	has_digitigrade = TRUE
 
 /obj/item/clothing/underwear/bra
 	name = "bra"
