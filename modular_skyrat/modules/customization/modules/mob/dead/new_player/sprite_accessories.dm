@@ -209,7 +209,7 @@
 	use_static = TRUE
 
 /datum/sprite_accessory/clothing/socks/socks_norm
-	name = "Normal (Greyscale)"
+	name = "Socks (Greyscale)"
 	icon_state = "white_norm"
 	use_static = null
 

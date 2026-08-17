@@ -66,7 +66,7 @@
 	return icon_with_bra
 
 /datum/preference/choiced/bra/apply_to_human(mob/living/carbon/human/target, value)
-	target.bra = value
+	target.set_bra(value)
 
 /datum/preference/choiced/bra/compile_constant_data()
 	var/list/data = ..()

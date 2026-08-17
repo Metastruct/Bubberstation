@@ -48,6 +48,16 @@
 			return r_store
 		if(ITEM_SLOT_SUITSTORE)
 			return s_store
+		// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+		if(ITEM_SLOT_UNDERWEAR)
+			return w_underwear
+		if(ITEM_SLOT_BRA)
+			return w_bra
+		if(ITEM_SLOT_UNDERSHIRT)
+			return w_undershirt
+		if(ITEM_SLOT_SOCKS)
+			return w_socks
+		// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 
 	return ..()
 
@@ -87,6 +97,20 @@
 
 	if(looking_for == s_store)
 		return ITEM_SLOT_SUITSTORE
+
+	// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+	if(looking_for == w_underwear)
+		return ITEM_SLOT_UNDERWEAR
+
+	if(looking_for == w_bra)
+		return ITEM_SLOT_BRA
+
+	if(looking_for == w_undershirt)
+		return ITEM_SLOT_UNDERSHIRT
+
+	if(looking_for == w_socks)
+		return ITEM_SLOT_SOCKS
+	// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 
 	return ..()
 
@@ -204,6 +228,28 @@
 				return
 			s_store = equipping
 			update_suit_storage()
+		// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+		if(ITEM_SLOT_UNDERWEAR)
+			if(w_underwear)
+				return
+			w_underwear = equipping
+			update_worn_underwear()
+		if(ITEM_SLOT_BRA)
+			if(w_bra)
+				return
+			w_bra = equipping
+			update_worn_bra()
+		if(ITEM_SLOT_UNDERSHIRT)
+			if(w_undershirt)
+				return
+			w_undershirt = equipping
+			update_worn_undershirt()
+		if(ITEM_SLOT_SOCKS)
+			if(w_socks)
+				return
+			w_socks = equipping
+			update_worn_socks()
+		// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 		else
 			to_chat(src, span_danger("You are trying to equip this item to an unsupported inventory slot. Report this to a coder!"))
 			not_handled = TRUE
@@ -287,6 +333,24 @@
 		s_store = null
 		if(!QDELETED(src))
 			update_suit_storage()
+	// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+	else if(item_dropping == w_underwear)
+		w_underwear = null
+		if(!QDELETED(src))
+			update_worn_underwear()
+	else if(item_dropping == w_bra)
+		w_bra = null
+		if(!QDELETED(src))
+			update_worn_bra()
+	else if(item_dropping == w_undershirt)
+		w_undershirt = null
+		if(!QDELETED(src))
+			update_worn_undershirt()
+	else if(item_dropping == w_socks)
+		w_socks = null
+		if(!QDELETED(src))
+			update_worn_socks()
+	// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 
 /mob/living/carbon/human/item_coverage_changed(added_slots, removed_slots)
 	. = ..()

@@ -26,8 +26,6 @@
 #define COMSIG_VENTCRAWL_PRE_CANCEL "ventcrawling_pre_cancel"
 /// From /mob/proc/equip_to_slot_if_possible()
 #define COMSIG_MOB_POST_EQUIP "mob_post_equip"
-/// From /mob/living/carbon/human/verb/toggle_undies()
-#define COMSIG_HUMAN_TOGGLE_UNDERWEAR "human_toggle_undies"
 /// From /obj/item/restraints/handcuffs/proc/apply_cuffs()
 #define COMSIG_MOB_HANDCUFFED "mob_handcuffed"
 /// From /datum/bodypart_overlay/simple/emote/Destroy() - Calls when an emote that applies a temporary visual effect expires

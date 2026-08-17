@@ -261,32 +261,32 @@ const SLOTS: Record<
     image: 'inventory-pocket.png',
   },
 
-  // SKYRAT EDIT ADDITION
-  vagina: {
-    displayName: 'vagina',
+  // META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+  underwear: {
+    displayName: 'underwear',
     gridSpot: getGridSpotKey([5, 1]),
-    image: 'inventory-pocket.png',
+    image: 'inventory-underwear.png',
   },
 
-  anus: {
-    displayName: 'anus',
+  bra: {
+    displayName: 'bra',
     gridSpot: getGridSpotKey([5, 2]),
-    image: 'inventory-pocket.png',
+    image: 'inventory-bra.png',
   },
 
-  nipples: {
-    displayName: 'nipples',
+  undershirt: {
+    displayName: 'undershirt',
     gridSpot: getGridSpotKey([5, 3]),
-    image: 'inventory-pocket.png',
+    image: 'inventory-undershirt.png',
   },
 
-  penis: {
-    displayName: 'penis',
+  socks: {
+    displayName: 'socks',
     gridSpot: getGridSpotKey([5, 4]),
-    image: 'inventory-pocket.png',
+    image: 'inventory-socks.png',
   },
 };
-// SKYRAT EDIT END
+// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 
 enum ObscuringLevel {
   Completely = 1,
@@ -339,8 +339,9 @@ export const StripMenu = (props) => {
 
   return (
     // (64 + 6) * 6 + 6 = 426
-    // (64 + 6) * 5 + 6 + 31 (from title) =
-    <Window title={`Stripping ${data.name}`} width={426} height={387}>
+    // META EDIT - CHANGE - UNDERWEAR_ITEMS: ROWS went from 5 to 6 (added underwear/bra/undershirt/socks
+    // at row 5), so this needs the 6-row height, not 5: (64 + 6) * 6 + 6 + 31 (from title) = 457
+    <Window title={`Stripping ${data.name}`} width={426} height={457}>
       <Window.Content>
         <Stack fill vertical>
           {range(0, ROWS).map((row) => (

@@ -570,12 +570,14 @@
 		LAZYADD(new_profile.quirks, new target_quirk.type)
 
 	// Clothes, of course
-	new_profile.underwear = target.underwear
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	new_profile.underwear = target.w_underwear?.name || "Nude"
 	new_profile.underwear_color = target.underwear_color
-	new_profile.undershirt = target.undershirt
-	new_profile.socks = target.socks
+	new_profile.undershirt = target.w_undershirt?.name || "Nude"
+	new_profile.socks = target.w_socks?.name || "Nude"
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 	// SKYRAT EDIT ADDITION START
-	new_profile.bra = target.bra
+	new_profile.bra = target.w_bra?.name || "Nude" // META EDIT - CHANGE - UNDERWEAR_ITEMS
 	new_profile.undershirt_color = target.undershirt_color
 	new_profile.socks_color = target.socks_color
 	new_profile.bra_color = target.bra_color
@@ -818,19 +820,21 @@
 
 	var/datum/dna/chosen_dna = chosen_profile.dna
 	user.real_name = chosen_profile.name
-	user.underwear = chosen_profile.underwear
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// Colors first, so set_X() below picks up the restored color rather than user's old one.
 	user.underwear_color = chosen_profile.underwear_color
-	user.undershirt = chosen_profile.undershirt
-	user.socks = chosen_profile.socks
+	user.undershirt_color = chosen_profile.undershirt_color
+	user.socks_color = chosen_profile.socks_color
+	user.bra_color = chosen_profile.bra_color
+	user.set_underwear(chosen_profile.underwear)
+	user.set_undershirt(chosen_profile.undershirt)
+	user.set_socks(chosen_profile.socks)
+	user.set_bra(chosen_profile.bra)
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 	user.age = chosen_profile.age
 	user.physique = chosen_profile.physique
 	user.mind?.set_level(/datum/skill/athletics, chosen_profile.athletics_level, silent = TRUE)
 	// SKYRAT EDIT ADDITION START
-	user.bra = chosen_profile.bra
-
-	user.undershirt_color = chosen_profile.undershirt_color
-	user.socks_color = chosen_profile.socks_color
-	user.bra_color = chosen_profile.bra_color
 	user.blooper = chosen_profile.blooper
 	user.blooper_speed = chosen_profile.blooper_speed
 	user.blooper_pitch = chosen_profile.blooper_pitch

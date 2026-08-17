@@ -3,7 +3,6 @@
 #define PORTAL_SIGNAL_LIST list( \
 	COMSIG_MOB_POST_EQUIP, \
 	COMSIG_HUMAN_UNEQUIPPED_ITEM, \
-	COMSIG_HUMAN_TOGGLE_UNDERWEAR, \
 	COMSIG_MOB_HANDCUFFED, \
 	COMSIG_MOB_EMOTE, \
 	COMSIG_EMOTE_OVERLAY_EXPIRE, \
@@ -428,7 +427,12 @@
 		uniform_overlay.add_filter("upper_body_removal", 1, list("type" = "alpha", "icon" = icon('modular_zubbers/icons/obj/structures/lewd_portals.dmi', "mask")))
 		add_overlay(uniform_overlay)
 	var/list/body_layer_overlays = list()
-	for(var/image/body_layer_overlay in owner.overlays_standing[BODY_LAYER])
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// Underwear/bra/undershirt/socks used to be one combined list at overlays_standing[BODY_LAYER].
+	// They're now real items with their own overlays_standing slots, see
+	// /mob/living/carbon/human/proc/get_underwear_category_overlays().
+	for(var/image/body_layer_overlay in owner.get_underwear_category_overlays())
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 		var/image/new_body_layer_overlay = image(body_layer_overlay)
 		new_body_layer_overlay.add_filter("upper_body_removal", 1, list("type" = "alpha", "icon" = icon('modular_zubbers/icons/obj/structures/lewd_portals.dmi', "mask")))
 		body_layer_overlays += new_body_layer_overlay

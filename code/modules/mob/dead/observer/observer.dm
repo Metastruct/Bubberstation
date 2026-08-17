@@ -975,6 +975,14 @@ This is the proc mobs get to turn into a ghost. Forked from ghostize due to comp
 	if(isobserver(target) && check_rights(R_SPAWN))
 		var/mob/dead/observer/target_ghost = target
 
+		// META EDIT - CHANGE - UNDERWEAR_ITEMS
+		// change_mob_type() already calls client.prefs.safe_transfer_prefs_to() internally (see
+		// change_mob_type_unchecked() in code/modules/mob/mob_transformation_simple.dm), which
+		// applies every character preference including underwear/bra/undershirt/socks, using the
+		// client reference from BEFORE it gets reassigned to the new mob. No extra code needed
+		// here; an earlier attempt to add a fallback outfit after this call actively broke this,
+		// since by then target_ghost.client had already moved to the new mob (read as null, so
+		// it always fell through to the hardcoded fallback and overwrote the real preference).
 		target_ghost.change_mob_type(/mob/living/carbon/human , null, null, TRUE) //always delmob, ghosts shouldn't be left lingering
 
 /mob/dead/observer/examine(mob/user)

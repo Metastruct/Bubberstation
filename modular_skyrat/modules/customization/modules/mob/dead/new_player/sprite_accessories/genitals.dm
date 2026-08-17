@@ -24,27 +24,19 @@
 				return TRUE
 
 			//Are they wearing an Undershirt?
-			if(target_mob.undershirt != "Nude" && !(target_mob.underwear_visibility & UNDERWEAR_HIDE_SHIRT))
-				var/datum/sprite_accessory/clothing/undershirt/worn_undershirt = SSaccessories.undershirt_list[target_mob.undershirt]
+			if(target_mob.w_undershirt)
 				//Does this Undershirt cover a relevant slot?
-				if(genital_location == CHEST) //(Undershirt always covers chest)
-					return TRUE
-
-				else if(genital_location == GROIN && worn_undershirt.hides_groin)
+				if(target_mob.w_undershirt.body_parts_covered & genital_location)
 					return TRUE
 
 			//Undershirt didn't cover them, are they wearing Underwear?
-			if(target_mob.underwear != "Nude" && !(target_mob.underwear_visibility & UNDERWEAR_HIDE_UNDIES))
-				var/datum/sprite_accessory/clothing/underwear/worn_underwear = SSaccessories.underwear_list[target_mob.underwear]
+			if(target_mob.w_underwear)
 				//Does this Underwear cover a relevant slot?
-				if(genital_location == GROIN) //(Underwear always covers groin)
-					return TRUE
-
-				else if(genital_location == CHEST && worn_underwear.hides_breasts)
+				if(target_mob.w_underwear.body_parts_covered & genital_location)
 					return TRUE
 
 			//Are they wearing a bra?
-			if(target_mob.bra != "Nude" && !(target_mob.underwear_visibility & UNDERWEAR_HIDE_BRA) && genital_location == CHEST)
+			if(target_mob.w_bra && genital_location == CHEST)
 				return TRUE
 
 			//Nothing they're wearing will cover them

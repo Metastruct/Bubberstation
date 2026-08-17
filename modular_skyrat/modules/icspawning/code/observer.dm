@@ -24,6 +24,7 @@
 	/// Initial list of outfits
 	var/list/outfit_options = list(
 		"Bluespace Tech" = /datum/outfit/admin/bst,
+		"Underwear" = /datum/outfit/underwear,
 		"Naked" = /datum/outfit,
 		"Show All" = "Show All",
 	)
@@ -54,7 +55,7 @@
 		return
 
 	outfit_option = tgui_input_list(user, "Which outfit to use?", "IC Quick Spawn", outfit_options)
-	if(outfit_option == outfit_options[3])
+	if(outfit_option == "Show All")
 		outfit_option = user.client.robust_dress_shop_skyrat()
 	else
 		outfit_option = outfit_options[outfit_option]
@@ -90,6 +91,10 @@
 		new_player.equip_outfit_and_loadout(outfit_option, target.client?.prefs)
 	else if(give_quirks_loadout == quirk_loadout_options[4] || !give_quirks_loadout) // null case matches if they chose random character
 		new_player.equipOutfit(outfit_option)
+
+	// META EDIT - ADDITION - UNDERWEAR_ITEMS: "Naked" strips underwear too, since safe_transfer_prefs_to() above already re-applied it.
+	if(outfit_option == /datum/outfit)
+		new_player.remove_all_underwear_items()
 
 	if(target.mind)
 		target.mind.transfer_to(new_player, TRUE)

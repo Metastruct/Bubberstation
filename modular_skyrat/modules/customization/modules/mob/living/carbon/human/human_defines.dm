@@ -3,8 +3,6 @@
 	var/undershirt_color = "#FFFFFF"
 	///Color of the socks
 	var/socks_color = "#FFFFFF"
-	///Flags for showing/hiding underwear, toggleabley by a verb
-	var/underwear_visibility = NONE
 	///Render key for mutant bodyparts, utilized to reduce the amount of re-rendering
 	var/mutant_renderkey = ""
 	///A list of mutant parts the human is trying to hide, read from `mutant_renderkey`
@@ -21,7 +19,7 @@
 	var/oversized_piggyknock = 3 SECONDS
 	/// Alpha of the hair. Takes precedent over species hair_alpha if non-null.
 	var/hair_alpha
-	/// The selected bra.
-	var/bra = "Nude"
+	/// The equipped bra item.
+	var/obj/item/clothing/underwear/bra/w_bra = null
 	/// Color of the bra.
 	var/bra_color = "#FFFFFF"

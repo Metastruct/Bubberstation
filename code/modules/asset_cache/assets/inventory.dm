@@ -17,4 +17,10 @@
 		"inventory-back.png" = 'icons/ui/inventory/back.png',
 		"inventory-pocket.png" = 'icons/ui/inventory/pocket.png',
 		"inventory-collar.png" = 'icons/ui/inventory/collar.png',
+		// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+		"inventory-underwear.png" = 'modular_zzmeta/icons/ui/inventory/underwear.png',
+		"inventory-bra.png" = 'modular_zzmeta/icons/ui/inventory/bra.png',
+		"inventory-undershirt.png" = 'modular_zzmeta/icons/ui/inventory/undershirt.png',
+		"inventory-socks.png" = 'modular_zzmeta/icons/ui/inventory/socks.png',
+		// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 	)

@@ -62,9 +62,10 @@
 	prev_facial_hair_style = user.facial_hairstyle
 	prev_hair_color = user.hair_color
 	prev_facial_hair_color = user.facial_hair_color
-	prev_underwear = user.underwear
-	prev_undershirt = user.undershirt
-	prev_socks = user.socks
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	prev_underwear = user.w_underwear?.name || "Nude"
+	prev_undershirt = user.w_undershirt?.name || "Nude"
+	prev_socks = user.w_socks?.name || "Nude"
 //	prev_eye_color
 	prev_disfigured = HAS_TRAIT(user, TRAIT_DISFIGURED) // I was disfigured! //prev_disabilities = user.disabilities
 	prev_features = user.dna.features
@@ -78,9 +79,10 @@
 	user.facial_hairstyle = pick(random_facial_hairstyle(user.gender), "Shaved")
 	user.hair_color = "#[random_short_color()]"
 	user.facial_hair_color = user.hair_color
-	user.underwear = random_underwear(user.gender)
-	user.undershirt = random_undershirt(user.gender)
-	user.socks = random_socks(user.gender)
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	user.set_underwear(random_underwear(user.gender))
+	user.set_undershirt(random_undershirt(user.gender))
+	user.set_socks(random_socks(user.gender))
 
 	//user.eye_color = random_eye_color()
 	if(prev_disfigured)
@@ -120,9 +122,10 @@
 	user.facial_hairstyle = prev_facial_hair_style
 	user.hair_color = prev_hair_color
 	user.facial_hair_color = prev_facial_hair_color
-	user.underwear = prev_underwear
-	user.undershirt = prev_undershirt
-	user.socks = prev_socks
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	user.set_underwear(prev_underwear)
+	user.set_undershirt(prev_undershirt)
+	user.set_socks(prev_socks)
 	user.dna.mutant_bodyparts = prev_mutant_bodyparts
 	user.dna.body_markings = prev_markings
 

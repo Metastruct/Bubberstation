@@ -70,7 +70,7 @@
 		balloon_alert_to_viewers("[src] rejoices and transforms [human_user]!")
 		human_user.unequip_everything()
 		human_user.set_species(/datum/species/lizard/ashwalker)
-		human_user.underwear = "Nude"
+		human_user.set_underwear("Nude")
 		human_user.update_body()
 		human_user.mind.add_antag_datum(/datum/antagonist/ashwalker)
 
