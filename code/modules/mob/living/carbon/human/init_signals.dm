@@ -82,11 +82,9 @@
 
 /// When [TRAIT_NO_UNDERWEAR] is gained, force-unequip any underwear-category items already worn
 // META EDIT - CHANGE - START - UNDERWEAR_ITEMS
-// Underwear is a real equipped item now, so gaining the trait needs to actively strip it rather
-// than just re-render (there's no longer a body-overlay to hide).
 /mob/living/carbon/human/proc/no_underwear_toggle(datum/source)
 	SIGNAL_HANDLER
 	if(HAS_TRAIT(src, TRAIT_NO_UNDERWEAR))
 		for(var/obj/item/clothing/underwear/worn_item in list(w_underwear, w_bra, w_undershirt, w_socks))
-			dropItemToGround(worn_item, force = TRUE)
+			qdel(worn_item)
 // META EDIT - CHANGE - END - UNDERWEAR_ITEMS
