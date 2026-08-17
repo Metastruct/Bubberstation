@@ -12,6 +12,7 @@
 	abstract_type = /obj/item/clothing/underwear
 	w_class = WEIGHT_CLASS_TINY
 	resistance_flags = FLAMMABLE
+	flags_cover = ALLOW_SURGERY_THROUGH
 	/// Whether the "_d" digitigrade icon-state suffix exists for this garment and should be used on digitigrade wearers.
 	var/has_digitigrade = FALSE
 	/// Gender-shaping flags used when cropping this garment's sprite for a female wearer.
