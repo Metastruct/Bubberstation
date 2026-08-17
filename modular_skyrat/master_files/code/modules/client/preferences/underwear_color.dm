@@ -12,6 +12,7 @@
 	// whatever's currently equipped rather than relying on apply order.
 	if(target.w_underwear && !target.w_underwear.use_static)
 		target.w_underwear.color = value
+		target.w_underwear.refresh_worn_appearance()
 
 /datum/preference/color/underwear_color/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))
@@ -31,6 +32,7 @@
 	target.undershirt_color = value
 	if(target.w_undershirt && !target.w_undershirt.use_static)
 		target.w_undershirt.color = value
+		target.w_undershirt.refresh_worn_appearance()
 
 /datum/preference/color/undershirt_color/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))
@@ -49,6 +51,7 @@
 	target.socks_color = value
 	if(target.w_socks && !target.w_socks.use_static)
 		target.w_socks.color = value
+		target.w_socks.refresh_worn_appearance()
 
 /datum/preference/color/socks_color/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))
@@ -69,6 +72,7 @@
 	target.bra_color = value
 	if(target.w_bra && !target.w_bra.use_static)
 		target.w_bra.color = value
+		target.w_bra.refresh_worn_appearance()
 
 /datum/preference/color/bra_color/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

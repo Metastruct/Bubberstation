@@ -37,6 +37,8 @@
 			underwear_overlay.color = worn_item.color
 		overlays_standing[UNDERWEAR_LAYER] = underwear_overlay
 	apply_overlay(UNDERWEAR_LAYER)
+	if(!(living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+		update_body_parts()
 
 /mob/living/carbon/human/proc/update_worn_bra()
 	remove_overlay(BRA_LAYER)
@@ -50,6 +52,8 @@
 			bra_overlay.color = worn_item.color
 		overlays_standing[BRA_LAYER] = bra_overlay
 	apply_overlay(BRA_LAYER)
+	if(!(living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+		update_body_parts()
 
 /mob/living/carbon/human/proc/update_worn_undershirt()
 	remove_overlay(UNDERSHIRT_LAYER)
@@ -67,6 +71,8 @@
 			undershirt_overlay.color = worn_item.color
 		overlays_standing[UNDERSHIRT_LAYER] = undershirt_overlay
 	apply_overlay(UNDERSHIRT_LAYER)
+	if(!(living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+		update_body_parts()
 
 /mob/living/carbon/human/proc/update_worn_socks()
 	remove_overlay(SOCKS_LAYER)
