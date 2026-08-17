@@ -18,8 +18,6 @@
 		if(PREVIEW_PREF_LOADOUT)
 			var/default_outfit = new /datum/outfit()
 			mannequin.equip_outfit_and_loadout(default_outfit, src, TRUE)
-		if(PREVIEW_PREF_UNDERWEAR)
-			// Nothing extra to do, underwear is already equipped as part of apply_prefs_to() above.
 		if(PREVIEW_PREF_NAKED)
 			mannequin.remove_all_underwear_items()
 			for(var/organ_key in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_BREASTS, ORGAN_SLOT_ANUS))
