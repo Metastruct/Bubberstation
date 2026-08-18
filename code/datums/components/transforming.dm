@@ -297,8 +297,12 @@
 		source.icon_state = initial(source.post_init_icon_state)
 	else
 		source.icon_state = initial(source.icon_state) // BUBBER CHANGE END
+	// META EDIT - REMOVAL - START - UMBRELLA_INVISIBLE_FIX
+	/* ORIGINAL:
 	source.update_weight_class(w_class_off)
 	source.icon_state = initial(source.icon_state)
+	*/
+	// META EDIT - REMOVAL - END - UMBRELLA_INVISIBLE_FIX
 	source.inhand_icon_state = initial(source.inhand_icon_state)
 	source.update_appearance()
 	source.update_inhand_icon()
