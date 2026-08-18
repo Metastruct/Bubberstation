@@ -635,9 +635,18 @@
 	if(IsSleeping())
 		to_chat(src, span_warning("You are already sleeping!"))
 		return
+
+	// META EDIT - CHANGE - START - SLEEP_DURATION_PICKER
+	/* ORIGINAL:
 	else
 		if(tgui_alert(usr, "You sure you want to sleep for a while?", "Sleep", list("Yes", "No")) == "Yes")
 			SetSleeping(400) //Short nap
+	*/
+	var/sleep_seconds = tgui_input_number(usr, "How long do you want to sleep for (in seconds)?", "Sleep", 40, 1800, 40)
+	if(!isnum(sleep_seconds) || sleep_seconds <= 0 || QDELETED(src) || IsSleeping())
+		return
+	SetSleeping(sleep_seconds SECONDS)
+	// META EDIT - CHANGE - END - SLEEP_DURATION_PICKER
 
 
 /mob/proc/get_contents()
