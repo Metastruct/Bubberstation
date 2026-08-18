@@ -8,7 +8,7 @@
 
 #define BASE_AROUSAL_ADJUSTMENT -0.1
 // Split from a shared pain+pleasure rate so pleasure can decay slower without changing pain's rate.
-#define BASE_PLEASURE_ADJUSTMENT -0.1
+#define BASE_PLEASURE_ADJUSTMENT -0.2
 #define BASE_PAIN_ADJUSTMENT -0.5
 
 /datum/status_effect/aroused

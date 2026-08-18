@@ -57,6 +57,8 @@
 				"shh!"
 			],
 			"target_force_say_chance": 30,
+			"target_emote": "squeak",
+			"target_emote_chance": 50,
 			"target_status_effects": [
 				{
 					"type": "/datum/status_effect/example",
@@ -114,6 +116,8 @@
 	"user_force_say_phrases": [],
 	"user_force_say_chance": 100,
 	"user_status_effects": [],
+	"user_emote": "",
+	"user_emote_chance": 100,
 	"target_messages": [
 		"%USER% pokes you!"
 	],
@@ -125,6 +129,8 @@
 	"target_force_say_phrases": [],
 	"target_force_say_chance": 100,
 	"target_status_effects": [],
+	"target_emote": "",
+	"target_emote_chance": 100,
 	"decals": [],
 	"lewd": 0,
 	"sexuality": ""

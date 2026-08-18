@@ -53,6 +53,16 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/target_bleed = 0
 	/// Units of blood the user loses on use. Same notes as `target_bleed`.
 	var/user_bleed = 0
+	/// Forces the target to perform this emote (e.g. "smile", "laugh") when this interaction fires. Bypasses
+	/// the emote's normal usability checks (see the `forced` arg on /mob/proc/emote), since this is a
+	/// game-triggered effect rather than a player-typed one. Empty string means no emote.
+	var/target_emote = ""
+	/// Percent chance (0-100) that `target_emote` actually triggers when non-empty. Defaults to always.
+	var/target_emote_chance = 100
+	/// Forces the user to perform this emote. Same notes as `target_emote`.
+	var/user_emote = ""
+	/// Percent chance (0-100) that `user_emote` actually triggers when non-empty. Defaults to always.
+	var/user_emote_chance = 100
 	/// Suffixes the target blurts out (see /mob/living/carbon/human/proc/force_say), interrupting whatever
 	/// they're currently typing. There's no separate on/off flag; this triggers whenever it ends up
 	/// non-empty after zone_overrides are applied.
@@ -77,7 +87,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// "user_pleasure", "user_arousal", "user_pain", "target_pleasure", "target_arousal", "target_pain",
 	/// "target_bleed", "user_bleed", "target_force_say_phrases", "target_force_say_chance",
 	/// "user_force_say_phrases", "user_force_say_chance", "target_status_effects",
-	/// "user_status_effects", "decals", "sound_possible". Any key a zone's entry doesn't set falls back to the
+	/// "user_status_effects", "decals", "sound_possible", "target_emote", "target_emote_chance", "user_emote",
+	/// "user_emote_chance". Any key a zone's entry doesn't set falls back to the
 	/// matching base field. A zone can also be suffixed with "_self" (target == user), "_combat" (user has
 	/// combat mode on), "_prone" (target is lying down, user isn't), or "_bothprone" (target and user are
 	/// both lying down), e.g. "mouth_self", "mouth_combat", "head_prone", "head_bothprone".
@@ -247,6 +258,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	feedback["decal"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "decals", decals)) > 0
 	feedback["force_say"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "target_force_say_phrases", target_force_say_phrases)) > 0 \
 		|| length(get_zone_pool(zone, combat_mode, prone, is_self, "user_force_say_phrases", user_force_say_phrases)) > 0
+	feedback["emote"] = (get_zone_value(zone, combat_mode, prone, is_self, "target_emote", target_emote) != "") \
+		|| (get_zone_value(zone, combat_mode, prone, is_self, "user_emote", user_emote) != "")
 	return feedback
 
 /**
@@ -399,6 +412,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(user_say_phrases.len && prob(get_zone_value(zone, combat_mode, prone, is_self, "user_force_say_chance", user_force_say_chance)))
 		user.force_say(user_say_phrases, immediate = TRUE)
 
+	var/target_emote_key = get_zone_value(zone, combat_mode, prone, is_self, "target_emote", target_emote)
+	if(target_emote_key && prob(get_zone_value(zone, combat_mode, prone, is_self, "target_emote_chance", target_emote_chance)))
+		target.emote(target_emote_key, forced = TRUE)
+	var/user_emote_key = get_zone_value(zone, combat_mode, prone, is_self, "user_emote", user_emote)
+	if(user_emote_key && prob(get_zone_value(zone, combat_mode, prone, is_self, "user_emote_chance", user_emote_chance)))
+		user.emote(user_emote_key, forced = TRUE)
+
 	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects), target, user)
 	apply_zone_status_effects(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects), user, target)
 
@@ -476,6 +496,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	target_force_say_phrases = sanitize_islist(json["target_force_say_phrases"], list())
 	target_force_say_chance = sanitize_integer(json["target_force_say_chance"], 0, 100, 100)
 	target_status_effects = sanitize_islist(json["target_status_effects"], list())
+	target_emote = sanitize_text(json["target_emote"])
+	target_emote_chance = sanitize_integer(json["target_emote_chance"], 0, 100, 100)
+	user_emote = sanitize_text(json["user_emote"])
+	user_emote_chance = sanitize_integer(json["user_emote_chance"], 0, 100, 100)
 	lewd = sanitize_integer(json["lewd"], 0, 1, 0)
 	sexuality = sanitize_text(json["sexuality"])
 	return TRUE
@@ -517,6 +541,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"target_force_say_phrases" = target_force_say_phrases,
 		"target_force_say_chance" = target_force_say_chance,
 		"target_status_effects" = target_status_effects,
+		"target_emote" = target_emote,
+		"target_emote_chance" = target_emote_chance,
+		"user_emote" = user_emote,
+		"user_emote_chance" = user_emote_chance,
 		"lewd" = lewd,
 		"sexuality" = sexuality,
 	)
@@ -598,6 +626,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		interaction.target_force_say_phrases = sanitize_islist(ijson["target_force_say_phrases"], list())
 		interaction.target_force_say_chance = sanitize_integer(ijson["target_force_say_chance"], 0, 100, 100)
 		interaction.target_status_effects = sanitize_islist(ijson["target_status_effects"], list())
+		interaction.target_emote = sanitize_text(ijson["target_emote"])
+		interaction.target_emote_chance = sanitize_integer(ijson["target_emote_chance"], 0, 100, 100)
+		interaction.user_emote = sanitize_text(ijson["user_emote"])
+		interaction.user_emote_chance = sanitize_integer(ijson["user_emote_chance"], 0, 100, 100)
 		interaction.lewd = sanitize_integer(ijson["lewd"], 0, 1, 0)
 		interaction.sexuality = sanitize_text(ijson["sexuality"])
 

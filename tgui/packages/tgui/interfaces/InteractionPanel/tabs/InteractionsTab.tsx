@@ -19,6 +19,7 @@ type InteractionFeedback = {
   status_effect: BooleanLike;
   decal: BooleanLike;
   force_say: BooleanLike;
+  emote: BooleanLike;
 };
 
 type Interaction = {
@@ -79,6 +80,9 @@ const badgesFor = (feedback: InteractionFeedback | undefined): Badge[] => {
   }
   if (feedback.force_say) {
     badges.push({ icon: 'comment-dots', label: 'Interrupts speech' });
+  }
+  if (feedback.emote) {
+    badges.push({ icon: 'theater-masks', label: 'Forces an emote' });
   }
   return badges;
 };

@@ -505,7 +505,12 @@
 	base_color[3] *= 0.85
 	var/eyelid_color = rgb(base_color[1], base_color[2], base_color[3], (length(base_color) >= 4 ? base_color[4] : null), COLORSPACE_HSL)
 	// If we're knocked out, just color the eyes
+	// META EDIT - CHANGE - START - EYES_CLOSED_TOGGLE
+	/* ORIGINAL:
 	if (!parent.appears_alive() || HAS_TRAIT(parent, TRAIT_KNOCKEDOUT))
+	*/
+	if (!parent.appears_alive() || HAS_TRAIT(parent, TRAIT_KNOCKEDOUT) || HAS_TRAIT(parent, TRAIT_EYES_CLOSED))
+	// META EDIT - CHANGE - END - EYES_CLOSED_TOGGLE
 		eye_right.color = eyelid_color
 		eye_left.color = eyelid_color
 		return
