@@ -40,7 +40,16 @@ over the Chrome DevTools Protocol. Fourteen tools total:
   (never a bare `/mob`, and even a filtered `/turf` can time out — reach a
   turf via a mob's `loc` instead), compare scalar fields in WHERE rather
   than ref literals or `locate()` (`self.name == "..."`, not
-  `self == [mob_123]` or `WHERE loc == locate(x,y,z)`), keep each WHERE to
+  `self == [mob_123]` or `WHERE loc == locate(x,y,z)`) — **`[...]` is
+  *always* a list literal in SDQL, never a ref, anywhere in a query, not
+  just in WHERE; passing one as a CALL argument builds a list and hands it
+  to the proc instead of the real object, which can throw and poison every
+  CALL for the rest of the session. Reach a nested object by chaining a
+  proc call as its own MAP step instead (`MAP get_organ_slot("tail")`,
+  confirmed live), never via a constructed ref literal.** (The tool now
+  rejects a query containing `[word_123]`/`{word_123}` before sending it,
+  for exactly this shape of mistake — see `_REF_LOOKALIKE_RE` in
+  `dm_debug_server.py`.) Keep each WHERE to
   one condition (`&&`/`and` between a comparator and another comparator
   evaluates left-to-right with no precedence and silently gives wrong
   matches), avoid parens inside quoted string filters (silently matches

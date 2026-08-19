@@ -18,6 +18,7 @@ import base64
 import glob
 import json
 import os
+import re
 import shutil
 import signal
 import socket
@@ -70,6 +71,18 @@ mcp = MCPServer("dm-debug")
 
 class TopicError(RuntimeError):
     pass
+
+
+# Matches a bracket/brace whose entire content is a single bareword ending in digits, e.g.
+# "[mob_2990]" or "{mob_2990}" - the exact shape of a REF()-printed DF_USE_TAG label (see
+# code/__HELPERS/ref.dm) copy-pasted from a prior SELECT's href output. In SDQL, [...] is
+# always a list literal (never a ref) and {...} wants a hex number specifically (see
+# SDQL_2_parser.dm's own grammar comment), so either form here builds/parses to something
+# other than the object the caller meant - confirmed live to corrupt CALL state for the rest
+# of the session when the malformed value reached a proc expecting a real object. Deliberately
+# doesn't match legitimate list literals with more than one element ("[name, self.owner]") or
+# a bracketed var name with no trailing digits ("[current_wag_frame]").
+_REF_LOOKALIKE_RE = re.compile(r"[\[{]\s*[A-Za-z][A-Za-z0-9]*_[0-9]+\s*[\]}]")
 
 
 def _send_topic(host: str, port: int, topic: str, timeout: float) -> str:
@@ -146,9 +159,39 @@ def dm_debug_query(query: str) -> str:
     - WHERE compares scalar fields reliably (name, type, numeric/text vars,
       including dotted paths like `self.name == "..."`). Comparing a var to
       a bracketed ref literal in WHERE (e.g. `WHERE self == [mob_123]`) does
-      NOT reliably match - go through a scalar field instead. Ref literals
-      passed as CALL *arguments* (e.g. `CALL foo([mob_123]) ON ...`) work
-      fine; it's specifically WHERE-clause ref-equality that's flaky.
+      NOT reliably match - go through a scalar field instead.
+    - CORRECTION, confirmed live and cost a real corrupted-CALL-state
+      incident: `[thing]` square brackets are ALWAYS SDQL's list-literal
+      syntax (`MAP [name, self.owner]` builds a 2-element list; a bare
+      `[mob_123]` builds a 1-element list containing whatever bareword
+      "mob_123" evaluates to, almost always null) - it is NEVER a ref
+      literal, as an argument or anywhere else. The real ref-literal syntax
+      is `{0x...}` (curly braces, a hex number only per the grammar) - but
+      most mobs/atoms in this codebase have `DF_USE_TAG` set, so `REF()`
+      prints a friendly tag like `mob_2990` instead of raw hex in SELECT
+      output, and that tag is NOT valid inside `{...}` either (parser wants
+      a hex number specifically). Net effect: there is currently no reliable
+      way to construct a ref literal for a DF_USE_TAG'd object from SELECT
+      output. Don't try - `CALL foo([mob_123]) ON ...` will silently build a
+      list and hand it to `foo()` instead of the mob, which can throw inside
+      the target proc and poison every CALL for the rest of the session (see
+      the parse-error note below - a thrown runtime error does the same
+      thing, not just parse errors). Instead, reach the target by chaining
+      from something already selectable: `SELECT /mob/... WHERE ckey == "..."
+      MAP get_organ_slot("tail")` (confirmed live) walks "current object" to
+      that proc's return value, so the rest of the query (a further MAP, or
+      wrapping in `[...]` for display) operates on the real object with zero
+      ref-literal needed. This composes: `MAP get_organ_slot("tail") MAP
+      bodypart_overlay MAP [some_var]` chains three hops deep reliably.
+    - A proc call used as a WHOLE MAP step (`MAP get_organ_slot("tail")`)
+      reliably invokes it and changes "current object" to the return value -
+      confirmed live. The SAME call embedded *inside* a bracketed display
+      list (`MAP [icon_exists(a, b)]`) does NOT reliably evaluate - it came
+      back `NULL` in testing even though the bare-MAP-step form works fine.
+      If you need a proc's return value for display, give it its own MAP
+      step first, then wrap just the resulting scalar in `[...]` afterward
+      (`MAP some_proc(...) MAP [self]`), rather than nesting the call inside
+      a list literal.
     - Components are selectable/callable too, not just atoms - e.g.
       `SELECT /datum/component/interactable WHERE self.name == "..."` or
       `CALL some_proc(...) ON /datum/component/some_type WHERE ...` reaches
@@ -175,16 +218,21 @@ def dm_debug_query(query: str) -> str:
       a file added earlier the same session - "it compiled with 0 errors
       before" does not guarantee every intended #include line is still
       present (see the missing-#include write-up in project memory).
-    - If a query ever returns a "Parse error", treat every CALL for the rest
-      of that boot's session with suspicion afterward. Confirmed live: after
-      one such parse error, subsequent CALLs silently resolved their proc
-      name to null server-side (visible in the boot log as
-      "SDQL function blocking(<obj>, null, ...)") regardless of what proc
-      was actually requested, with no error surfaced back through
-      dm_debug_query itself - the call just quietly did nothing. Not
-      root-caused. The reliable fix is booting a fresh disposable instance
-      (dm_debug_stop_server + dm_debug_boot_server) rather than continuing
-      to debug CALL behavior on a connection that already hit a parse error.
+    - If a query ever returns a "Parse error", OR a CALL throws a runtime
+      error inside the proc it invoked (e.g. from a bad argument - check the
+      server's runtime.log, dm_debug_query itself won't surface it), treat
+      every CALL for the rest of that session with suspicion afterward.
+      Confirmed live BOTH ways: after either kind of failure, subsequent
+      CALLs silently resolved their proc name to null server-side (visible
+      in runtime.log as "SDQL function blocking(<obj>, null, ...)")
+      regardless of what proc was actually requested, with no error
+      surfaced back through dm_debug_query - the call just quietly did
+      nothing. Not root-caused. UPDATE/SELECT keep working fine on the same
+      connection even after this - it's specifically CALL that's affected.
+      The reliable fix is a fresh server process: dm_debug_stop_server +
+      dm_debug_boot_server for a disposable instance, or ask the user to
+      restart if you're on their own dev server - don't keep debugging CALL
+      behavior on a connection that already hit either kind of failure.
     - For CALL queries specifically, the returned "count" is NOT a
       success/match indicator - it's frequently 0 even when the call matched
       objects and ran successfully (Execute() only populates the
@@ -241,6 +289,21 @@ def dm_debug_query(query: str) -> str:
         raise TopicError("DM_DEBUG_PORT is not set")
     if not KEY:
         raise TopicError("DM_DEBUG_KEY is not set")
+
+    lookalike = _REF_LOOKALIKE_RE.search(query)
+    if lookalike:
+        raise TopicError(
+            f"Query rejected before sending: {lookalike.group()!r} looks like a ref tag "
+            "(e.g. copied from a prior SELECT's href output, such as \"mob_2990\") wrapped "
+            "in brackets/braces. In SDQL, [...] is ALWAYS a list literal (never a ref) and "
+            "{...} wants a hex number specifically - neither parses to the object you mean, "
+            "and handing the result to a proc expecting a real object can throw and poison "
+            "every CALL for the rest of the session. Reach the target instead by chaining a "
+            'proc call as its own MAP step, e.g. SELECT /mob/... WHERE ckey == "..." MAP '
+            "get_organ_slot(\"tail\") - see this tool's own docstring for more. If this match "
+            "is a false positive (a real list literal that happens to look like a tag), "
+            "rephrase the query so the bracketed content isn't a single word_number token."
+        )
 
     topic = f"claude_debug=1&key={KEY}&format=json&q={query}"
     return _send_topic(HOST, int(PORT), topic, TIMEOUT)
