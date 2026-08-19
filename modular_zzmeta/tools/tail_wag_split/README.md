@@ -33,6 +33,21 @@ way it should look before running this tool, see
 `modular_zzmeta/code/modules/customization/sprite_accessories/EXAMPLE_new_tail.dm.example`
 and the `tails.dmi.example` next to it.
 
+## Re-editing an existing tail's wag animation
+
+A wag animation can split into over a dozen states per direction per color
+layer, which makes editing it in an icon editor awkward with all those
+split states in the way. Strip them first with `--unsplit`:
+
+```
+tools/bootstrap/python modular_zzmeta/tools/tail_wag_split/split_wag_frames.py --unsplit path/to/tails.dmi
+```
+
+This removes every `_f1`, `_f2`, ... state belonging to a matching wag
+animation and leaves the original baked animated state untouched. Edit that
+animation like normal, then split it again the usual way. `--dry-run` works
+here too.
+
 ## How it decides what to split
 
 Any animated (more than one baked frame) icon_state whose name contains the

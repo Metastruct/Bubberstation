@@ -9,7 +9,7 @@ Usage:
     tools/bootstrap/python modular_zzmeta/tools/tail_wag_split/split_wag_frames.py --dry-run <dmi_file>
 
 By default, splits every animated (framecount > 1) icon_state whose name
-contains "wagging" - the convention every tail sprite in the repo uses today
+contains "wagging", the convention every tail sprite in the repo uses today
 (see get_feature_key_for_overlay() in
 modular_skyrat/modules/customization/modules/surgery/organs/tails.dm, which
 prepends the literal text "wagging" to the tail's feature_key while wagging).
@@ -17,15 +17,22 @@ Pass --pattern to match a different naming convention.
 
 A rewind (ping-pong) source animation is split into its full forward+reverse
 sequence (2N-2 states for an N-frame source), matching how BYOND itself plays
-it back, rather than just the N forward frames - confirmed live this matters:
-a plain forward-only split makes a ping-pong tail wag in one direction only.
+it back. A plain forward-only split makes a ping-pong tail wag in one
+direction only.
 
 Already-split states are left alone (matched by "<state>_f1" already
 existing), so this is safe to re-run on a file after adding new tail sprites
 to it without re-splitting states that are already done.
+
+Pass --unsplit to go the other way: removes existing split states for a
+matching wag animation, leaving just the original baked animated state
+behind. Useful when re-drawing an existing wag animation, since editing a
+DMI with hundreds of stale single-frame split states in it is painful:
+unsplit first, edit the baked animation like normal, then split again.
 """
 import argparse
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "tools"))
@@ -61,6 +68,44 @@ def already_split(dmi, state):
     return any(other.name == f"{state.name}_f1" for other in dmi.states)
 
 
+SPLIT_STATE_RE = re.compile(r"^(?P<base>.+)_f(?P<n>\d+)$")
+
+
+def find_split_children(dmi, pattern):
+    """Returns {base_state_name: [split_state_name, ...]} for every state in
+    dmi matching pattern that has "_fN" split children, sorted by N. Only
+    counts a state as a split child if its base name is itself a real state
+    in the file, so an unrelated state that happens to end in "_f3" for some
+    other reason is never touched."""
+    base_names = {state.name for state in dmi.states}
+    groups = {}
+    for state in dmi.states:
+        match = SPLIT_STATE_RE.match(state.name)
+        if not match or match.group("base") not in base_names or pattern not in match.group("base"):
+            continue
+        groups.setdefault(match.group("base"), []).append((int(match.group("n")), state.name))
+    return {base: [name for _, name in sorted(children)] for base, children in groups.items()}
+
+
+def unsplit_file(path, pattern, dry_run):
+    dmi = Dmi.from_file(path)
+    groups = find_split_children(dmi, pattern)
+    if not groups:
+        print(f"{path}: nothing to do (no split states found)")
+        return
+
+    remove_names = set()
+    for base, children in groups.items():
+        verb = "would remove" if dry_run else "removing"
+        print(f"{path}: {verb} {len(children)} split state(s) for {base!r}")
+        remove_names.update(children)
+
+    if not dry_run:
+        dmi.states = [state for state in dmi.states if state.name not in remove_names]
+        dmi.to_file(path)
+        print(f"{path}: removed {len(remove_names)} split state(s) across {len(groups)} base state(s)")
+
+
 def process_file(path, pattern, dry_run):
     dmi = Dmi.from_file(path)
     candidates = find_wag_states(dmi, pattern)
@@ -89,11 +134,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dmi_files", nargs="+", help="DMI file(s) to split wag animations in, modified in place")
     parser.add_argument("--pattern", default="wagging", help='Substring an icon_state name must contain to be treated as a wag animation (default: "wagging")')
-    parser.add_argument("--dry-run", action="store_true", help="Report what would be split without writing any files")
+    parser.add_argument("--dry-run", action="store_true", help="Report what would change without writing any files")
+    parser.add_argument("--unsplit", action="store_true", help="Remove existing split states instead of creating them")
     args = parser.parse_args()
 
     for path in args.dmi_files:
-        process_file(path, args.pattern, args.dry_run)
+        if args.unsplit:
+            unsplit_file(path, args.pattern, args.dry_run)
+        else:
+            process_file(path, args.pattern, args.dry_run)
 
 
 if __name__ == "__main__":
