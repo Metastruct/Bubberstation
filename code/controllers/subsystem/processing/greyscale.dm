@@ -84,7 +84,8 @@ PROCESSING_SUBSYSTEM_DEF(greyscale)
 	// This combo is new and won't be in icon_ref_map's boot-time snapshot.
 	// Schedule a debounced regen so tgui icon lookups pick it up instead
 	// of showing a missing-icon glyph for the rest of the round.
-	get_asset_datum(/datum/asset/json/icon_ref_map).schedule_regenerate()
+	var/datum/asset/json/icon_ref_map/icon_ref_map = get_asset_datum(/datum/asset/json/icon_ref_map)
+	icon_ref_map.schedule_regenerate()
 	// META EDIT - ADDITION - END - ICON_REF_MAP_GAGS_LATE_REGEN
 	return rsc_gags_icon
 #else
