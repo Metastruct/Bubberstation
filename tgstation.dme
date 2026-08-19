@@ -10509,6 +10509,7 @@
 #include "modular_zzmeta\code\controllers\subsystem\sounds.dm"
 #include "modular_zzmeta\code\datums\world_topic.dm"
 #include "modular_zzmeta\code\datums\bodypart_overlays\emote_bodypart_overlay.dm"
+#include "modular_zzmeta\code\datums\bodypart_overlays\tail_wag_speed.dm"
 #include "modular_zzmeta\code\datums\components\jukebox.dm"
 #include "modular_zzmeta\code\datums\quirks\positive_quirks\wet_dog.dm"
 #include "modular_zzmeta\code\datums\status_effects\debuffs\coated_in_liquid.dm"
