@@ -1,7 +1,5 @@
 /datum/controller/subsystem/ticker
 	var/list/job_estimation_list = list()
-	/// Music played only while the server is still loading (current_state == GAME_STATE_STARTUP). Optional - if no loading tracks are configured, login_music plays immediately as before.
-	var/loading_music
 	/// TRUE if login_music was picked from the fallback (sound/music/lobby_music) rather than an admin-configured config/title_music/sounds track.
 	var/title_music_is_default = TRUE
 
@@ -16,36 +14,6 @@
 			continue
 		title_music_is_default = FALSE
 		break
-
-	var/list/provisional_loading_music = flist("[global.config.directory]/loading_music/sounds/")
-	var/list/music = list()
-	var/use_rare_music = prob(1)
-
-	for(var/S in provisional_loading_music)
-		var/lower = LOWER_TEXT(S)
-		var/list/L = splittext(lower, "+")
-		switch(L.len)
-			if(3) //rare+MAP+sound.ogg or MAP+rare.sound.ogg -- Rare Map-specific sounds
-				if(use_rare_music)
-					if(L[1] == "rare" && L[2] == SSmapping.current_map.map_name)
-						music += S
-					else if(L[2] == "rare" && L[1] == SSmapping.current_map.map_name)
-						music += S
-			if(2) //rare+sound.ogg or MAP+sound.ogg -- Rare sounds or Map-specific sounds
-				if((use_rare_music && L[1] == "rare") || (L[1] == SSmapping.current_map.map_name))
-					music += S
-			if(1) //sound.ogg -- common sound
-				if(L[1] == "exclude")
-					continue
-				music += S
-
-	for(var/S in music)
-		if(IS_SOUND_FILE(S))
-			continue
-		music -= S
-
-	if(length(music))
-		loading_music = "[global.config.directory]/loading_music/sounds/[pick(music)]"
 
 	return SS_INIT_SUCCESS
 
