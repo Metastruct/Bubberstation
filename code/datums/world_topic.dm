@@ -356,7 +356,14 @@
 	if(length(querys) > 1)
 		return list("error" = "Only a single query (no ';') is supported per call")
 
-	var/datum/sdql2_query/query = new /datum/sdql2_query(querys[1], TRUE, FALSE, 1) // SU=TRUE, admin_interact=FALSE, options=SDQL2_OPTIONS_DEFAULT (macro #undef'd outside SDQL_2.dm)
+	// META EDIT - CHANGE - START - CLAUDE_DEBUG_HIGH_PRIORITY
+	// SU=TRUE, admin_interact=FALSE, options=5 (SDQL2_OPTION_SELECT_OUTPUT_SKIP_NULLS
+	// | SDQL2_OPTION_HIGH_PRIORITY, both macros #undef'd outside SDQL_2.dm). Was 1
+	// (skip-nulls only): this dev-only debug channel has no reason to defer to
+	// live-player tick pressure the way a real admin's SDQL query should.
+	// ORIGINAL: var/datum/sdql2_query/query = new /datum/sdql2_query(querys[1], TRUE, FALSE, 1) // SU=TRUE, admin_interact=FALSE, options=SDQL2_OPTIONS_DEFAULT (macro #undef'd outside SDQL_2.dm)
+	var/datum/sdql2_query/query = new /datum/sdql2_query(querys[1], TRUE, FALSE, 5)
+	// META EDIT - CHANGE - END
 	query.Run()
 	var/list/result = list(
 		"count" = length(query.select_refs),

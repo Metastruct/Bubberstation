@@ -4,9 +4,21 @@ Lets Claude query, mutate, and visually inspect a running DreamDaemon dev
 server directly over `world.Topic()`, instead of always cold-booting a
 disposable instance to check something — and, when there isn't one running
 yet, boot and tear down a disposable one itself. Talks to the `claude_debug`
-topic handler in `code/datums/world_topic.dm`. Also has eight tools that
-bypass `world.Topic()` entirely and drive tgui's embedded browser directly
-over the Chrome DevTools Protocol. Fourteen tools total:
+topic handler in `code/datums/world_topic.dm` and
+`modular_zzmeta/modules/claude_debug/code/claude_debug.dm`. Also has eight
+tools that bypass `world.Topic()` entirely and drive tgui's embedded browser
+directly over the Chrome DevTools Protocol. Nineteen tools total.
+
+**`dm_debug_find`/`get_var`/`set_var`/`call_proc` vs `dm_debug_query`:** the
+find/get_var/set_var/call_proc family is newer and bypasses SDQL2's own
+parser entirely for the common find-an-object/read-a-var/write-a-var/
+call-a-proc case — real handles instead of SDQL2's fragile `{0x...}`/`[...]`
+ref-literal syntax, and a thrown error can't poison later calls the way it
+can with SDQL2's `CALL`. **Prefer these for anything that isn't genuinely a
+freeform WHERE-filtered search** — reach for `dm_debug_query` only when you
+need SDQL2's own WHERE-clause power directly (`dm_debug_find`'s `where` param
+covers most of that already) or a statement type these four don't cover
+(`UPDATE`/`DELETE` on a whole matched set at once, `explain`).
 
 - `dm_debug_boot_server(map="runtimestation", boot_timeout=180.0)` — boots a
   disposable DreamDaemon in this checkout on `DM_DEBUG_PORT` and blocks until
@@ -57,6 +69,47 @@ over the Chrome DevTools Protocol. Fourteen tools total:
   0 even on a successful call — verify with a follow-up SELECT/MAP), and
   remember `/datum/component/*` types are selectable/callable too while
   `/client` is not.
+- `dm_debug_find(type_path, where="", limit=25)` — the SELECT-equivalent of
+  `dm_debug_query`, but hands out a short-lived handle (e.g. `"h5"`) per
+  match instead of rendering results to text. Reuses SDQL2's own
+  tokenizer/WHERE-clause evaluator (same syntax, same scoping advice: scope
+  the type as narrowly as you can, one condition per WHERE), but only its
+  search machinery — never `Execute()`, so no result-serialization or CALL
+  dispatch path is ever touched. Handles are weakref-backed (never keep an
+  object alive) and evicted oldest-first past ~1000 live handles.
+- `dm_debug_get_var(handle, var)` — reads one var off a handle, returned as
+  a tagged JSON value (`{"t": "num"/"text"/"path"/"ref"/"list"/"null", ...}`)
+  — a `"ref"` value is itself a fresh handle, so nested objects (e.g. a
+  mob's `loc`, or `hud_used.inventory_slots`) chain naturally without ever
+  needing a ref literal.
+- `dm_debug_set_var(handle, var, value_type, value="")` — writes one var.
+  `value_type` is `null`/`num`/`text`/`path`/`ref` (the last two: a DM type
+  path as text, or another handle string).
+- `dm_debug_call_proc(handle, proc, args="[]")` — calls a named proc on a
+  handle with real argument values (a JSON array; `{"ref": "h5"}` and
+  `{"path": "/datum/..."}` for object/type-path args, plain JSON
+  string/number/null otherwise). A thrown error inside the proc comes back
+  as a normal exception with the real DM message — it can't poison later
+  calls, since this never touches SDQL2's `CALL` dispatch at all.
+  Live-verified against a real connected player's mob: reading
+  `hud_used.inventory_slots` and a slot's `screen_loc`/`slot_id`, and
+  calling `set_species()` + `regenerate_icons()` to actually change a live
+  character's species — this reaches native BYOND HUD/inventory-slot state
+  that the `tgui_*`/CDP tools below can't see at all (they're tgui-only).
+  Caveat found live: `/mob/living/carbon/human/dummy/consistent` ("Test
+  Dummy") objects are used codebase-wide as short-lived icon-generation
+  throwaways (character preview, manifest portraits, antag setup previews)
+  that can vanish moments after a `dm_debug_find` mints a handle for one —
+  a stale-handle error there is the tool correctly reporting a real
+  deletion, not a bug. Find a real named mob instead if that happens.
+- `dm_debug_find_log(log_name="runtime")` — finds the newest matching
+  `<log_name>.log` under `data/logs/` (recursive, since a real dev server's
+  log directory is timestamped/round-numbered with no fixed path — see
+  `SetupLogs()` in `code/game/world.dm`) so you can `tail -f` it directly
+  (background Bash + the Monitor tool) for a live-updating feed of server
+  output, instead of adding temporary debug prints and recompiling/
+  rebooting to see them. Defaults to `"runtime"`, DreamDaemon's own native
+  RUNTIME:/error log.
 - `dm_debug_render_atom(ref)` — flattens one atom's current sprite (icon +
   overlays, via `getFlatIcon()`) to a PNG and returns it as an image, given
   a ref from a prior `dm_debug_query` SELECT. Separate from the query path
@@ -214,7 +267,7 @@ check on the caller's address.
    a port other than 9222.
 
 4. Boot your dev DreamDaemon as usual — or call `dm_debug_boot_server` to
-   have Claude boot a disposable one itself. Either way, all fourteen tools
+   have Claude boot a disposable one itself. Either way, all nineteen tools
    will now be available in Claude Code sessions in this repo — except the
    eight `tgui_*` ones, which additionally need the one-time setup in
    [`webview2-debugging.md`](webview2-debugging.md) done first.
