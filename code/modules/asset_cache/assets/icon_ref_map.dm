@@ -26,3 +26,10 @@
 			break;
 
 	return data
+
+// META EDIT - ADDITION - START - ICON_REF_MAP_GAGS_LATE_REGEN
+// Debounced regen for GAGS combos generated after the one-shot post-mapload
+// regen in SSassets/Initialize(). TIMER_UNIQUE coalesces bursts into one call.
+/datum/asset/json/icon_ref_map/proc/schedule_regenerate()
+	addtimer(CALLBACK(src, PROC_REF(regenerate)), 2 SECONDS, TIMER_UNIQUE)
+// META EDIT - ADDITION - END - ICON_REF_MAP_GAGS_LATE_REGEN
