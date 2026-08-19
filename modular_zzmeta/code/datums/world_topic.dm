@@ -14,8 +14,13 @@
 		entry["afk"] = !!C.is_afk()
 
 		if(C.prefs?.read_preference(/datum/preference/toggle/chat_examine_headshot))
-			var/headshot_type = issilicon(character) ? /datum/preference/text/headshot/silicon : /datum/preference/text/headshot
-			var/headshot = C.prefs.read_preference(headshot_type)
+			var/headshot
+			if(issilicon(character))
+				var/mob/living/silicon/character_silicon = character
+				headshot = character_silicon.headshot_snapshot
+			else if(ishuman(character))
+				var/mob/living/carbon/human/character_human = character
+				headshot = character_human.dna?.features["headshot"]
 			if(headshot)
 				entry["headshot"] = headshot
 

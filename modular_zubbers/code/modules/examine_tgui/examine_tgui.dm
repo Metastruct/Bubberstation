@@ -113,16 +113,22 @@
 		// Now we handle silicon and/or human, order doesn't really matter
 		// If other variants of mob/living need to be handled at some point, put them here
 		if(issilicon(holder))
+			// META EDIT - CHANGE - START - SILICON_HEADSHOT_SNAPSHOT
+			// Read the headshot off the mob's own spawn-time snapshot rather than the live client
+			// prefs, which reflect whatever slot the player currently has open in character setup.
+			// ORIGINAL: headshot += preferences.read_preference(/datum/preference/text/headshot/silicon)
+			var/mob/living/silicon/holder_silicon = holder
 			flavor_text = preferences.read_preference(/datum/preference/text/silicon_flavor_text)
 			// Silicon prefs and headshot
 			custom_species = preferences.read_preference(/datum/preference/text/custom_species/silicon)
 			custom_species_lore = preferences.read_preference(/datum/preference/text/custom_species_lore/silicon)
 			ooc_notes += preferences.read_preference(/datum/preference/text/ooc_notes/silicon)
-			headshot += preferences.read_preference(/datum/preference/text/headshot/silicon)
+			headshot += holder_silicon.headshot_snapshot
 			name = holder.name
 			if(show_nsfw_flavor_text != "Never")
 				flavor_text_nsfw = preferences.read_preference(/datum/preference/text/flavor_text_nsfw/silicon)
-				headshot_nsfw = preferences.read_preference(/datum/preference/text/headshot/silicon/nsfw)
+				headshot_nsfw = holder_silicon.headshot_snapshot_nsfw
+			// META EDIT - CHANGE - END
 
 		//Round Removal opt in stuff
 		if(CONFIG_GET(flag/use_rr_opt_in_preferences))

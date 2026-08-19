@@ -35,6 +35,9 @@
 	var/mob/living/silicon/ai/ai_spawn = spawned
 	if(player_client)
 		ai_spawn.set_gender(player_client)
+		// META EDIT - ADDITION - START - SILICON_HEADSHOT_SNAPSHOT
+		ai_spawn.apply_pref_headshot(player_client)
+		// META EDIT - ADDITION - END - SILICON_HEADSHOT_SNAPSHOT
 	ai_spawn.log_current_laws()
 	// SKYRAT EDIT ADDITION START
 	for(var/mob/living/silicon/robot/sync_target in GLOB.silicon_mobs)

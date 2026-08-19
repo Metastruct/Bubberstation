@@ -30,6 +30,9 @@
 	robot_spawn.notify_ai(AI_NOTIFICATION_NEW_BORG)
 	if(player_client)
 		robot_spawn.set_gender(player_client)
+		// META EDIT - ADDITION - START - SILICON_HEADSHOT_SNAPSHOT
+		robot_spawn.apply_pref_headshot(player_client)
+		// META EDIT - ADDITION - END - SILICON_HEADSHOT_SNAPSHOT
 	//SKYRAT EDIT START
 	robot_spawn.set_connected_ai(select_priority_ai())
 	if(robot_spawn.connected_ai)

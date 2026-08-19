@@ -117,6 +117,9 @@
 		apply_pref_name(/datum/preference/name/ai, preference_source)
 		our_AI.apply_pref_hologram_display(preference_source)
 		our_AI.set_core_display_icon(null, preference_source)
+		// META EDIT - ADDITION - START - SILICON_HEADSHOT_SNAPSHOT
+		our_AI.apply_pref_headshot(preference_source)
+		// META EDIT - ADDITION - END - SILICON_HEADSHOT_SNAPSHOT
 
 	qdel(src)
 
@@ -146,6 +149,9 @@
 
 	if(client)
 		new_borg.set_gender(client)
+		// META EDIT - ADDITION - START - SILICON_HEADSHOT_SNAPSHOT
+		new_borg.apply_pref_headshot(client)
+		// META EDIT - ADDITION - END - SILICON_HEADSHOT_SNAPSHOT
 	new_borg.SetInvisibility(INVISIBILITY_NONE)
 
 	if(client?.prefs.read_preference(/datum/preference/name/cyborg) != DEFAULT_CYBORG_NAME)
