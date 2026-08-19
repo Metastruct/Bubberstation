@@ -26,9 +26,9 @@ GLOBAL_LIST_EMPTY(tail_wag_frame_count_cache)
 	/// (see discover_wag_frame_count()). 1 = unchanged, 2 = twice as fast, 0.5 = half speed.
 	/// The actual speed used also factors in the wagger's current mood, see get_wag_frame_time().
 	var/wag_speed_base = 1
-	/// Whether mood scales wag speed on top of wag_speed_base. TRUE by default. When FALSE,
-	/// wag_speed_base alone determines speed, see get_wag_frame_time().
-	var/wag_mood_scaling = TRUE
+	/// Whether mood scales wag speed on top of wag_speed_base. Opt-in, FALSE by default: wag_speed_base
+	/// alone determines speed until the player turns this on, see get_wag_frame_time().
+	var/wag_mood_scaling = FALSE
 	/// Current frame (1-indexed) of the split-frame wag animation, if one is playing.
 	var/current_wag_frame = 1
 	/// Timer id for the next frame advance, so it can be cancelled when wagging stops.
