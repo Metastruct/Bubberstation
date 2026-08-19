@@ -88,6 +88,13 @@ INITIALIZE_IMMEDIATE(/mob/living/carbon/human/dummy)
 	delete_equipment()
 	update_lips(null, null, null, update = FALSE)
 	cut_overlays(TRUE)
+	// META EDIT - ADDITION - START - PREVIEW_TRANSFORM_RESET
+	// The preview dummy is reused for the whole prefs session (see update_body()), so without
+	// this, current_size/transform drift is carried forward across every re-render instead of
+	// starting fresh like a real spawned human does.
+	transform = null
+	current_size = initial(current_size)
+	// META EDIT - ADDITION - END - PREVIEW_TRANSFORM_RESET
 
 /mob/living/carbon/human/dummy/setup_human_dna()
 	randomize_human_normie(src, randomize_mutations = FALSE)

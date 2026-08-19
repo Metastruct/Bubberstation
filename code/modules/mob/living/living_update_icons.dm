@@ -50,7 +50,15 @@
 		addtimer(TRAIT_CALLBACK_REMOVE(src, TRAIT_NO_FLOATING_ANIM, UPDATE_TRANSFORM_TRAIT), 0.3 SECONDS, TIMER_UNIQUE|TIMER_OVERRIDE)
 	//if true, we want to avoid any animation time, it'll tween and not rotate at all otherwise.
 	var/is_opposite_angle = REVERSE_ANGLE(lying_angle) == lying_prev
-	var/animate_time = is_opposite_angle ? 0 : UPDATE_TRANSFORM_ANIMATION_TIME
+	// META EDIT - CHANGE - START - PREVIEW_TRANSFORM_RESET
+	// The character-setup preview dummy calls this multiple times per second while the player
+	// edits prefs (see update_body()/apply_prefs_to()), and a synchronous appearance snapshot is
+	// taken right after via body.appearance for the preview canvas overlay. A mid-flight/interrupted
+	// tween there reads back as a warped ("molten") preview even though the underlying math is
+	// correct, so dummies always snap to their final transform instantly.
+	// ORIGINAL: var/animate_time = is_opposite_angle ? 0 : UPDATE_TRANSFORM_ANIMATION_TIME
+	var/animate_time = (is_opposite_angle || isdummy(src)) ? 0 : UPDATE_TRANSFORM_ANIMATION_TIME
+	// META EDIT - CHANGE - END
 	animate(src, transform = ntransform, time = animate_time, dir = final_dir, easing = SINE_EASING)
 	for (var/hud_key in hud_list)
 		var/image/hud_image = hud_list[hud_key]
