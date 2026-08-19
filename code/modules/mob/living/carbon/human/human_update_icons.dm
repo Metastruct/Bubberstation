@@ -1195,7 +1195,15 @@ mutant_styles: The mutant style - taur bodytype, STYLE_TESHARI, etc. // SKYRAT E
 /**
  * Applies a filter to an appearance according to mob height
  */
-/mob/living/carbon/human/proc/apply_height_filters(image/appearance)
+// META EDIT - CHANGE - START - DUMMY_HEIGHT_FILTER_PROPAGATION
+// ORIGINAL: /mob/living/carbon/human/proc/apply_height_filters(image/appearance)
+// only_apply_in_prefs threads through the recursive self-call below so the dummy override's gate
+// (see dummy.dm) stays open for the whole recursion once its single consolidated pass starts.
+// Without this, the dynamically-dispatched recursive calls land back on the override with the
+// param defaulted FALSE and silently no-op, leaving worn/hair overlays unfiltered while the base
+// body gets stretched, producing a squished-looking preview.
+/mob/living/carbon/human/proc/apply_height_filters(image/appearance, only_apply_in_prefs = FALSE)
+// META EDIT - CHANGE - END
 	var/static/icon/cut_torso_mask = icon('icons/effects/cut.dmi', "Cut1")
 	var/static/icon/cut_legs_mask = icon('icons/effects/cut.dmi', "Cut2")
 	var/static/icon/lenghten_torso_mask = icon('icons/effects/cut.dmi', "Cut3")
@@ -1325,7 +1333,10 @@ mutant_styles: The mutant style - taur bodytype, STYLE_TESHARI, etc. // SKYRAT E
 	// Otherwise overlays, such as worn overlays on icons, won't have the filter "applied", and the effect kinda breaks
 	if(!(appearance.appearance_flags & KEEP_TOGETHER))
 		for(var/image/overlay in list() + appearance.underlays + appearance.overlays)
-			apply_height_filters(overlay)
+			// META EDIT - CHANGE - START - DUMMY_HEIGHT_FILTER_PROPAGATION
+			// ORIGINAL: apply_height_filters(overlay)
+			apply_height_filters(overlay, only_apply_in_prefs)
+			// META EDIT - CHANGE - END
 
 	return appearance
 #undef RESOLVE_ICON_STATE
