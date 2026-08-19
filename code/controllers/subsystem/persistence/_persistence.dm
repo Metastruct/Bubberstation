@@ -40,12 +40,6 @@ SUBSYSTEM_DEF(persistence)
 	/// Will be null'd once the persistence system initializes, and never read from again.
 	var/list/obj/item/storage/photo_album/queued_photo_albums
 
-	// META EDIT - ADDITION - START - SLIDING_PUZZLE_ARCADE
-	/// A json_database linking to data/puzzle_photo_library.json.
-	/// Schema is a flat array of photo ids submitted by players via the sliding puzzle arcade game.
-	var/datum/json_database/puzzle_photo_library
-	// META EDIT - ADDITION - END
-
 	/// A json_database to data/piggy banks.json
 	/// Schema is persistence_id => array of coins, space cash and holochips.
 	var/datum/json_database/piggy_banks_database

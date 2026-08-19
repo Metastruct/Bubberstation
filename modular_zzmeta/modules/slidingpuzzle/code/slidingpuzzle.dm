@@ -280,16 +280,11 @@
 		pending_height = clamp(new_height, SLIDING_PUZZLE_MIN_SIZE, SLIDING_PUZZLE_MAX_SIZE)
 	return TRUE
 
-/// Loads a photo to use for every new game from now on, until eject_photo() is called. source_picture is optional
-/// (a bare icon with no backing picture, e.g. a painting scan, still works, it just can't be added to the library).
+/// Loads a photo to use for every new game from now on, until eject_photo() is called.
 /datum/slidingpuzzle/proc/load_photo(icon/new_icon, datum/picture/source_picture, new_label)
 	loaded_icon = new_icon
 	loaded_picture = source_picture
 	loaded_source_label = new_label
-	if(istype(source_picture) && source_picture.id && SSpersistence.puzzle_photo_library)
-		var/list/library = SSpersistence.puzzle_photo_library.get()
-		if(!(source_picture.id in library))
-			SSpersistence.puzzle_photo_library.insert(source_picture.id)
 
 /// Clears the loaded photo (future games fall back to the library/default again) and returns the picture that was
 /// loaded, if any, so the caller can hand it back to the player.
@@ -313,14 +308,10 @@
 		source_icon = loaded_icon
 		current_source_label = loaded_source_label
 	else
-		if(SSpersistence.puzzle_photo_library)
-			var/list/library = SSpersistence.puzzle_photo_library.get()
-			if(length(library))
-				var/picked_id = pick(library)
-				var/datum/picture/library_pic = load_picture_from_disk(picked_id)
-				if(istype(library_pic))
-					source_icon = library_pic.picture_image
-					current_source_label = "a library photo"
+		if(length(SSpersistent_paintings.paintings))
+			var/datum/painting/chosen_painting = pick(SSpersistent_paintings.paintings)
+			source_icon = chosen_painting.get_icon()
+			current_source_label = chosen_painting.title || "an untitled painting"
 		if(!source_icon)
 			source_icon = icon('modular_zzmeta/modules/slidingpuzzle/icons/default.png')
 			current_source_label = "the default image"
@@ -330,8 +321,22 @@
 
 /datum/slidingpuzzle/proc/generate_board(icon/source_icon)
 	var/tile_count = width * height
+	var/target_width = width * SLIDING_PUZZLE_TILE_PX
+	var/target_height = height * SLIDING_PUZZLE_TILE_PX
+
+	// Scale to cover the target area (preserving aspect ratio, so non-square photos/paintings don't get
+	// stretched), then center-crop the overflow off whichever axis ran long.
 	var/icon/scaled = new(source_icon)
-	scaled.Scale(width * SLIDING_PUZZLE_TILE_PX, height * SLIDING_PUZZLE_TILE_PX)
+	var/src_width = scaled.Width()
+	var/src_height = scaled.Height()
+	var/cover_scale = max(target_width / src_width, target_height / src_height)
+	var/scaled_width = round(src_width * cover_scale)
+	var/scaled_height = round(src_height * cover_scale)
+	scaled.Scale(scaled_width, scaled_height)
+
+	var/crop_x1 = round((scaled_width - target_width) / 2) + 1
+	var/crop_y1 = round((scaled_height - target_height) / 2) + 1
+	scaled.Crop(crop_x1, crop_y1, crop_x1 + target_width - 1, crop_y1 + target_height - 1)
 
 	tile_images = list()
 	for(var/id in 1 to tile_count - 1)
