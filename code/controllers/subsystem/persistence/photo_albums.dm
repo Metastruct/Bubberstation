@@ -14,6 +14,9 @@
 ///Loads photo albums, and populates them; also loads and applies frames to picture frames.
 /datum/controller/subsystem/persistence/proc/load_photo_persistence()
 	photo_albums_database = new("data/photo_albums.json")
+	// META EDIT - ADDITION - START - SLIDING_PUZZLE_ARCADE
+	puzzle_photo_library = new("data/puzzle_photo_library.json")
+	// META EDIT - ADDITION - END
 	for (var/obj/item/storage/photo_album/album as anything in queued_photo_albums)
 		if (isnull(album.persistence_id))
 			continue
