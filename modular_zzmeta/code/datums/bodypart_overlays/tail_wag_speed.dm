@@ -188,3 +188,17 @@ GLOBAL_LIST_EMPTY(tail_wag_frame_count_cache)
 	tail.set_wag_speed(wag_percent / 100)
 	tail.set_wag_mood_scaling(mood_scaling)
 	to_chat(src, span_notice("You adjust your tail's wagging speed to [wag_percent]% of normal[mood_scaling ? ", scaled further by your mood" : " (mood ignored)"]."))
+
+/// Shortcut emote: *fwag always wags at the fastest speed the wag speed verb allows, with mood ignored,
+/// instead of whatever the player last configured. Toggling, messages, and requiring a WAG_ABLE tail are
+/// all inherited unchanged from the base wag emote.
+/datum/emote/living/carbon/human/wag/fast_wag
+	key = "fwag"
+	key_third_person = "fwags"
+	message = "their tail faster."
+
+/datum/emote/living/carbon/human/wag/fast_wag/run_emote(mob/user, params, type_override, intentional)
+	var/obj/item/organ/tail/tail = user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL) //verified to exist by can_run_emote()
+	tail.set_wag_speed(4) // matches the 400% cap on the "Set Tail Wag Speed" verb
+	tail.set_wag_mood_scaling(FALSE)
+	return ..()
