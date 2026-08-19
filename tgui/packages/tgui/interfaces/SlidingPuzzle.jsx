@@ -71,6 +71,7 @@ export const SlidingPuzzleContent = (props, context) => {
     source_label,
     is_cabinet,
     has_photo_loaded,
+    hints_revealed,
     available_photos = [],
   } = data;
   const blankId = width * height;
@@ -101,45 +102,79 @@ export const SlidingPuzzleContent = (props, context) => {
       </Stack.Item>
       <Stack.Item grow>
         <Section fill scrollable scrollableHorizontal textAlign="center">
-          {game_status === 1 && (
-            <Box color="good" bold mb={1}>
-              Solved! The picture is complete.
-            </Box>
-          )}
           {started ? (
-            <Box
-              inline
-              style={{
-                display: 'inline-grid',
-                'grid-template-columns': `repeat(${width}, ${TILE_PX}px)`,
-                'grid-template-rows': `repeat(${height}, ${TILE_PX}px)`,
-                gap: '2px',
-              }}
-            >
-              {board.map((tileId, index) => {
-                if (tileId === blankId) {
+            <Box style={{ position: 'relative' }}>
+              {game_status === 1 && (
+                <Box
+                  color="good"
+                  bold
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 1,
+                    background: 'rgba(0, 0, 0, 0.65)',
+                  }}
+                >
+                  Solved! The picture is complete.
+                </Box>
+              )}
+              <Box
+                inline
+                style={{
+                  display: 'inline-grid',
+                  gridTemplateColumns: `repeat(${width}, ${TILE_PX}px)`,
+                  gridTemplateRows: `repeat(${height}, ${TILE_PX}px)`,
+                  gap: '2px',
+                }}
+              >
+                {board.map((tileId, index) => {
+                  if (tileId === blankId) {
+                    return (
+                      <Box
+                        key={index}
+                        width={`${TILE_PX}px`}
+                        height={`${TILE_PX}px`}
+                      />
+                    );
+                  }
                   return (
                     <Box
                       key={index}
-                      width={`${TILE_PX}px`}
-                      height={`${TILE_PX}px`}
-                    />
+                      lineHeight={0}
+                      style={{ position: 'relative' }}
+                      onClick={() => act('PRG_move', { index: index + 1 })}
+                    >
+                      <img
+                        src={`data:image/png;base64,${tile_images[tileId]}`}
+                        width={TILE_PX}
+                        height={TILE_PX}
+                      />
+                      {!!hints_revealed && game_status === 0 && (
+                        <Box
+                          bold
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: `${TILE_PX}px`,
+                            height: `${TILE_PX}px`,
+                            lineHeight: `${TILE_PX}px`,
+                            textAlign: 'center',
+                            fontSize: '20px',
+                            color: 'rgba(255, 255, 255, 0.55)',
+                            textShadow: '0 0 3px rgba(0, 0, 0, 0.9)',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          {tileId}
+                        </Box>
+                      )}
+                    </Box>
                   );
-                }
-                return (
-                  <Box
-                    key={index}
-                    lineHeight={0}
-                    onClick={() => act('PRG_move', { index: index + 1 })}
-                  >
-                    <img
-                      src={`data:image/png;base64,${tile_images[tileId]}`}
-                      width={TILE_PX}
-                      height={TILE_PX}
-                    />
-                  </Box>
-                );
-              })}
+                })}
+              </Box>
             </Box>
           ) : (
             <Box color="label" mt={4}>
@@ -167,7 +202,7 @@ export const SlidingPuzzleContent = (props, context) => {
               )}
             </Box>
           )}
-          {is_cabinet && (
+          {!!is_cabinet && (
             <Box mb={1} color="label">
               {has_photo_loaded
                 ? 'Photo loaded. Eject it to get it back.'
@@ -211,7 +246,17 @@ export const SlidingPuzzleContent = (props, context) => {
               disabled={!has_photo_loaded}
               onClick={() => act('PRG_eject_photo')}
             />
-            {is_cabinet && (
+            {started && (
+              <Button
+                content={
+                  hints_revealed ? 'Hints Revealed' : 'Hint (halves tickets)'
+                }
+                color="average"
+                disabled={hints_revealed}
+                onClick={() => act('PRG_reveal_hints')}
+              />
+            )}
+            {!!is_cabinet && (
               <Button
                 content="Claim Tickets"
                 color="green"
