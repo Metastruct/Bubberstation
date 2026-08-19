@@ -70,11 +70,6 @@
 	data["is_cabinet"] = TRUE
 	return data
 
-/obj/machinery/computer/arcade/slidingpuzzle/ui_static_data(mob/user)
-	var/list/data = list()
-	data["tile_images"] = board.tile_images
-	return data
-
 /obj/machinery/computer/arcade/slidingpuzzle/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	if(..())
 		return TRUE
@@ -85,7 +80,7 @@
 		if("PRG_new_game")
 			if(board.start_new_game())
 				board.play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
-				ui.send_full_update(force = TRUE, always_instant = TRUE)
+				SStgui.update_uis(src)
 			return TRUE
 
 		if("PRG_set_size")
@@ -100,6 +95,9 @@
 			else
 				to_chat(user, span_notice("There's no photo loaded."))
 			return TRUE
+
+		if("PRG_reveal_hints")
+			return board.reveal_hints()
 
 		if("PRG_move")
 			return board.try_move(params["index"], user)
@@ -154,11 +152,6 @@
 
 	return data
 
-/datum/computer_file/program/slidingpuzzle/ui_static_data(mob/user)
-	var/list/data = list()
-	data["tile_images"] = board.tile_images
-	return data
-
 /datum/computer_file/program/slidingpuzzle/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	if(..())
 		return TRUE
@@ -175,7 +168,7 @@
 		if("PRG_new_game")
 			if(board.start_new_game())
 				board.play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
-				ui.send_full_update(force = TRUE, always_instant = TRUE)
+				SStgui.update_uis(src)
 			return TRUE
 
 		if("PRG_set_size")
@@ -184,6 +177,9 @@
 		if("PRG_eject_photo")
 			board.eject_photo()
 			return TRUE
+
+		if("PRG_reveal_hints")
+			return board.reveal_hints()
 
 		if("PRG_move")
 			return board.try_move(params["index"], user)
@@ -234,6 +230,8 @@
 	var/starting_time = 0
 	var/time_frozen = 0
 	var/ticket_count = 0
+	/// Sticky for the current game once set. Halves this round's ticket reward, reset on the next new game.
+	var/hints_revealed = FALSE
 
 	/// Set by a host (photo inserted / photo picked) and stays loaded across games until eject_photo() is called.
 	var/icon/loaded_icon
@@ -256,6 +254,9 @@
 
 /datum/slidingpuzzle/proc/fill_ui_data(list/data)
 	data["board"] = board
+	// Sent as regular (not static) data so it can never go stale across reconnects, window pooling,
+	// or multiple simultaneous viewers, all of which only reliably get dynamic data pushed to them.
+	data["tile_images"] = tile_images
 	data["width"] = width
 	data["height"] = height
 	data["pending_width"] = pending_width
@@ -267,6 +268,7 @@
 	data["tickets"] = ticket_count
 	data["source_label"] = loaded_source_label || current_source_label
 	data["has_photo_loaded"] = !isnull(loaded_icon)
+	data["hints_revealed"] = hints_revealed
 	var/display_time = (time_frozen ? time_frozen : REALTIMEOFDAY - starting_time) / 10
 	data["time_string"] = starting_time ? "[add_leading(num2text(FLOOR(display_time / 60, 1)), 2, "0")]:[add_leading(num2text(display_time % 60), 2, "0")]" : "00:00"
 	return data
@@ -370,9 +372,15 @@
 	board = order
 	blank_pos = board.Find(tile_count)
 	move_count = 0
-	starting_time = REALTIMEOFDAY
+	starting_time = 0 // Set on the first move instead, see try_move().
 	time_frozen = 0
+	hints_revealed = FALSE
 	game_status = SLIDINGPUZZLE_CONTINUE
+
+/// Sticky for the rest of this game. Halves the ticket reward on win, see try_move().
+/datum/slidingpuzzle/proc/reveal_hints()
+	hints_revealed = TRUE
+	return TRUE
 
 /// Standard 15-puzzle solvability check, generalized to any width/height.
 /datum/slidingpuzzle/proc/is_solvable(list/order)
@@ -422,6 +430,9 @@
 	if(!is_adjacent(index, blank_pos))
 		return FALSE
 
+	if(!starting_time)
+		starting_time = REALTIMEOFDAY
+
 	var/temp = board[index]
 	board[index] = board[blank_pos]
 	board[blank_pos] = temp
@@ -433,6 +444,8 @@
 		game_status = SLIDINGPUZZLE_VICTORY
 		time_frozen = REALTIMEOFDAY - starting_time
 		var/reward = max(1, round((width * height) / 4))
+		if(hints_revealed)
+			reward = max(1, round(reward / 2))
 		ticket_count += reward
 		play_snd('modular_zubbers/sound/arcade/minesweeper_win.ogg')
 		vis_msg(span_notice("[host] chimes triumphantly as the picture completes!"), span_notice("You hear a triumphant chime."))
