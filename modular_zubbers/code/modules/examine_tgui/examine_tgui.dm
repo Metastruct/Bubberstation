@@ -139,7 +139,11 @@
 
 	if(ishuman(holder))
 		var/mob/living/carbon/human/holder_human = holder
-		obscured = (holder_human.covered_slots & HIDEFACE) && obscurity_examine_pref
+		// META EDIT - CHANGE - START - EXAMINE_PANEL_UNKNOWN_APPEARANCE
+		// ORIGINAL: obscured = (holder_human.covered_slots & HIDEFACE) && obscurity_examine_pref
+		// Also treat identity-hiding disguises (e.g. the potted plant tactical component) as obscured, not just physical face coverings
+		obscured = ((holder_human.covered_slots & HIDEFACE) && obscurity_examine_pref) || HAS_TRAIT(holder_human, TRAIT_UNKNOWN_APPEARANCE)
+		// META EDIT - CHANGE - END
 
 		//Check if the mob is obscured, then continue to headshot and species lore
 		ooc_notes += holder_human.dna?.features["ooc_notes"]

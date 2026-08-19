@@ -38,7 +38,11 @@
 		return null
 
 	var/obscurity_examine_pref = client?.prefs?.read_preference(/datum/preference/toggle/obscurity_examine)
-	var/face_obscured = (covered_slots & HIDEFACE) && obscurity_examine_pref
+	// META EDIT - CHANGE - START - EXAMINE_HEADSHOT_UNKNOWN_APPEARANCE
+	// ORIGINAL: var/face_obscured = (covered_slots & HIDEFACE) && obscurity_examine_pref
+	// Also treat identity-hiding disguises (e.g. the potted plant tactical component) as obscured, not just physical face coverings
+	var/face_obscured = ((covered_slots & HIDEFACE) && obscurity_examine_pref) || HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE)
+	// META EDIT - CHANGE - END
 	if(face_obscured && !isobserver(user))
 		return null
 
