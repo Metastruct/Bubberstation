@@ -49,8 +49,10 @@
 		to_chat(user, span_notice("[src] consumes [inserted_photo]! Press Eject Photo to get it back."))
 		balloon_alert(user, "photo loaded")
 		qdel(inserted_photo)
+		// No in-character author name is tracked on /datum/picture (only the OOC author_ckey, used rarely
+		// for computer-edited photos), so photos don't get a "by X" suffix the way paintings do below.
 		var/photo_label = (pic.picture_name && pic.picture_name != initial(pic.picture_name)) ? pic.picture_name : "the inserted photo"
-		board.load_photo(pic.picture_image, pic, photo_label)
+		board.load_photo(pic.picture_image, pic, photo_label, null)
 		SStgui.update_uis(src)
 		return ITEM_INTERACT_SUCCESS
 	return NONE
@@ -199,6 +201,7 @@
 			var/datum/computer_file/image/chosen = images[picked_index]
 			var/datum/picture/source_picture = istype(chosen.source_photo_or_painting, /datum/picture) ? chosen.source_photo_or_painting : null
 			var/photo_label = "[chosen.image_name || chosen.filename]"
+			var/photo_author
 			if(source_picture)
 				source_picture.log_to_file()
 				if(source_picture.picture_name && source_picture.picture_name != initial(source_picture.picture_name))
@@ -207,7 +210,8 @@
 				var/datum/painting/source_painting = chosen.source_photo_or_painting
 				if(source_painting.title)
 					photo_label = source_painting.title
-			board.load_photo(chosen.stored_icon, source_picture, photo_label)
+					photo_author = source_painting.creator_name
+			board.load_photo(chosen.stored_icon, source_picture, photo_label, photo_author)
 			return TRUE
 
 /datum/slidingpuzzle
@@ -236,9 +240,12 @@
 	/// Set by a host (photo inserted / photo picked) and stays loaded across games until eject_photo() is called.
 	var/icon/loaded_icon
 	var/datum/picture/loaded_picture
-	var/loaded_source_label
+	var/loaded_source_title
+	/// Nullable. Kept separate from the title so the client can truncate the title without ever hiding the author.
+	var/loaded_source_author
 	/// What the CURRENT board was actually generated from, for display when nothing is loaded (a library/default pick).
-	var/current_source_label = "no photo yet"
+	var/current_source_title = "no photo yet"
+	var/current_source_author
 
 	COOLDOWN_DECLARE(new_game_cd)
 
@@ -266,7 +273,8 @@
 	data["game_status"] = game_status
 	data["move_count"] = move_count
 	data["tickets"] = ticket_count
-	data["source_label"] = loaded_source_label || current_source_label
+	data["source_title"] = loaded_source_title || current_source_title
+	data["source_author"] = loaded_icon ? loaded_source_author : current_source_author
 	data["has_photo_loaded"] = !isnull(loaded_icon)
 	data["hints_revealed"] = hints_revealed
 	var/display_time = (time_frozen ? time_frozen : REALTIMEOFDAY - starting_time) / 10
@@ -282,11 +290,13 @@
 		pending_height = clamp(new_height, SLIDING_PUZZLE_MIN_SIZE, SLIDING_PUZZLE_MAX_SIZE)
 	return TRUE
 
-/// Loads a photo to use for every new game from now on, until eject_photo() is called.
-/datum/slidingpuzzle/proc/load_photo(icon/new_icon, datum/picture/source_picture, new_label)
+/// Loads a photo to use for every new game from now on, until eject_photo() is called. new_author is
+/// nullable (most photos have no in-character author on record).
+/datum/slidingpuzzle/proc/load_photo(icon/new_icon, datum/picture/source_picture, new_title, new_author)
 	loaded_icon = new_icon
 	loaded_picture = source_picture
-	loaded_source_label = new_label
+	loaded_source_title = new_title
+	loaded_source_author = new_author
 
 /// Clears the loaded photo (future games fall back to the library/default again) and returns the picture that was
 /// loaded, if any, so the caller can hand it back to the player.
@@ -294,7 +304,8 @@
 	. = loaded_picture
 	loaded_icon = null
 	loaded_picture = null
-	loaded_source_label = null
+	loaded_source_title = null
+	loaded_source_author = null
 
 /datum/slidingpuzzle/proc/start_new_game()
 	if(!COOLDOWN_FINISHED(src, new_game_cd))
@@ -305,18 +316,19 @@
 	height = pending_height
 
 	var/icon/source_icon
+	current_source_author = null
 
 	if(loaded_icon)
 		source_icon = loaded_icon
-		current_source_label = loaded_source_label
 	else
 		if(length(SSpersistent_paintings.paintings))
 			var/datum/painting/chosen_painting = pick(SSpersistent_paintings.paintings)
 			source_icon = chosen_painting.get_icon()
-			current_source_label = chosen_painting.title || "an untitled painting"
+			current_source_title = chosen_painting.title || "an untitled painting"
+			current_source_author = chosen_painting.creator_name
 		if(!source_icon)
 			source_icon = icon('modular_zzmeta/modules/slidingpuzzle/icons/default.png')
-			current_source_label = "the default image"
+			current_source_title = "the default image"
 
 	generate_board(source_icon)
 	return TRUE

@@ -20,14 +20,27 @@ const MAX_WIDTH = 700;
 const MIN_HEIGHT = 385;
 const MAX_HEIGHT = 755;
 
-// Photo names cap at 32 chars, painting titles at MAX_NAME_LEN (42) server-side, either of which
-// can wrap the single-line header/button rows at the window's minimum width. Truncate defensively
-// instead of trusting font-metric math again.
-const MAX_LABEL_LEN = 24;
-const truncateLabel = (label) =>
-  label && label.length > MAX_LABEL_LEN
-    ? `${label.slice(0, MAX_LABEL_LEN - 1)}…`
-    : label;
+// Photo names cap at 32 chars, painting titles at MAX_NAME_LEN (42) server-side, and a painting's
+// "Title by Author" label can combine two of those, either of which can wrap a single-line row at
+// the window's minimum width. Truncate defensively instead of trusting font-metric math again.
+// The header's Photo line has its own dedicated row now, so it can afford more room than the
+// PDA's photo-picker buttons, which sit side by side.
+const HEADER_LABEL_LEN = 40;
+const BUTTON_LABEL_LEN = 24;
+const MAX_AUTHOR_LEN = 24;
+const truncateLabel = (label, maxLen = BUTTON_LABEL_LEN) =>
+  label && label.length > maxLen ? `${label.slice(0, maxLen - 1)}…` : label;
+
+// Truncates the title to make room for the author, rather than truncating the combined
+// string blindly, so a long title can never crowd the author name out entirely.
+const formatSourceLabel = (title, author) => {
+  if (!author) {
+    return truncateLabel(title, HEADER_LABEL_LEN);
+  }
+  const suffix = ` by ${truncateLabel(author, MAX_AUTHOR_LEN)}`;
+  const titleBudget = Math.max(6, HEADER_LABEL_LEN - suffix.length);
+  return `${truncateLabel(title, titleBudget)}${suffix}`;
+};
 
 export const SlidingPuzzle = (props, context) => {
   const { data } = useBackend(context);
@@ -68,7 +81,8 @@ export const SlidingPuzzleContent = (props, context) => {
     move_count,
     tickets,
     time_string,
-    source_label,
+    source_title,
+    source_author,
     is_cabinet,
     has_photo_loaded,
     hints_revealed,
@@ -83,7 +97,7 @@ export const SlidingPuzzleContent = (props, context) => {
         <Section title="Sliding Puzzle" textAlign="center">
           <Box>
             <b>Photo: </b>
-            {truncateLabel(source_label)}
+            {formatSourceLabel(source_title, source_author)}
           </Box>
           <Box>
             {started && (
