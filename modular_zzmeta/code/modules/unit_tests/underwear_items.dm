@@ -83,7 +83,7 @@
 
 	if(is_underwear)
 		var/datum/sprite_accessory/clothing/underwear/underwear_type = accessory_type
-		if(initial(underwear_type.digi_icon_state))
+		if(initial(underwear_type.has_digitigrade) || initial(underwear_type.digi_icon_state))
 			lines += "\thas_digitigrade = TRUE"
 		if(initial(underwear_type.hides_breasts))
 			lines += "\tbody_parts_covered = GROIN | CHEST"

@@ -9,6 +9,7 @@
 	name = "Briefs"
 	icon_state = "male_briefs"
 	gender = MALE
+	has_digitigrade = TRUE
 
 /obj/item/clothing/underwear/underwear/male_boxers
 	name = "Boxers"
@@ -77,6 +78,7 @@
 	icon_state = "bee_shorts"
 	gender = MALE
 	use_static = TRUE
+	has_digitigrade = TRUE
 
 /obj/item/clothing/underwear/underwear/panties_basic
 	name = "Panties - Basic"
@@ -204,6 +206,7 @@
 	name = "Boyshorts"
 	icon_state = "boyshorts"
 	gender = FEMALE
+	has_digitigrade = TRUE
 
 /obj/item/clothing/underwear/underwear/boyshorts_alt
 	name = "Boyshorts (Alt)"
