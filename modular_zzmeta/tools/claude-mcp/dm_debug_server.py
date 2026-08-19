@@ -1,7 +1,14 @@
 """
-MCP server exposing a single tool, dm_debug_query, that runs a debug query
-against a live, already-running DreamDaemon instance over world.Topic(),
-using the claude_debug topic handler (see code/datums/world_topic.dm).
+MCP server for debugging a live, already-running DreamDaemon instance over
+world.Topic(), using the claude_debug topic handler (see
+code/datums/world_topic.dm and modular_zzmeta/modules/claude_debug/code/).
+
+dm_debug_query runs raw SDQL2 (the in-game admin query language) for
+freeform exploration. dm_debug_find/get_var/set_var/call_proc are a newer,
+narrower set that bypass SDQL2's parser entirely for the common
+find-an-object/read-a-var/write-a-var/call-a-proc case, backed by real
+handles instead of SDQL2's fragile ref-literal syntax - prefer these for
+anything that isn't genuinely a freeform WHERE-filtered search.
 
 Connection details come from environment variables, not tool arguments, so
 the server's secret key never has to pass through the model's context:
@@ -18,12 +25,14 @@ import base64
 import glob
 import json
 import os
+import re
 import shutil
 import signal
 import socket
 import struct
 import subprocess
 import time
+import urllib.parse
 import urllib.request
 
 import websockets
@@ -70,6 +79,18 @@ mcp = MCPServer("dm-debug")
 
 class TopicError(RuntimeError):
     pass
+
+
+# Matches a bracket/brace whose entire content is a single bareword ending in digits, e.g.
+# "[mob_2990]" or "{mob_2990}" - the exact shape of a REF()-printed DF_USE_TAG label (see
+# code/__HELPERS/ref.dm) copy-pasted from a prior SELECT's href output. In SDQL, [...] is
+# always a list literal (never a ref) and {...} wants a hex number specifically (see
+# SDQL_2_parser.dm's own grammar comment), so either form here builds/parses to something
+# other than the object the caller meant - confirmed live to corrupt CALL state for the rest
+# of the session when the malformed value reached a proc expecting a real object. Deliberately
+# doesn't match legitimate list literals with more than one element ("[name, self.owner]") or
+# a bracketed var name with no trailing digits ("[current_wag_frame]").
+_REF_LOOKALIKE_RE = re.compile(r"[\[{]\s*[A-Za-z][A-Za-z0-9]*_[0-9]+\s*[\]}]")
 
 
 def _send_topic(host: str, port: int, topic: str, timeout: float) -> str:
@@ -146,9 +167,39 @@ def dm_debug_query(query: str) -> str:
     - WHERE compares scalar fields reliably (name, type, numeric/text vars,
       including dotted paths like `self.name == "..."`). Comparing a var to
       a bracketed ref literal in WHERE (e.g. `WHERE self == [mob_123]`) does
-      NOT reliably match - go through a scalar field instead. Ref literals
-      passed as CALL *arguments* (e.g. `CALL foo([mob_123]) ON ...`) work
-      fine; it's specifically WHERE-clause ref-equality that's flaky.
+      NOT reliably match - go through a scalar field instead.
+    - CORRECTION, confirmed live and cost a real corrupted-CALL-state
+      incident: `[thing]` square brackets are ALWAYS SDQL's list-literal
+      syntax (`MAP [name, self.owner]` builds a 2-element list; a bare
+      `[mob_123]` builds a 1-element list containing whatever bareword
+      "mob_123" evaluates to, almost always null) - it is NEVER a ref
+      literal, as an argument or anywhere else. The real ref-literal syntax
+      is `{0x...}` (curly braces, a hex number only per the grammar) - but
+      most mobs/atoms in this codebase have `DF_USE_TAG` set, so `REF()`
+      prints a friendly tag like `mob_2990` instead of raw hex in SELECT
+      output, and that tag is NOT valid inside `{...}` either (parser wants
+      a hex number specifically). Net effect: there is currently no reliable
+      way to construct a ref literal for a DF_USE_TAG'd object from SELECT
+      output. Don't try - `CALL foo([mob_123]) ON ...` will silently build a
+      list and hand it to `foo()` instead of the mob, which can throw inside
+      the target proc and poison every CALL for the rest of the session (see
+      the parse-error note below - a thrown runtime error does the same
+      thing, not just parse errors). Instead, reach the target by chaining
+      from something already selectable: `SELECT /mob/... WHERE ckey == "..."
+      MAP get_organ_slot("tail")` (confirmed live) walks "current object" to
+      that proc's return value, so the rest of the query (a further MAP, or
+      wrapping in `[...]` for display) operates on the real object with zero
+      ref-literal needed. This composes: `MAP get_organ_slot("tail") MAP
+      bodypart_overlay MAP [some_var]` chains three hops deep reliably.
+    - A proc call used as a WHOLE MAP step (`MAP get_organ_slot("tail")`)
+      reliably invokes it and changes "current object" to the return value -
+      confirmed live. The SAME call embedded *inside* a bracketed display
+      list (`MAP [icon_exists(a, b)]`) does NOT reliably evaluate - it came
+      back `NULL` in testing even though the bare-MAP-step form works fine.
+      If you need a proc's return value for display, give it its own MAP
+      step first, then wrap just the resulting scalar in `[...]` afterward
+      (`MAP some_proc(...) MAP [self]`), rather than nesting the call inside
+      a list literal.
     - Components are selectable/callable too, not just atoms - e.g.
       `SELECT /datum/component/interactable WHERE self.name == "..."` or
       `CALL some_proc(...) ON /datum/component/some_type WHERE ...` reaches
@@ -175,16 +226,21 @@ def dm_debug_query(query: str) -> str:
       a file added earlier the same session - "it compiled with 0 errors
       before" does not guarantee every intended #include line is still
       present (see the missing-#include write-up in project memory).
-    - If a query ever returns a "Parse error", treat every CALL for the rest
-      of that boot's session with suspicion afterward. Confirmed live: after
-      one such parse error, subsequent CALLs silently resolved their proc
-      name to null server-side (visible in the boot log as
-      "SDQL function blocking(<obj>, null, ...)") regardless of what proc
-      was actually requested, with no error surfaced back through
-      dm_debug_query itself - the call just quietly did nothing. Not
-      root-caused. The reliable fix is booting a fresh disposable instance
-      (dm_debug_stop_server + dm_debug_boot_server) rather than continuing
-      to debug CALL behavior on a connection that already hit a parse error.
+    - If a query ever returns a "Parse error", OR a CALL throws a runtime
+      error inside the proc it invoked (e.g. from a bad argument - check the
+      server's runtime.log, dm_debug_query itself won't surface it), treat
+      every CALL for the rest of that session with suspicion afterward.
+      Confirmed live BOTH ways: after either kind of failure, subsequent
+      CALLs silently resolved their proc name to null server-side (visible
+      in runtime.log as "SDQL function blocking(<obj>, null, ...)")
+      regardless of what proc was actually requested, with no error
+      surfaced back through dm_debug_query - the call just quietly did
+      nothing. Not root-caused. UPDATE/SELECT keep working fine on the same
+      connection even after this - it's specifically CALL that's affected.
+      The reliable fix is a fresh server process: dm_debug_stop_server +
+      dm_debug_boot_server for a disposable instance, or ask the user to
+      restart if you're on their own dev server - don't keep debugging CALL
+      behavior on a connection that already hit either kind of failure.
     - For CALL queries specifically, the returned "count" is NOT a
       success/match indicator - it's frequently 0 even when the call matched
       objects and ran successfully (Execute() only populates the
@@ -241,6 +297,21 @@ def dm_debug_query(query: str) -> str:
         raise TopicError("DM_DEBUG_PORT is not set")
     if not KEY:
         raise TopicError("DM_DEBUG_KEY is not set")
+
+    lookalike = _REF_LOOKALIKE_RE.search(query)
+    if lookalike:
+        raise TopicError(
+            f"Query rejected before sending: {lookalike.group()!r} looks like a ref tag "
+            "(e.g. copied from a prior SELECT's href output, such as \"mob_2990\") wrapped "
+            "in brackets/braces. In SDQL, [...] is ALWAYS a list literal (never a ref) and "
+            "{...} wants a hex number specifically - neither parses to the object you mean, "
+            "and handing the result to a proc expecting a real object can throw and poison "
+            "every CALL for the rest of the session. Reach the target instead by chaining a "
+            'proc call as its own MAP step, e.g. SELECT /mob/... WHERE ckey == "..." MAP '
+            "get_organ_slot(\"tail\") - see this tool's own docstring for more. If this match "
+            "is a false positive (a real list literal that happens to look like a tag), "
+            "rephrase the query so the bracketed content isn't a single word_number token."
+        )
 
     topic = f"claude_debug=1&key={KEY}&format=json&q={query}"
     return _send_topic(HOST, int(PORT), topic, TIMEOUT)
@@ -420,6 +491,222 @@ def dm_debug_stop_server() -> str:
         shutil.rmtree(BOOT_STATE_DIR)
 
     return "Stopped and cleaned up." if killed else "Nothing was tracked as running; cleaned up any leftover state anyway."
+
+
+def _topic_param(value) -> str:
+    """Percent-encode a value for inclusion in a claude_debug Topic() string.
+
+    Unlike dm_debug_query's raw `q=` (SDQL text, which the DM side happens to
+    tolerate unencoded), these newer params routinely carry JSON payloads
+    that can contain a literal '&'/'='/'%'. Always encode so params2list()
+    (DM's URL-decoding query-string parser, see world/Topic() in
+    code/game/world.dm) reconstructs the exact original text.
+    """
+    return urllib.parse.quote(str(value), safe="")
+
+
+def _claude_debug_call(**params) -> dict:
+    """Shared transport for the bespoke (non-SDQL2) claude_debug branches:
+    find/get_var/set_var/call_proc. See
+    modular_zzmeta/modules/claude_debug/code/claude_debug.dm for the DM
+    side. Raises TopicError with the DM-side error text on failure.
+    """
+    if not PORT:
+        raise TopicError("DM_DEBUG_PORT is not set")
+    if not KEY:
+        raise TopicError("DM_DEBUG_KEY is not set")
+    parts = ["claude_debug=1", f"key={KEY}", "format=json"]
+    for name, value in params.items():
+        if value is None:
+            continue
+        parts.append(f"{name}={_topic_param(value)}")
+    raw = _send_topic(HOST, int(PORT), "&".join(parts), TIMEOUT)
+    parsed = json.loads(raw)
+    if "error" in parsed:
+        raise TopicError(parsed["error"])
+    return parsed
+
+
+@mcp.tool()
+def dm_debug_find(type_path: str, where: str = "", limit: int = 25) -> str:
+    """Find live objects by type (+ optional SDQL WHERE filter) and get back
+    real handles you can pass to dm_debug_get_var/dm_debug_set_var/
+    dm_debug_call_proc - no ref-literal syntax needed.
+
+    This is the SELECT-equivalent of dm_debug_query, but instead of
+    rendering results to text (where SDQL2's {0x...}/[...] ref-literal
+    syntax can't represent a DF_USE_TAG'd object you got back), it hands out
+    a short-lived handle string (e.g. "h5") per match. Reuses the exact same
+    tokenizer/WHERE-clause evaluator as dm_debug_query under the hood, so
+    the same WHERE syntax and scoping advice applies: scope the type as
+    narrowly as you can, one condition per WHERE (no &&/AND chaining - see
+    dm_debug_query's own docstring for the full list of WHERE gotchas, which
+    still apply here since `where` reuses the same parser).
+
+    `limit` caps how many matches get a handle minted and returned (default
+    25, hard cap 200) - the response's "total" field is the real match count
+    even when truncated.
+
+    Handles are held via weakref (never keep an object alive) and are
+    evicted oldest-first past ~1000 live handles in the same server
+    session, or resolve to nothing once the underlying object is deleted -
+    either way a stale handle just fails cleanly with "Handle not found or
+    object no longer exists", never a crash.
+
+    Example: dm_debug_find("/mob/living/carbon/human", 'ckey == "techbot121"')
+
+    Returns raw JSON text: {"total": N, "returned": N, "matches": [{"handle":
+    "h5", "type": "/mob/living/carbon/human", "repr": "..."}]}
+
+    Caveat, root-caused: "Test Dummy" (/mob/living/carbon/human/dummy/
+    consistent) objects can fail to resolve their handle on the very next
+    call ("Handle not found or object no longer exists") even with no
+    delay, while ordinary named NPCs resolve reliably. This is correct
+    behavior, not a bug: this type is used codebase-wide as a short-lived
+    throwaway helper for icon generation (character preview, crew manifest
+    portraits, antagonist setup previews - see
+    code/__HELPERS/dynamic_human_icon_gen.dm,
+    code/modules/antagonists/*/*.dm, code/modules/client/preferences/
+    middleware/species.dm), created via a plain `new()` and torn down again
+    moments later on its own schedule, unrelated to anything a caller does.
+    A weakref to one going stale within moments is the tool correctly
+    reporting a real deletion. If this happens, just re-run find() and use
+    the freshly minted handle - or better, find() a real named mob instead
+    if you don't specifically need to inspect one of these transient
+    objects.
+    """
+    result = _claude_debug_call(find=type_path, where=where or None, limit=limit)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def dm_debug_get_var(handle: str, var: str) -> str:
+    """Read one var off a handle returned by dm_debug_find (or nested inside
+    a prior dm_debug_get_var/dm_debug_call_proc result's "ref" value).
+
+    Returns raw JSON text: {"ok": true, "value": {"t": "...", "v": ...}}.
+    `value`'s "t" tag is one of: "null", "num", "text", "path", "ref" (a
+    fresh handle for a nested object, plus "type"/"repr" fields), or "list"
+    (a "v" array of further tagged values; assoc entries come back as
+    {"k": ..., "v": ...} pairs instead of a bare value). Lists deeper than 3
+    levels or longer than 200 items are truncated and marked
+    "truncated": true.
+    """
+    result = _claude_debug_call(get_var=handle, var=var)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def dm_debug_set_var(handle: str, var: str, value_type: str, value: str = "") -> str:
+    """Write one var on a handle returned by dm_debug_find.
+
+    `value_type` is one of "null" (`value` ignored), "num", "text", "path"
+    (a DM type path as text, e.g. "/obj/item/gun/energy"), or "ref" (a
+    handle string from a prior dm_debug_find/dm_debug_get_var/
+    dm_debug_call_proc call - pass its "handle" or "v" string). `value` is
+    the literal text/number/path-text/handle to use.
+
+    Example: dm_debug_set_var("h5", "name", "text", "test dummy")
+
+    Returns raw JSON text: {"ok": true} or raises with the DM-side error
+    text (e.g. "No such var on this object") on failure.
+    """
+    if value_type == "null":
+        encoded = {"t": "null"}
+    elif value_type == "num":
+        encoded = {"t": "num", "v": float(value)}
+    elif value_type in ("text", "path", "ref"):
+        encoded = {"t": value_type, "v": value}
+    else:
+        raise TopicError(f"Unknown value_type {value_type!r}, expected null/num/text/path/ref")
+    result = _claude_debug_call(set_var=handle, var=var, value=json.dumps(encoded))
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def dm_debug_call_proc(handle: str, proc: str, args: str = "[]") -> str:
+    """Call a named proc on a handle returned by dm_debug_find, with real
+    argument values instead of string-interpolated SDQL syntax - no
+    ref-literal ambiguity, and a thrown error inside the proc can't poison
+    anything else (this bypasses SDQL2's CALL dispatch entirely, unlike
+    dm_debug_query's `CALL ... ON ...`).
+
+    `args` is a JSON array, one element per positional arg, e.g.
+    '["some text", 5, null]'. Two special forms:
+      - {"ref": "h5"} passes the real object behind handle "h5" (from a
+        prior dm_debug_find/dm_debug_get_var/dm_debug_call_proc call).
+      - {"path": "/datum/greyscale_config/sneakers"} passes a real DM type
+        path, not the literal text of it - required whenever a proc expects
+        an actual path argument (a plain JSON string there throws inside
+        the proc instead, e.g. GetColoredIconByType()'s own ispath()
+        check).
+    Plain JSON strings/numbers/null pass through as DM text/num/null.
+
+    Example: dm_debug_call_proc("h2", "GetColoredIconByType",
+      '[{"path": "/datum/greyscale_config/sneakers"}, "#a1b2c3#d4e5f6"]')
+
+    Returns raw JSON text: {"ok": true, "result": {"t": "...", "v": ...}}
+    (same value encoding as dm_debug_get_var), or raises with the real
+    thrown DM exception text on failure, not a generic error.
+    """
+    try:
+        raw_args = json.loads(args)
+    except json.JSONDecodeError as e:
+        raise TopicError(f"args is not valid JSON: {e}")
+    if not isinstance(raw_args, list):
+        raise TopicError("args must be a JSON array")
+
+    encoded_args = []
+    for a in raw_args:
+        if isinstance(a, dict) and "ref" in a:
+            encoded_args.append({"t": "ref", "v": a["ref"]})
+        elif isinstance(a, dict) and "path" in a:
+            encoded_args.append({"t": "path", "v": a["path"]})
+        elif a is None:
+            encoded_args.append({"t": "null"})
+        elif isinstance(a, (int, float)):
+            encoded_args.append({"t": "num", "v": a})
+        elif isinstance(a, str):
+            encoded_args.append({"t": "text", "v": a})
+        else:
+            raise TopicError(f"Unsupported arg value: {a!r}")
+
+    result = _claude_debug_call(call_proc=handle, proc=proc, args=json.dumps(encoded_args))
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def dm_debug_find_log(log_name: str = "runtime") -> str:
+    """Find the newest matching DreamDaemon log file under this checkout's
+    data/logs/ tree, so you can tail it directly (e.g. `tail -f <path>` in a
+    background Bash call + the Monitor tool, for a live-updating feed of
+    server output instead of adding temporary debug prints to code and
+    recompiling/rebooting to see them).
+
+    Every DreamDaemon boot writes its own freshly timestamped/round-numbered
+    directory (data/logs/YYYY/MM/DD/round-<id>/, see SetupLogs() in
+    code/game/world.dm) with no fixed path - dm_debug_boot_server's own
+    disposable instance is the one exception (fixed at
+    data/logs/claude_debug_boot/). This searches all of data/logs/
+    recursively for `<log_name>.log` and returns whichever match was
+    modified most recently, so it works the same way whether you're
+    tailing the disposable boot tool's server or one you started yourself
+    (e.g. `tools/build/build.sh server`).
+
+    `log_name` defaults to "runtime" - the engine's own RUNTIME:/error log,
+    written natively by DreamDaemon itself (not by any code/ proc), which
+    is almost always what you want for live debugging.
+
+    Returns the file's path as plain text, or raises if nothing matches -
+    check a server is actually running and has logged anything yet.
+    """
+    pattern = os.path.join(REPO_ROOT, "data", "logs", "**", f"{log_name}.log")
+    candidates = glob.glob(pattern, recursive=True)
+    if not candidates:
+        raise TopicError(
+            f"No {log_name}.log found under data/logs/ - is a server running/has it logged anything yet?"
+        )
+    return max(candidates, key=os.path.getmtime)
 
 
 @mcp.tool()

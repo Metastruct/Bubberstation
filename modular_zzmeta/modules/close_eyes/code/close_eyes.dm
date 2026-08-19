@@ -1,5 +1,6 @@
-/// A toggleable, purely cosmetic RP status effect: shuts the eyes visually (via the same
-/// eyelid-tinting branch used for unconsciousness/death, see get_eyelid_overlays()) until removed.
+/// A toggleable RP status effect: shuts the eyes visually (via the same eyelid-tinting branch
+/// used for unconsciousness/death, see get_eyelid_overlays()) and actually blinds the owner
+/// (via the standard become_blind/cure_blind grouped-blindness mechanism) until removed.
 /datum/status_effect/eyes_closed
 	id = "eyes_closed"
 	duration = STATUS_EFFECT_PERMANENT
@@ -10,10 +11,12 @@
 /datum/status_effect/eyes_closed/on_apply()
 	. = ..()
 	ADD_TRAIT(owner, TRAIT_EYES_CLOSED, TRAIT_STATUS_EFFECT(id))
+	owner.become_blind(TRAIT_STATUS_EFFECT(id))
 	owner.update_eyes()
 
 /datum/status_effect/eyes_closed/on_remove()
 	REMOVE_TRAIT(owner, TRAIT_EYES_CLOSED, TRAIT_STATUS_EFFECT(id))
+	owner.cure_blind(TRAIT_STATUS_EFFECT(id))
 	owner.update_eyes()
 
 /mob/living/carbon/human/verb/toggle_eyes_closed()

@@ -53,6 +53,8 @@
 	. = ..()
 	if(random_color)
 		set_greyscale(colors = list(pick(umbrella_colors)))
+	// META EDIT - CHANGE - START - UMBRELLA_ICON_FIX
+	/* ORIGINAL:
 	AddComponent( \
 		/datum/component/transforming, \
 		force_on = 7, \
@@ -62,6 +64,18 @@
 		attack_verb_continuous_on = list("swooshes", "whacks", "fwumps"), \
 		attack_verb_simple_on = list("swoosh", "whack", "fwump"), \
 	)
+	*/
+	AddComponent( \
+		/datum/component/transforming, \
+		force_on = 7, \
+		hitsound_on = "sound/weapons/genhit1.ogg", \
+		w_class_on = WEIGHT_CLASS_BULKY, \
+		clumsy_check = FALSE, \
+		attack_verb_continuous_on = list("swooshes", "whacks", "fwumps"), \
+		attack_verb_simple_on = list("swoosh", "whack", "fwump"), \
+		inhand_icon_change = FALSE, \
+	)
+	// META EDIT - CHANGE - END - UMBRELLA_ICON_FIX
 	RegisterSignal(src, COMSIG_TRANSFORMING_ON_TRANSFORM, PROC_REF(on_transform))
 
 /obj/item/umbrella/worn_overlays(mutable_appearance/standing, isinhands)
@@ -78,7 +92,12 @@
 
 /obj/item/umbrella/proc/on_transform(obj/item/source, mob/user, active)
 	SIGNAL_HANDLER
+	// META EDIT - CHANGE - START - UMBRELLA_ICON_FIX
+	/* ORIGINAL:
 	inhand_icon_state = active ? on_inhand_icon_state : inhand_icon_state
+	*/
+	inhand_icon_state = active ? on_inhand_icon_state : initial(inhand_icon_state)
+	// META EDIT - CHANGE - END - UMBRELLA_ICON_FIX
 	open = active
 	if(user)
 		balloon_alert(user, active ? "opened" : "closed")
@@ -87,6 +106,10 @@
 	else
 		REMOVE_TRAIT(user, TRAIT_SHADED, REF(src))
 	playsound(src, on_sound, 50, TRUE)
+	// META EDIT - ADDITION - START - UMBRELLA_ICON_FIX
+	update_appearance()
+	update_inhand_icon()
+	// META EDIT - ADDITION - END - UMBRELLA_ICON_FIX
 	return COMPONENT_NO_DEFAULT_MESSAGE
 
 /obj/item/umbrella/pickup(mob/user)

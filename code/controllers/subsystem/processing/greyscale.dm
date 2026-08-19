@@ -80,6 +80,12 @@ PROCESSING_SUBSYSTEM_DEF(greyscale)
 	// We'll just explicitly do fcopy_rsc here, so the game doesn't have to do it again later from the cached file.
 	var/rsc_gags_icon = fcopy_rsc(file(output_path))
 	gags_cache[uid] = rsc_gags_icon
+	// META EDIT - ADDITION - START - ICON_REF_MAP_GAGS_LATE_REGEN
+	// This combo is new and won't be in icon_ref_map's boot-time snapshot.
+	// Schedule a debounced regen so tgui icon lookups pick it up instead
+	// of showing a missing-icon glyph for the rest of the round.
+	get_asset_datum(/datum/asset/json/icon_ref_map).schedule_regenerate()
+	// META EDIT - ADDITION - END - ICON_REF_MAP_GAGS_LATE_REGEN
 	return rsc_gags_icon
 #else
 	return configurations[type].Generate(colors)
