@@ -77,6 +77,8 @@
 		return TRUE
 
 	var/mob/user = ui.user
+	if(!istype(user, /mob/living))
+		return TRUE
 
 	switch(action)
 		if("PRG_new_game")
@@ -165,6 +167,8 @@
 		board.host = computer
 
 	var/mob/user = ui.user
+	if(!istype(user, /mob/living))
+		return TRUE
 
 	switch(action)
 		if("PRG_new_game")

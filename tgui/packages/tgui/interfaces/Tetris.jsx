@@ -1,5 +1,5 @@
 // THIS IS A META UI FILE
-import { Component } from 'react';
+import { Component, memo, useEffect, useRef, useState } from 'react';
 import { Box, Button, KeyListener, Section, Stack } from 'tgui-core/components';
 import { acquireHotKey, releaseHotKey } from 'tgui-core/hotkeys';
 import {
@@ -23,10 +23,17 @@ const CELL_PX = 22;
 const DAS_MS = 170;
 const ARR_MS = 45;
 const SOFT_DROP_MS = 40;
+// Caps accumulator-loop ticks processed per frame. Without it, time banked against a slow
+// interval (e.g. gravity) gets reinterpreted at a much faster one the instant it changes (e.g.
+// soft drop), or piles up after a hitch, letting one frame slam the piece across the whole
+// board like an instant drop.
+const MAX_CATCHUP_TICKS = 4;
 const LOCK_DELAY_MS = 500;
 const MAX_LOCK_RESETS = 15;
-// How often the active player's client pushes a board snapshot for spectators to render.
-const SYNC_MS = 200;
+// How often the player's client pushes a board snapshot for spectators. Matches
+// config/comms.txt's TICKLAG (0.5s), since the server can't relay updates faster than one per
+// world tick anyway.
+const SYNC_MS = 500;
 
 // Must match TETRIS_IDLE/TETRIS_PLAYING/TETRIS_GAMEOVER in
 // modular_zzmeta/modules/tetris/code/tetris.dm.
@@ -48,13 +55,9 @@ const GARBAGE_TARGET_LINES = 13;
 // Independent of SYNC_MS since spectators don't need this, only the local player's own UI.
 const STATUS_UPDATE_MS = 250;
 
-// I is a 4x4 box (it spans the box's full width/height in every orientation, so it has no
-// off-center cells to drift). O is a plain 2x2 (a rotation is always a no-op on a symmetric
-// square). The rest are 3x3 boxes with the shape's pivot cell at the true center [1][1], so
-// rotateMatrix spins them in place instead of shunting them across the board. A 4x4 box with
-// the shape sitting in rows 0-1 (as these used to be defined) rotates around the box's corner
-// rather than the piece's own center, which visibly relocates the piece by a cell or two on
-// every press.
+// I is a 4x4 box (spans its own width/height, no off-center drift). O is a plain 2x2 (rotation
+// is always a no-op). The rest are 3x3 with the pivot cell at true center [1][1], so
+// rotateMatrix spins them in place instead of visibly shifting the piece on every press.
 const SHAPES = {
   I: [
     [0, 0, 0, 0],
@@ -106,8 +109,52 @@ const COLORS = {
 
 const PIECE_TYPES = Object.keys(SHAPES);
 
-// Simple wall kick attempts, tried in order after a bare rotation fails.
-const KICKS = [0, -1, 1, -2, 2];
+// Fades a piece color for the ghost outline, so it reads as a preview rather than a second
+// copy of the piece itself.
+const GHOST_ALPHA = 0.55;
+const withAlpha = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// Standard SRS wall/floor kicks, one 5-test list per specific rotation transition ("0>1" =
+// spawn rotating CW into R, etc.) rather than one shared list. A shared list lets whichever
+// kick collides-free first win even if it's wrong for that spin, skipping a valid target for a
+// nearer useless one; per-transition tables avoid that.
+//
+// Converted from the published SRS docs (+y = up) to this board's y-down convention by
+// negating every source y.
+const JLSTZ_KICKS = {
+  '0>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+  '1>0': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+  '1>2': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+  '2>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+  '2>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+  '3>2': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+  '3>0': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+  '0>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+};
+
+const I_KICKS = {
+  '0>1': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+  '1>0': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+  '1>2': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
+  '2>1': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+  '2>3': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+  '3>2': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+  '3>0': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+  '0>3': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
+};
+
+// O never visually changes when it rotates, so there's nothing to kick.
+const O_KICKS = {
+  '0>1': [[0, 0]], '1>0': [[0, 0]], '1>2': [[0, 0]], '2>1': [[0, 0]],
+  '2>3': [[0, 0]], '3>2': [[0, 0]], '3>0': [[0, 0]], '0>3': [[0, 0]],
+};
+
+const KICK_TABLES = { T: JLSTZ_KICKS, S: JLSTZ_KICKS, Z: JLSTZ_KICKS, J: JLSTZ_KICKS, L: JLSTZ_KICKS, I: I_KICKS, O: O_KICKS };
 
 const rotateMatrix = (matrix, dir) => {
   const size = matrix.length;
@@ -188,9 +235,10 @@ const dropDistance = (board, matrix, x, y) => {
   return dist;
 };
 
-// Where the current piece would land on an instant hard drop, for the ghost outline. Returns
-// null once the piece is already resting there (nothing to preview).
-const buildGhostBoard = (board, current) => {
+// Where the piece would land on a hard drop, for the ghost outline (null once already resting
+// there). A sparse {x,y,type} list rather than a full board, since allocating a whole empty
+// array just to mark ~4 cells on every render was avoidable GC pressure.
+const buildGhostCells = (board, current) => {
   if (!current) {
     return null;
   }
@@ -198,7 +246,7 @@ const buildGhostBoard = (board, current) => {
   if (dist === 0) {
     return null;
   }
-  const ghost = makeEmptyBoard();
+  const cells = [];
   const ghostY = current.y + dist;
   for (let y = 0; y < current.matrix.length; y++) {
     for (let x = 0; x < current.matrix[y].length; x++) {
@@ -208,11 +256,11 @@ const buildGhostBoard = (board, current) => {
       const by = ghostY + y;
       const bx = current.x + x;
       if (by >= 0 && by < BOARD_H && bx >= 0 && bx < BOARD_W) {
-        ghost[by][bx] = current.type;
+        cells.push({ x: bx, y: by, type: current.type });
       }
     }
   }
-  return ghost;
+  return cells;
 };
 
 const mergePiece = (board, matrix, px, py, type) => {
@@ -255,10 +303,10 @@ const clearLines = (board) => {
   return { board: remaining, cleared, survivorRows };
 };
 
-// Garbage Race's objective is clearing the pre-filled garbage specifically, not just any 13
-// lines. A row built entirely from the player's own pieces above the stack, with no garbage
-// cell in it at all, shouldn't count. Call on the pre-clear (merged) board, since clearLines
-// only returns how many rows were removed, not what was in them.
+// Garbage Race's objective is clearing the pre-filled garbage specifically, not any 13 lines,
+// so a row built entirely from the player's own pieces shouldn't count. Call on the pre-clear
+// (merged) board, since clearLines only reports how many rows were removed, not what was in
+// them.
 const countGarbageRows = (board) => {
   let count = 0;
   for (const row of board) {
@@ -288,10 +336,9 @@ const BIG_CLEAR_THRESHOLD = 3;
 const CLEAR_FLASH_MS = 500;
 const CLEAR_NAMES = ['', 'Single', 'Double', 'Triple', 'Tetris'];
 
-// The standard "3-corner rule" used to detect T-spins, generalized here to every 3x3-boxed
-// piece: counts how many of the piece's bounding-box corners are occupied, by the board
-// edge/floor or an actual filled cell. 3+ occupied corners means the piece is wedged in tight
-// enough (on a spot it could only have reached by rotating into it) to count as a spin.
+// The standard "3-corner rule" for T-spins, generalized to every 3x3-boxed piece: counts
+// occupied bounding-box corners (board edge/floor or a filled cell). 3+ occupied means the
+// piece is wedged in tight enough to count as a spin.
 const countOccupiedCorners = (board, x, y) => {
   const corners = [
     [x, y],
@@ -338,6 +385,9 @@ const spawnFromType = (type) => ({
   matrix: SHAPES[type].map((row) => row.slice()),
   x: Math.floor((BOARD_W - SHAPES[type][0].length) / 2),
   y: 0,
+  // 0=spawn, 1=CW (R), 2=180, 3=CCW (L). Looks up the right transition in the per-transition
+  // kick tables, see rotate().
+  rotationIndex: 0,
 });
 
 const buildDisplayBoard = (board, current) => {
@@ -357,6 +407,23 @@ const buildDisplayBoard = (board, current) => {
     }
   }
   return displayBoard;
+};
+
+// Packs a board into a flat 200-char string instead of a JSON array, for the snapshot sent
+// over act()/Topic(). The array form sits right around tgui's 2048-char chunking threshold,
+// turning most syncs into a slower multi-message exchange. '#' stands in for the garbage
+// pseudo-type since it isn't one character.
+const encodeCell = (cell) => (cell ? (cell === 'GARBAGE' ? '#' : cell) : '.');
+const decodeCell = (ch) => (ch === '.' ? null : ch === '#' ? 'GARBAGE' : ch);
+
+const encodeBoard = (board) => board.map((row) => row.map(encodeCell).join('')).join('');
+
+const decodeBoard = (encoded) => {
+  const rows = [];
+  for (let y = 0; y < BOARD_H; y++) {
+    rows.push(encoded.slice(y * BOARD_W, (y + 1) * BOARD_W).split('').map(decodeCell));
+  }
+  return rows;
 };
 
 // Piece boxes vary in size (2x2 O, 3x3 JLSTZT, 4x4 I - see SHAPES), but the Hold/Next previews
@@ -399,8 +466,100 @@ const renderMiniPiece = (type) => {
   );
 };
 
-const BoardGrid = ({ board, ghost, overlay, topBanner, glow }) => {
+// How long a just-cleared glow keeps its (fading-out) box-shadow styling before dropping back
+// to a plain cell. Must be >= the CSS transition duration below so the fade actually finishes.
+const GLOW_FADE_HOLD_MS = 220;
+
+// Whether the falling piece occupies board cell (x,y), for merging it into the display inline
+// during BoardGrid's per-cell loop instead of pre-allocating a whole merged board on every
+// render. Spectators still use buildDisplayBoard, since they have no `current` piece and
+// update far less often.
+const pieceCellAt = (current, x, y) => {
+  if (!current) {
+    return null;
+  }
+  const ry = y - current.y;
+  const rx = x - current.x;
+  if (ry < 0 || ry >= current.matrix.length || rx < 0 || rx >= current.matrix[ry].length) {
+    return null;
+  }
+  return current.matrix[ry][rx] ? current.type : null;
+};
+
+// Cheap content equality for the small (0-4 cell) ghost/glow lists, which are rebuilt fresh on
+// every render regardless of whether anything actually changed.
+const cellListsEqual = (a, b) => {
+  if (a === b) {
+    return true;
+  }
+  if (!a?.length && !b?.length) {
+    return true;
+  }
+  if (a?.length !== b?.length) {
+    return false;
+  }
+  return a.every((cell, i) => cell.x === b[i].x && cell.y === b[i].y && cell.type === b[i].type);
+};
+
+// BoardGrid renders 200 cells on every gravity/DAS tick, so re-rendering on every parent
+// setState (even unrelated ones, like the status timer) was real reconciliation cost paid many
+// times a second. `current.matrix` only gets a new reference on an actual rotation, so
+// comparing it by reference is equivalent to a full value check.
+const boardGridPropsEqual = (prev, next) => {
+  if (prev.board !== next.board) {
+    return false;
+  }
+  if (prev.current !== next.current) {
+    const pc = prev.current;
+    const nc = next.current;
+    if (!pc || !nc) {
+      return false;
+    }
+    if (pc.type !== nc.type || pc.x !== nc.x || pc.y !== nc.y || pc.matrix !== nc.matrix) {
+      return false;
+    }
+  }
+  if (!cellListsEqual(prev.ghost, next.ghost)) {
+    return false;
+  }
+  if (!cellListsEqual(prev.glow, next.glow)) {
+    return false;
+  }
+  if (prev.topBanner !== next.topBanner) {
+    return false;
+  }
+  return Boolean(prev.overlay) === Boolean(next.overlay) && prev.overlay === next.overlay;
+};
+
+const BoardGrid = memo(({ board, current, ghost, overlay, topBanner, glow }) => {
+  // Only actively-glowing (or just-faded) cells carry the box-shadow/transition styling.
+  // Applying that to all 200 cells on every render was a real, measurable cost for no visible
+  // benefit on the other 190+.
+  const prevGlowRef = useRef(null);
+  const [fadingCells, setFadingCells] = useState(null);
+
+  useEffect(() => {
+    if (glow?.length) {
+      prevGlowRef.current = glow;
+      setFadingCells(null);
+      return undefined;
+    }
+    if (prevGlowRef.current) {
+      const cells = prevGlowRef.current;
+      prevGlowRef.current = null;
+      setFadingCells(cells);
+      const timer = window.setTimeout(() => setFadingCells(null), GLOW_FADE_HOLD_MS);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [glow]);
+
   const glowSet = glow?.length ? new Set(glow.map(({ x, y }) => `${x}-${y}`)) : null;
+  const fadingSet = fadingCells?.length
+    ? new Set(fadingCells.map(({ x, y }) => `${x}-${y}`))
+    : null;
+  const ghostMap = ghost?.length ? new Map(ghost.map((c) => [`${c.x}-${c.y}`, c.type])) : null;
+
   return (
     <Box
       style={{
@@ -414,22 +573,26 @@ const BoardGrid = ({ board, ghost, overlay, topBanner, glow }) => {
     >
       {board.map((row, y) =>
         row.map((cell, x) => {
-          const ghostType = !cell && ghost?.[y][x];
-          const isGlowing = glowSet?.has(`${x}-${y}`);
+          const mergedCell = current ? pieceCellAt(current, x, y) || cell : cell;
+          const key = `${x}-${y}`;
+          const ghostType = !mergedCell && ghostMap?.get(key);
+          const isGlowing = glowSet?.has(key);
+          const needsShadowStyling = isGlowing || fadingSet?.has(key);
           return (
             <Box
-              key={`${x}-${y}`}
+              key={key}
               style={{
-                'background-color': cell ? COLORS[cell] : 'rgba(255,255,255,0.03)',
+                'background-color': mergedCell ? COLORS[mergedCell] : 'rgba(255,255,255,0.03)',
                 'box-sizing': 'border-box',
-                border: ghostType ? `2px solid ${COLORS[ghostType]}` : 'none',
-                'box-shadow': isGlowing
-                  ? '0 0 6px 2px #fff, inset 0 0 6px 2px #fff'
-                  : '0 0 6px 2px transparent, inset 0 0 6px 2px transparent',
-                // Only box-shadow transitions. background-color/border update instantly since
-                // those change every frame during normal play, and a piece moving or the ghost
-                // outline shifting should never look like it's lagging behind.
-                transition: 'box-shadow 180ms ease-out',
+                border: ghostType ? `2px solid ${withAlpha(COLORS[ghostType], GHOST_ALPHA)}` : 'none',
+                ...(needsShadowStyling && {
+                  'box-shadow': isGlowing
+                    ? '0 0 6px 2px #fff, inset 0 0 6px 2px #fff'
+                    : '0 0 6px 2px transparent, inset 0 0 6px 2px transparent',
+                  // Only box-shadow transitions; background-color/border update instantly so
+                  // piece/ghost movement never looks like it's lagging behind.
+                  transition: 'box-shadow 180ms ease-out',
+                }),
               }}
             />
           );
@@ -482,7 +645,7 @@ const BoardGrid = ({ board, ghost, overlay, topBanner, glow }) => {
     )}
     </Box>
   );
-};
+}, boardGridPropsEqual);
 
 const KEYBINDS = [
   ['← / →', 'Move'],
@@ -645,6 +808,8 @@ class TetrisGame extends Component {
     this.lastRotated = false;
     this.bannerToken = null;
     this.glowToken = null;
+    this.pendingCommit = null;
+    this.clearFlashElapsed = 0;
 
     this.state = this.buildInitialState(false);
 
@@ -682,8 +847,8 @@ class TetrisGame extends Component {
       glow,
     } = this.state;
     return {
-      board: buildDisplayBoard(board, current),
-      ghost: buildGhostBoard(board, current),
+      board: encodeBoard(buildDisplayBoard(board, current)),
+      ghost: buildGhostCells(board, current),
       hold,
       queue,
       score,
@@ -800,9 +965,19 @@ class TetrisGame extends Component {
     this.statusAccumulator = 0;
     this.reported = false;
     this.gameStartTs = Date.now();
+    // If the last game ended while a direction/soft-drop key was still held, no fresh keydown
+    // fires here to re-arm these, so the new piece could inherit stale DAS/ARR state and start
+    // sliding on its first frame. pressedKeys is left alone, since clearing it would misread the
+    // next OS auto-repeat event for that key as a fresh press.
+    this.dasDirection = null;
+    this.dasElapsed = 0;
+    this.arrElapsed = 0;
+    this.softDropHeld = false;
     this.lastRotated = false;
     this.bannerToken = null;
     this.glowToken = null;
+    this.pendingCommit = null;
+    this.clearFlashElapsed = 0;
 
     this.setState(
       {
@@ -833,8 +1008,7 @@ class TetrisGame extends Component {
   }
 
   // Single reporting path for every way a run can end: topping out (completed = false), or
-  // hitting the mode's actual goal, meaning 40 lines, the garbage cleared, or blitz's clock
-  // running out (completed = true in all three of those cases).
+  // hitting the mode's goal / blitz's clock running out (completed = true).
   finishRun(completed) {
     if (this.animationId) {
       window.cancelAnimationFrame(this.animationId);
@@ -863,9 +1037,9 @@ class TetrisGame extends Component {
     });
   }
 
-  // `pieceOverride`, when given, is locked instead of re-reading this.state.current, and
-  // `bonusScore` (the hard-drop distance bonus) is folded into the same setState call rather
-  // than applied separately beforehand - see hardDrop() for why both of those matter.
+  // `pieceOverride`, when given, is locked instead of re-reading this.state.current;
+  // `bonusScore` folds into the same setState call instead of being applied separately, see
+  // hardDrop().
   lockCurrent(pieceOverride, bonusScore = 0) {
     const { board, level, mode } = this.state;
     const current = pieceOverride || this.state.current;
@@ -909,9 +1083,8 @@ class TetrisGame extends Component {
           ? 'clear'
           : 'lock';
 
-    // Garbage Race's own progress is tracked separately from totalLines (which still governs
-    // scoring/level for every mode uniformly), since only rows that actually contained garbage
-    // should count toward its objective. See countGarbageRows().
+    // Garbage Race's progress is tracked separately from totalLines (which still governs
+    // scoring/level uniformly), since only garbage-containing rows count. See countGarbageRows().
     const totalGarbageCleared =
       mode === 'garbage' ? this.state.garbageCleared + countGarbageRows(merged) : 0;
 
@@ -945,9 +1118,8 @@ class TetrisGame extends Component {
 
     if (isSpin) {
       this.showBanner(label);
-      // Any of the piece's own cells that survived the clear, remapped to their post-clear row
-      // (a spin that also clears lines shifts rows above the clear down), so the glow lands on
-      // the right cells instead of wherever they used to be.
+      // Piece cells that survived the clear, remapped to their post-clear row (a spin that also
+      // clears lines shifts rows above it down), so the glow lands on the right cells.
       const glowCells = [];
       for (let py = 0; py < current.matrix.length; py++) {
         for (let px = 0; px < current.matrix[py].length; px++) {
@@ -967,9 +1139,8 @@ class TetrisGame extends Component {
     }
 
     if (isBigClear) {
-      // Flash the full rows in place (still part of `merged`, not yet removed) before actually
-      // clearing them, so the glow lands on the rows the player is watching disappear instead
-      // of nothing (they're gone from `cleared` already).
+      // Flash the full rows in place (still part of `merged`) before clearing them, so the glow
+      // lands on what the player is watching disappear, not nothing.
       this.showBanner(label);
       const flashCells = [];
       for (let y = 0; y < BOARD_H; y++) {
@@ -979,12 +1150,12 @@ class TetrisGame extends Component {
           }
         }
       }
-      // Cleared exactly when commit() actually removes these rows, not after. Their
-      // coordinates stop meaning anything once the board shifts, so any lingering glow past
-      // that point would light up whatever unrelated cells happen to share those positions now.
+      // Cleared exactly when commit() removes these rows; their coordinates mean nothing once
+      // the board shifts, so a lingering glow past that point would light up unrelated cells.
       this.showGlow(flashCells, CLEAR_FLASH_MS);
       this.setState({ board: merged, current: null });
-      window.setTimeout(commit, CLEAR_FLASH_MS);
+      this.clearFlashElapsed = 0;
+      this.pendingCommit = commit;
       return;
     }
 
@@ -1001,16 +1172,22 @@ class TetrisGame extends Component {
     if (collides(board, current.matrix, nx, ny)) {
       return false;
     }
-    this.setState({ current: { ...current, x: nx, y: ny } });
+    // Functional form, applying (dx, dy) as a relative offset onto prevState.current rather
+    // than the absolute nx/ny above, so a same-batch gravity/DAS update composes instead of
+    // getting overwritten, same reasoning as rotate().
+    this.setState((prevState) => ({
+      current: prevState.current
+        ? { ...prevState.current, x: prevState.current.x + dx, y: prevState.current.y + dy }
+        : prevState.current,
+    }));
     this.updateGroundedState(board, current.matrix, nx, ny);
     this.lastRotated = false;
     return true;
   }
 
-  // A move/rotate can slide the piece off whatever ledge it was resting on into open space
-  // below. Gravity must resume immediately instead of keeping the stale "grounded" flag from
-  // before the move, otherwise the lock timer keeps counting down against the old position
-  // and the piece locks floating in mid-air once it expires.
+  // A move/rotate can slide the piece off its ledge into open space below, so gravity must
+  // resume immediately instead of keeping the stale "grounded" flag, or the lock timer keeps
+  // counting down and the piece locks floating in mid-air.
   updateGroundedState(board, matrix, x, y) {
     const stillGrounded = collides(board, matrix, x, y + 1);
     if (!stillGrounded) {
@@ -1034,14 +1211,30 @@ class TetrisGame extends Component {
     if (!current) {
       return;
     }
+    const fromState = current.rotationIndex;
+    const toState = (fromState + dir + 4) % 4;
     const rotated = rotateMatrix(current.matrix, dir);
-    for (const kick of KICKS) {
-      if (!collides(board, rotated, current.x + kick, current.y)) {
-        const nx = current.x + kick;
-        this.setState({
-          current: { ...current, matrix: rotated, x: nx },
-        });
-        this.updateGroundedState(board, rotated, nx, current.y);
+    const table = KICK_TABLES[current.type] || JLSTZ_KICKS;
+    const kicks = table[`${fromState}>${toState}`] || [[0, 0]];
+    for (const [dx, dy] of kicks) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      if (!collides(board, rotated, nx, ny)) {
+        // Functional form, applying the kick as a relative offset onto prevState.current
+        // rather than the absolute nx/ny above, so this composes with a same-batch gravity/DAS
+        // update, see tryMove().
+        this.setState((prevState) => ({
+          current: prevState.current
+            ? {
+                ...prevState.current,
+                matrix: rotated,
+                x: prevState.current.x + dx,
+                y: prevState.current.y + dy,
+                rotationIndex: toState,
+              }
+            : prevState.current,
+        }));
+        this.updateGroundedState(board, rotated, nx, ny);
         this.lastRotated = true;
         return;
       }
@@ -1056,19 +1249,23 @@ class TetrisGame extends Component {
     this.rotate(-1);
   }
 
-  // Locks synchronously off a locally-computed piece instead of going through a setState
-  // callback. Under lag, a keydown for a horizontal move can land in the gap between an
-  // earlier version's setState call and its callback firing, changing this.state.current.x to
-  // something the drop distance was never actually collision-checked against, so the piece
-  // would lock into a column it never validated (visually landing next to where it should
-  // have, sometimes overlapping the stack). Reading state once and finishing the lock in the
-  // same synchronous call closes that window.
+  // Locks synchronously off a locally-computed piece instead of setState-and-callback. A
+  // keydown landing in the gap between them could change this.state.current.x to something the
+  // drop distance below was never checked against, locking into an unvalidated column. Reading
+  // state once and finishing synchronously closes that window.
   hardDrop() {
     const { board, current } = this.state;
     if (!current) {
       return;
     }
     const dist = dropDistance(board, current.matrix, current.x, current.y);
+    // If the piece had further to fall, wherever it lands has nothing to do with where it was
+    // last rotated (those corners were never validated for this landing), so this no longer
+    // counts as a rotation for spin purposes. Only dist === 0 (already resting where it
+    // rotated) keeps it.
+    if (dist > 0) {
+      this.lastRotated = false;
+    }
     this.lockCurrent({ ...current, y: current.y + dist }, dist * 2);
   }
 
@@ -1127,10 +1324,21 @@ class TetrisGame extends Component {
   }
 
   startSoftDrop() {
+    // dropAccumulator's banked time was accrued against gravity's slow interval; reinterpreting
+    // it at SOFT_DROP_MS the instant the rate changes would let a tap inherit stale gravity
+    // credit as extra rows. Only reset on the actual off-to-on edge, since held keys resend
+    // keydown at the OS repeat rate and resetting every time would never let it reach
+    // SOFT_DROP_MS.
+    if (!this.softDropHeld) {
+      this.dropAccumulator = 0;
+    }
     this.softDropHeld = true;
   }
 
   stopSoftDrop() {
+    if (this.softDropHeld) {
+      this.dropAccumulator = 0;
+    }
     this.softDropHeld = false;
   }
 
@@ -1178,41 +1386,86 @@ class TetrisGame extends Component {
     const delta = timestamp - last;
     this.lastFrame = timestamp;
 
+    // Outside the phase/current gate below since `current` is null during the flash window.
+    // Ticks off real frames, not wall-clock time, see lockCurrent()'s isBigClear branch.
+    if (this.pendingCommit) {
+      this.clearFlashElapsed += delta;
+      if (this.clearFlashElapsed >= CLEAR_FLASH_MS) {
+        const commit = this.pendingCommit;
+        this.pendingCommit = null;
+        commit();
+      }
+    }
+
     if (this.state.phase === 'playing' && this.state.current) {
       if (this.state.mode === 'blitz' && Date.now() - this.gameStartTs >= BLITZ_DURATION_MS) {
         this.finishRun(true);
         return;
       }
 
+      // Both blocks below can move the same piece in one call (e.g. DAS sliding it the same
+      // frame gravity drops it), so they share one local `current` instead of each
+      // independently re-reading `this.state.current`, which would let gravity's collision
+      // check run against the pre-DAS column.
+      const { board } = this.state;
+      let current = this.state.current;
+      let moved = false;
+
       if (this.dasDirection) {
         this.dasElapsed += delta;
         if (this.dasElapsed >= DAS_MS) {
-          this.arrElapsed += delta;
-          while (this.arrElapsed >= ARR_MS) {
+          this.arrElapsed = Math.min(this.arrElapsed + delta, ARR_MS * MAX_CATCHUP_TICKS);
+          const dx = this.dasDirection === 'left' ? -1 : 1;
+          let dasMoved = false;
+          while (current && this.arrElapsed >= ARR_MS) {
             this.arrElapsed -= ARR_MS;
-            this.tryMove(this.dasDirection === 'left' ? -1 : 1, 0);
+            const nx = current.x + dx;
+            if (!collides(board, current.matrix, nx, current.y)) {
+              current = { ...current, x: nx };
+              moved = true;
+              dasMoved = true;
+            }
+          }
+          if (dasMoved) {
+            this.updateGroundedState(board, current.matrix, current.x, current.y);
+            this.lastRotated = false;
           }
         }
       }
 
       const interval = this.softDropHeld ? SOFT_DROP_MS : gravityMs(this.state.level);
-      this.dropAccumulator += delta;
-      while (this.dropAccumulator >= interval) {
+      this.dropAccumulator = Math.min(this.dropAccumulator + delta, interval * MAX_CATCHUP_TICKS);
+      while (current && this.dropAccumulator >= interval) {
         this.dropAccumulator -= interval;
-        const { board, current } = this.state;
-        if (current && !collides(board, current.matrix, current.x, current.y + 1)) {
+        if (!collides(board, current.matrix, current.x, current.y + 1)) {
+          current = { ...current, y: current.y + 1 };
+          moved = true;
           this.grounded = false;
           this.lastRotated = false;
-          this.setState({ current: { ...current, y: current.y + 1 } });
-        } else if (current) {
+        } else {
           this.grounded = true;
         }
+      }
+
+      if (moved) {
+        // Functional form: a keyboard move from tryMove()/rotate() can land in the same batch,
+        // so this composes onto `prevState.current` instead of replacing it, same reasoning as
+        // tryMove().
+        const finalCurrent = current;
+        this.setState((prevState) => ({
+          current: prevState.current
+            ? { ...prevState.current, x: finalCurrent.x, y: finalCurrent.y }
+            : prevState.current,
+        }));
       }
 
       if (this.grounded) {
         this.lockTimer -= delta;
         if (this.lockTimer <= 0) {
-          this.lockCurrent();
+          // Passes the position already computed above, instead of letting lockCurrent() fall
+          // back to this.state.current, which can be one frame stale, same reasoning as
+          // hardDrop()'s pieceOverride.
+          this.lockCurrent(current);
         }
       }
 
@@ -1266,8 +1519,10 @@ class TetrisGame extends Component {
       onClaimTickets,
     } = this.props;
 
-    const displayBoard = buildDisplayBoard(board, current);
-    const ghostBoard = buildGhostBoard(board, current);
+    // No pre-merged board here: BoardGrid merges the falling piece into `board` inline per
+    // cell, since building a whole separate 200-cell array on every gravity/DAS tick was
+    // avoidable allocation pressure.
+    const ghostCells = buildGhostCells(board, current);
 
     let resultText = null;
     if (phase === 'gameover') {
@@ -1296,8 +1551,9 @@ class TetrisGame extends Component {
             <Stack.Item>
               <Section title="Board">
                 <BoardGrid
-                  board={displayBoard}
-                  ghost={ghostBoard}
+                  board={board}
+                  current={current}
+                  ghost={ghostCells}
                   topBanner={banner}
                   glow={glow}
                   overlay={
@@ -1456,6 +1712,7 @@ const TetrisSpectator = (props) => {
   const {
     snapshot,
     gameStatus,
+    isAbandoned,
     lastScore,
     lastLines,
     playerName,
@@ -1473,7 +1730,7 @@ const TetrisSpectator = (props) => {
     onClaimTickets,
   } = props;
 
-  const board = snapshot?.board || makeEmptyBoard();
+  const board = snapshot?.board ? decodeBoard(snapshot.board) : makeEmptyBoard();
   const ghost = snapshot?.ghost ?? null;
   const banner = snapshot?.banner ?? null;
   const glow = snapshot?.glow ?? null;
@@ -1486,7 +1743,7 @@ const TetrisSpectator = (props) => {
   const mode = snapshot?.mode ?? 'marathon';
   const statusMs = snapshot?.statusMs ?? 0;
   const finished = gameStatus === TETRIS_GAMEOVER;
-  const canTakeOver = gameStatus !== TETRIS_PLAYING;
+  const canTakeOver = gameStatus !== TETRIS_PLAYING || isAbandoned;
 
   return (
     <Stack fill vertical>
@@ -1559,13 +1816,15 @@ const TetrisSpectator = (props) => {
         <Section>
           <Stack>
             <Stack.Item color="label">
-              Spectating — someone else has the controls.
+              {isAbandoned
+                ? 'Spectating — the player left without finishing, this game looks abandoned.'
+                : 'Spectating — someone else has the controls.'}
             </Stack.Item>
             <Stack.Item grow />
             <Stack.Item>
               {canTakeOver && (
                 <Button
-                  content="Take Over"
+                  content={isAbandoned ? 'Reclaim' : 'Take Over'}
                   color="blue"
                   tooltip="Claim the controls, then press New Game to start"
                   onClick={onNewGame}
@@ -1606,6 +1865,7 @@ export const TetrisContent = (props, context) => {
     last_score = 0,
     last_lines = 0,
     player_name,
+    is_abandoned,
   } = data;
 
   // Nobody's claimed the machine yet (fresh IDLE state) means anyone gets the interactive
@@ -1636,6 +1896,7 @@ export const TetrisContent = (props, context) => {
     <TetrisSpectator
       snapshot={snapshot}
       gameStatus={game_status}
+      isAbandoned={is_abandoned}
       lastScore={last_score}
       lastLines={last_lines}
       playerName={player_name}

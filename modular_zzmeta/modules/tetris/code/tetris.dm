@@ -11,6 +11,11 @@
 /// game so a fabricated ui_act call can't claim an implausibly high score for a tiny time window.
 #define TETRIS_MIN_DS_PER_LINE 5
 
+/// If a "PLAYING" game hasn't synced in this long, treat it as abandoned rather than a live
+/// game nobody's allowed to touch. An active client syncs at least every 500ms regardless of
+/// locks, so this has plenty of headroom before misfiring on a genuinely active game.
+#define TETRIS_ABANDON_THRESHOLD (8 SECONDS)
+
 /* TETRIS MACHINE */
 /// The machine itself. The board/piece/gravity logic runs client-side in tgui (like the fishing
 /// minigame); the server only tracks tickets, a high score, and sanity-checks the final report.
@@ -147,13 +152,10 @@
 	var/garbage_best_ds = 0
 	/// Display name of whoever set garbage_best_ds.
 	var/garbage_best_holder
-	/// Whether a Marathon/Blitz run has ever actually finished on this machine, tracked
-	/// separately per mode since each has its own score baseline. Without this, the very
-	/// first game in a mode always "beats" that mode's score = 0 baseline and fires the win
-	/// jingle regardless of how badly it went; the first finished run in a mode should just
-	/// set the baseline quietly instead. A single shared flag would let finishing Marathon
-	/// once make your very first Blitz run "win" for free (or vice versa), since it doesn't
-	/// know those are different high scores.
+	/// Whether a Marathon/Blitz run has ever finished, tracked separately per mode. Without
+	/// this, a mode's first game always "beats" its score = 0 baseline and fires the win
+	/// jingle regardless of how badly it went; a shared flag would also let finishing
+	/// Marathon make your first Blitz run "win" for free.
 	var/has_finished_marathon = FALSE
 	var/has_finished_blitz = FALSE
 	var/last_score = 0
@@ -162,6 +164,9 @@
 	var/ticket_count = 0
 
 	var/starting_time = 0
+	/// REALTIMEOFDAY of the last accepted sync, used to detect an abandoned game. See
+	/// TETRIS_ABANDON_THRESHOLD.
+	var/last_sync_time = 0
 
 	/// ckey of whoever most recently pressed New Game. Whoever this doesn't match sees the
 	/// game as a read-only spectator instead of getting controls.
@@ -199,21 +204,18 @@
 	data["last_lines"] = last_lines
 	data["last_mode"] = last_mode
 	data["tickets"] = ticket_count
-	// isliving(), not just a ckey match: if the physical player dies mid-game, SStgui
-	// reassigns ui.user to their ghost while user.ckey stays the same. The board only runs
-	// client-side, so a ghost that still counted as "the player" here could keep visibly
-	// playing (their PRG_sync/PRG_game_over calls are already rejected server-side by the
-	// UI_INTERACTIVE gate, so there's no scoring exploit, just a dead player still driving
-	// pieces around).
+	// isliving(), not just a ckey match: SStgui reassigns ui.user to a dead player's ghost
+	// while ckey stays the same, and the client-side board would let that ghost keep
+	// visibly playing (no scoring exploit, PRG_sync/PRG_game_over are server-gated).
 	data["is_player"] = !isnull(player_ckey) && isliving(user) && (user.ckey == player_ckey)
 	data["player_name"] = player_name
 	data["snapshot"] = snapshot
+	data["is_abandoned"] = (game_status == TETRIS_PLAYING) && (REALTIMEOFDAY - last_sync_time > TETRIS_ABANDON_THRESHOLD)
 	return data
 
 /datum/tetris_arcade/proc/start_new_game(mob/user)
-	// Claim the "player" seat regardless of cooldown, so a client that's already running its
-	// own local game locally (started just under the cooldown) doesn't get flipped to spectator
-	// view on its own next data poll.
+	// Claim the "player" seat regardless of cooldown, so a client already running its own
+	// game (started just under the cooldown) doesn't flip to spectator view on its next poll.
 	player_ckey = user?.ckey
 	player_name = user?.name
 
@@ -223,6 +225,7 @@
 
 	game_status = TETRIS_PLAYING
 	starting_time = REALTIMEOFDAY
+	last_sync_time = REALTIMEOFDAY
 	snapshot = null
 	play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
 	return TRUE
@@ -236,6 +239,7 @@
 	if(!user || isnull(player_ckey) || user.ckey != player_ckey)
 		return FALSE
 	snapshot = new_snapshot
+	last_sync_time = REALTIMEOFDAY
 	switch(sfx)
 		if("lock")
 			play_snd('sound/machines/click.ogg')
@@ -247,13 +251,11 @@
 			play_snd('modular_skyrat/modules/subsystems/sounds/soft_ping.ogg')
 	return TRUE
 
-/// Called once by the client when its local game ends. The board itself is entirely
-/// client-side (like the fishing minigame), so this just sanity-checks the reported
-/// score/line count against elapsed time before paying out, rather than trusting it blind.
-/// `mode` is one of "marathon"/"sprint"/"blitz"/"garbage"; `completed` means the client hit
-/// its mode's actual goal (40 lines / garbage cleared) rather than topping out early. Time
-/// itself is never taken from the client: sprint/garbage records use the server's own
-/// REALTIMEOFDAY delta since start_new_game, which the client can't influence.
+/// Called once when the client's local game ends. The board is entirely client-side, so this
+/// just sanity-checks the reported score/lines against elapsed time before paying out.
+/// `mode` is "marathon"/"sprint"/"blitz"/"garbage"; `completed` means the client hit its
+/// actual goal rather than topping out. Time is never taken from the client: sprint/garbage
+/// records use the server's own REALTIMEOFDAY delta since start_new_game.
 /datum/tetris_arcade/proc/report_game_over(score, lines, mode, completed, mob/living/user)
 	if(game_status != TETRIS_PLAYING)
 		return FALSE
@@ -333,3 +335,4 @@
 #undef TETRIS_GAMEOVER
 
 #undef TETRIS_MIN_DS_PER_LINE
+#undef TETRIS_ABANDON_THRESHOLD
