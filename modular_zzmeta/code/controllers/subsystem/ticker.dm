@@ -35,4 +35,6 @@
 	for(var/track_file in music)
 		loading_music_tracks += "[global.config.directory]/loading_music/sounds/[track_file]"
 
+	SSsounds.cache_sounds(loading_music_tracks) // pre-warm lengths so the first playloadingmusic() track isn't delayed by an uncached rustg lookup
+
 	return SS_INIT_SUCCESS
