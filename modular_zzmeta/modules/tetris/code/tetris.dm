@@ -1,0 +1,302 @@
+/obj/item/circuitboard/computer/arcade/tetris
+	name = "Tetris"
+	greyscale_colors = CIRCUIT_COLOR_GENERIC
+	build_path = /obj/machinery/computer/arcade/tetris
+
+#define TETRIS_IDLE 0
+#define TETRIS_PLAYING 1
+#define TETRIS_GAMEOVER 2
+
+/// Minimum plausible real time (deciseconds) per line cleared, used to sanity-check a reported
+/// game so a fabricated ui_act call can't claim an implausibly high score for a tiny time window.
+#define TETRIS_MIN_DS_PER_LINE 5
+
+/* TETRIS MACHINE */
+/// The machine itself. The board/piece/gravity logic runs client-side in tgui (like the fishing
+/// minigame); the server only tracks tickets, a high score, and sanity-checks the final report.
+
+/obj/machinery/computer/arcade/tetris
+	name = "Tetris"
+	desc = "An arcade machine that drops geometric blocks on you faster and faster until you inevitably fail. Strangely soothing."
+	icon_state = "arcade"
+	circuit = /obj/item/circuitboard/computer/arcade/tetris
+
+	var/datum/tetris_arcade/board
+
+/obj/machinery/computer/arcade/tetris/Initialize(mapload)
+	. = ..()
+	board = new /datum/tetris_arcade()
+	board.host = src
+
+/obj/machinery/computer/arcade/tetris/Destroy(force)
+	board.host = null
+	QDEL_NULL(board)
+	. = ..()
+
+/obj/machinery/computer/arcade/tetris/ui_interact(mob/user, datum/tgui/ui)
+	. = ..()
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!is_operational)
+		return
+	if(!ui)
+		ui = new(user, src, "Tetris", name)
+		ui.open()
+
+/obj/machinery/computer/arcade/tetris/ui_data(mob/user)
+	var/list/data = ..()
+	board.fill_ui_data(data, user)
+	data["is_cabinet"] = TRUE
+	return data
+
+/obj/machinery/computer/arcade/tetris/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	if(..())
+		return TRUE
+
+	var/mob/user = ui.user
+
+	switch(action)
+		if("PRG_new_game")
+			return board.start_new_game(user)
+
+		if("PRG_game_over")
+			return board.report_game_over(text2num(params["score"]), text2num(params["lines"]), params["mode"], params["completed"], user)
+
+		if("PRG_sync")
+			return board.update_snapshot(params["snapshot"], params["sfx"], user)
+
+		if("PRG_tickets")
+			board.play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
+			if(board.ticket_count >= 1)
+				new /obj/item/stack/arcadeticket(loc, 1)
+				to_chat(user, span_notice("[src] dispenses a ticket!"))
+				board.ticket_count -= 1
+			else
+				to_chat(user, span_notice("You don't have any stored tickets!"))
+			return TRUE
+
+/// COMPUTER TETRIS PROGRAM
+/datum/computer_file/program/tetris
+	filename = "tetris"
+	filedesc = "Nanotrasen Micro Arcade: Tetris"
+	extended_desc = "A port of the classic falling block game. Blocks fall, lines clear, and it never actually ends, it just gets faster until you do."
+	size = 6
+	tgui_id = "NtosTetris"
+	program_icon = "th-large"
+
+	downloader_category = PROGRAM_CATEGORY_GAMES
+
+	var/datum/tetris_arcade/board
+
+/datum/computer_file/program/tetris/New(obj/item/modular_computer/comp)
+	. = ..()
+	board = new /datum/tetris_arcade()
+	board.host = comp
+
+/datum/computer_file/program/tetris/Destroy()
+	board.host = null
+	QDEL_NULL(board)
+	. = ..()
+
+/datum/computer_file/program/tetris/ui_data(mob/user)
+	var/list/data = list()
+	board.fill_ui_data(data, user)
+	return data
+
+/datum/computer_file/program/tetris/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	if(..())
+		return TRUE
+
+	if(!board)
+		return
+
+	if(!board.host && computer)
+		board.host = computer
+
+	var/mob/user = ui.user
+
+	switch(action)
+		if("PRG_new_game")
+			return board.start_new_game(user)
+
+		if("PRG_game_over")
+			return board.report_game_over(text2num(params["score"]), text2num(params["lines"]), params["mode"], params["completed"], user)
+
+		if("PRG_sync")
+			return board.update_snapshot(params["snapshot"], params["sfx"], user)
+
+/datum/tetris_arcade
+	var/obj/host
+	var/game_status = TETRIS_IDLE
+
+	var/high_score = 0
+	/// Best (highest) score achieved in a 2-minute Blitz run.
+	var/blitz_high_score = 0
+	/// Best (lowest) 40 Lines completion time, in deciseconds. 0 means no completed run yet.
+	var/sprint_best_ds = 0
+	/// Best (lowest) Garbage Race completion time, in deciseconds. 0 means no completed run yet.
+	var/garbage_best_ds = 0
+	/// Whether a Marathon/Blitz run has ever actually finished on this machine, tracked
+	/// separately per mode since each has its own score baseline. Without this, the very
+	/// first game in a mode always "beats" that mode's score = 0 baseline and fires the win
+	/// jingle regardless of how badly it went; the first finished run in a mode should just
+	/// set the baseline quietly instead. A single shared flag would let finishing Marathon
+	/// once make your very first Blitz run "win" for free (or vice versa), since it doesn't
+	/// know those are different high scores.
+	var/has_finished_marathon = FALSE
+	var/has_finished_blitz = FALSE
+	var/last_score = 0
+	var/last_lines = 0
+	var/last_mode = "marathon"
+	var/ticket_count = 0
+
+	var/starting_time = 0
+
+	/// ckey of whoever most recently pressed New Game. Whoever this doesn't match sees the
+	/// game as a read-only spectator instead of getting controls.
+	var/player_ckey
+	/// Latest client-pushed {board, current, hold, queue, score, lines, level} blob, relayed
+	/// verbatim to every other viewer's ui_data so they can render along a spectator.
+	var/list/snapshot
+
+	COOLDOWN_DECLARE(new_game_cd)
+
+/datum/tetris_arcade/proc/play_snd(sound)
+	playsound(get_turf(host), sound, 25, 0, extrarange = -6)
+
+/datum/tetris_arcade/proc/vis_msg(msg, local_msg)
+	if(istype(host, /obj/item/modular_computer))
+		var/obj/item/modular_computer/comp = host
+		comp.visible_message(msg)
+	else
+		host.visible_message(msg, local_msg)
+
+/datum/tetris_arcade/proc/fill_ui_data(list/data, mob/user)
+	data["game_status"] = game_status
+	data["high_score"] = high_score
+	data["blitz_high_score"] = blitz_high_score
+	data["sprint_best_ds"] = sprint_best_ds
+	data["garbage_best_ds"] = garbage_best_ds
+	data["last_score"] = last_score
+	data["last_lines"] = last_lines
+	data["last_mode"] = last_mode
+	data["tickets"] = ticket_count
+	data["is_player"] = !isnull(player_ckey) && user && (user.ckey == player_ckey)
+	data["snapshot"] = snapshot
+	return data
+
+/datum/tetris_arcade/proc/start_new_game(mob/user)
+	// Claim the "player" seat regardless of cooldown, so a client that's already running its
+	// own local game locally (started just under the cooldown) doesn't get flipped to spectator
+	// view on its own next data poll.
+	player_ckey = user?.ckey
+
+	if(!COOLDOWN_FINISHED(src, new_game_cd))
+		return FALSE
+	COOLDOWN_START(src, new_game_cd, 1.5 SECONDS)
+
+	game_status = TETRIS_PLAYING
+	starting_time = REALTIMEOFDAY
+	snapshot = null
+	play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
+	return TRUE
+
+/// Stores the latest client-side board snapshot for other viewers to render, and plays any
+/// accompanying sound effect. Only the current player's client is trusted to push one; sfx is
+/// matched against a fixed allowlist rather than ever touching a client-supplied file path.
+/datum/tetris_arcade/proc/update_snapshot(list/new_snapshot, sfx, mob/user)
+	if(game_status != TETRIS_PLAYING)
+		return FALSE
+	if(!user || isnull(player_ckey) || user.ckey != player_ckey)
+		return FALSE
+	snapshot = new_snapshot
+	switch(sfx)
+		if("lock")
+			play_snd('sound/machines/click.ogg')
+		if("clear")
+			play_snd('sound/machines/terminal/terminal_select.ogg')
+		if("tetris")
+			play_snd('sound/machines/terminal/terminal_success.ogg')
+	return TRUE
+
+/// Called once by the client when its local game ends. The board itself is entirely
+/// client-side (like the fishing minigame), so this just sanity-checks the reported
+/// score/line count against elapsed time before paying out, rather than trusting it blind.
+/// `mode` is one of "marathon"/"sprint"/"blitz"/"garbage"; `completed` means the client hit
+/// its mode's actual goal (40 lines / garbage cleared) rather than topping out early. Time
+/// itself is never taken from the client: sprint/garbage records use the server's own
+/// REALTIMEOFDAY delta since start_new_game, which the client can't influence.
+/datum/tetris_arcade/proc/report_game_over(score, lines, mode, completed, mob/living/user)
+	if(game_status != TETRIS_PLAYING)
+		return FALSE
+	game_status = TETRIS_GAMEOVER
+
+	score = max(0, score)
+	lines = max(0, lines)
+	completed = completed ? TRUE : FALSE
+	if(!(mode in list("marathon", "sprint", "blitz", "garbage")))
+		mode = "marathon"
+
+	var/elapsed = REALTIMEOFDAY - starting_time
+	// Garbage Race starts most of the board pre-filled with near-complete rows, so clearing
+	// lines far faster than the marathon-tuned pace below is the entire point, not a red flag.
+	if(mode != "garbage")
+		var/max_plausible_lines = round(elapsed / TETRIS_MIN_DS_PER_LINE) + 1
+		lines = min(lines, max_plausible_lines)
+
+	last_score = score
+	last_lines = lines
+	last_mode = mode
+
+	var/reward = clamp(round(lines / 2), lines ? 1 : 0, 15)
+	if(completed && (mode == "sprint" || mode == "garbage"))
+		reward += 3
+	ticket_count += reward
+
+	var/is_record = FALSE
+	var/is_success = FALSE
+	switch(mode)
+		if("blitz")
+			if(has_finished_blitz && score > blitz_high_score)
+				blitz_high_score = score
+				is_record = TRUE
+			else
+				blitz_high_score = max(blitz_high_score, score)
+			has_finished_blitz = TRUE
+		if("sprint")
+			if(completed)
+				is_success = TRUE
+				if(!sprint_best_ds || elapsed < sprint_best_ds)
+					sprint_best_ds = elapsed
+					is_record = TRUE
+		if("garbage")
+			if(completed)
+				is_success = TRUE
+				if(!garbage_best_ds || elapsed < garbage_best_ds)
+					garbage_best_ds = elapsed
+					is_record = TRUE
+		else
+			if(has_finished_marathon && score > high_score)
+				high_score = score
+				is_record = TRUE
+			else
+				high_score = max(high_score, score)
+			has_finished_marathon = TRUE
+
+	if(is_record)
+		vis_msg(span_notice("[host] flashes a new [mode] record!"), span_notice("You hear a triumphant chime."))
+		play_snd('modular_zubbers/sound/arcade/minesweeper_win.ogg')
+	else if(is_success)
+		play_snd('sound/machines/ding.ogg')
+	else
+		play_snd('sound/machines/arcade/lose.ogg')
+
+	if(user)
+		to_chat(user, span_notice("Game over! You scored [score] points and cleared [lines] line\s, earning [reward] ticket\s."))
+
+	return TRUE
+
+#undef TETRIS_IDLE
+#undef TETRIS_PLAYING
+#undef TETRIS_GAMEOVER
+
+#undef TETRIS_MIN_DS_PER_LINE
