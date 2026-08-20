@@ -13,7 +13,10 @@ import { captureExternalLinks } from 'tgui-core/links';
 import { setupHotReloading } from 'tgui-dev-server/link/client';
 import { App } from './app';
 import { bus } from './events/listeners';
-import { setupPanelFocusHacks } from './panelFocus';
+import {
+  setupPanelFocusHacks,
+  setupStuckPointerEventsFix,
+} from './panelFocus';
 import { wsSend } from './websocket/helpers';
 
 const root = createRoot(document.getElementById('react-root')!);
@@ -34,6 +37,9 @@ function setupApp() {
   });
 
   setupPanelFocusHacks();
+  // META EDIT - ADDITION - START - STUCK_POINTER_EVENTS_FIX
+  setupStuckPointerEventsFix();
+  // META EDIT - ADDITION - END
   captureExternalLinks();
 
   render(<App />);

@@ -35,9 +35,15 @@ export function Panel(props) {
         <Stack.Item>
           <Section fitted>
             <Stack mr={1} align="center">
-              <Stack.Item grow>
+              {/* META EDIT - CHANGE - START - LAYOUT_HORIZONTAL_OVERFLOW */}
+              {/* ORIGINAL: <Stack.Item grow> */}
+              {/* Without minWidth={0}, this flex item refuses to shrink below the tab strip's full unrolled
+                  width (the flexbox "min-width: auto" default), pushing the ping/music/cog buttons off the
+                  right edge instead of letting ChatTabs' own Tabs "scrollable" handle the overflow. */}
+              <Stack.Item grow minWidth={0}>
                 <ChatTabs />
               </Stack.Item>
+              {/* META EDIT - CHANGE - END */}
               <Stack.Item>
                 <PingIndicator />
               </Stack.Item>

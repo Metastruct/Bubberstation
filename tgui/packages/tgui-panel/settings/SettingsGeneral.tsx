@@ -192,7 +192,10 @@ export function SettingsGeneral(props) {
         {/* META EDIT - ADDITION - END */}
       </LabeledList>
       <Divider />
-      <Stack fill>
+      {/* META EDIT - CHANGE - START - LAYOUT_HORIZONTAL_OVERFLOW */}
+      {/* ORIGINAL: <Stack fill> */}
+      {/* wrap so this row drops to a second line on a narrow window instead of overflowing */}
+      <Stack fill wrap>
         <Stack.Item mt={0.15}>
           <Button
             icon="compact-disc"
