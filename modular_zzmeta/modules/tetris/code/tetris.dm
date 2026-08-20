@@ -53,6 +53,8 @@
 		return TRUE
 
 	var/mob/user = ui.user
+	if(!istype(user, /mob/living))
+		return TRUE
 
 	switch(action)
 		if("PRG_new_game")
@@ -113,6 +115,8 @@
 		board.host = computer
 
 	var/mob/user = ui.user
+	if(!istype(user, /mob/living))
+		return TRUE
 
 	switch(action)
 		if("PRG_new_game")
@@ -129,12 +133,20 @@
 	var/game_status = TETRIS_IDLE
 
 	var/high_score = 0
+	/// Display name of whoever set high_score.
+	var/high_score_holder
 	/// Best (highest) score achieved in a 2-minute Blitz run.
 	var/blitz_high_score = 0
+	/// Display name of whoever set blitz_high_score.
+	var/blitz_high_score_holder
 	/// Best (lowest) 40 Lines completion time, in deciseconds. 0 means no completed run yet.
 	var/sprint_best_ds = 0
+	/// Display name of whoever set sprint_best_ds.
+	var/sprint_best_holder
 	/// Best (lowest) Garbage Race completion time, in deciseconds. 0 means no completed run yet.
 	var/garbage_best_ds = 0
+	/// Display name of whoever set garbage_best_ds.
+	var/garbage_best_holder
 	/// Whether a Marathon/Blitz run has ever actually finished on this machine, tracked
 	/// separately per mode since each has its own score baseline. Without this, the very
 	/// first game in a mode always "beats" that mode's score = 0 baseline and fires the win
@@ -154,6 +166,9 @@
 	/// ckey of whoever most recently pressed New Game. Whoever this doesn't match sees the
 	/// game as a read-only spectator instead of getting controls.
 	var/player_ckey
+	/// Display name of that same player, for spectators' "who's playing" label. Kept separate
+	/// from player_ckey since ckeys shouldn't be shown to other players' clients.
+	var/player_name
 	/// Latest client-pushed {board, current, hold, queue, score, lines, level} blob, relayed
 	/// verbatim to every other viewer's ui_data so they can render along a spectator.
 	var/list/snapshot
@@ -173,14 +188,25 @@
 /datum/tetris_arcade/proc/fill_ui_data(list/data, mob/user)
 	data["game_status"] = game_status
 	data["high_score"] = high_score
+	data["high_score_holder"] = high_score_holder
 	data["blitz_high_score"] = blitz_high_score
+	data["blitz_high_score_holder"] = blitz_high_score_holder
 	data["sprint_best_ds"] = sprint_best_ds
+	data["sprint_best_holder"] = sprint_best_holder
 	data["garbage_best_ds"] = garbage_best_ds
+	data["garbage_best_holder"] = garbage_best_holder
 	data["last_score"] = last_score
 	data["last_lines"] = last_lines
 	data["last_mode"] = last_mode
 	data["tickets"] = ticket_count
-	data["is_player"] = !isnull(player_ckey) && user && (user.ckey == player_ckey)
+	// isliving(), not just a ckey match: if the physical player dies mid-game, SStgui
+	// reassigns ui.user to their ghost while user.ckey stays the same. The board only runs
+	// client-side, so a ghost that still counted as "the player" here could keep visibly
+	// playing (their PRG_sync/PRG_game_over calls are already rejected server-side by the
+	// UI_INTERACTIVE gate, so there's no scoring exploit, just a dead player still driving
+	// pieces around).
+	data["is_player"] = !isnull(player_ckey) && isliving(user) && (user.ckey == player_ckey)
+	data["player_name"] = player_name
 	data["snapshot"] = snapshot
 	return data
 
@@ -189,6 +215,7 @@
 	// own local game locally (started just under the cooldown) doesn't get flipped to spectator
 	// view on its own next data poll.
 	player_ckey = user?.ckey
+	player_name = user?.name
 
 	if(!COOLDOWN_FINISHED(src, new_game_cd))
 		return FALSE
@@ -216,6 +243,8 @@
 			play_snd('sound/machines/terminal/terminal_select.ogg')
 		if("tetris")
 			play_snd('sound/machines/terminal/terminal_success.ogg')
+		if("spin")
+			play_snd('modular_skyrat/modules/subsystems/sounds/soft_ping.ogg')
 	return TRUE
 
 /// Called once by the client when its local game ends. The board itself is entirely
@@ -258,6 +287,7 @@
 		if("blitz")
 			if(has_finished_blitz && score > blitz_high_score)
 				blitz_high_score = score
+				blitz_high_score_holder = user?.name
 				is_record = TRUE
 			else
 				blitz_high_score = max(blitz_high_score, score)
@@ -267,16 +297,19 @@
 				is_success = TRUE
 				if(!sprint_best_ds || elapsed < sprint_best_ds)
 					sprint_best_ds = elapsed
+					sprint_best_holder = user?.name
 					is_record = TRUE
 		if("garbage")
 			if(completed)
 				is_success = TRUE
 				if(!garbage_best_ds || elapsed < garbage_best_ds)
 					garbage_best_ds = elapsed
+					garbage_best_holder = user?.name
 					is_record = TRUE
 		else
 			if(has_finished_marathon && score > high_score)
 				high_score = score
+				high_score_holder = user?.name
 				is_record = TRUE
 			else
 				high_score = max(high_score, score)

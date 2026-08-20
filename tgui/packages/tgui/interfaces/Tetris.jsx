@@ -232,18 +232,88 @@ const mergePiece = (board, matrix, px, py, type) => {
   return next;
 };
 
+// `survivorRows[newY] = oldY` for every row that made it through the clear, so a caller that
+// cared about specific cells at their old positions (the spin glow, below) can find out where
+// they ended up rather than just knowing how many rows shifted.
 const clearLines = (board) => {
-  const remaining = board.filter((row) => row.some((cell) => !cell));
+  const keptOldIndices = [];
+  const remaining = board.filter((row, oldY) => {
+    const keep = row.some((cell) => !cell);
+    if (keep) {
+      keptOldIndices.push(oldY);
+    }
+    return keep;
+  });
   const cleared = BOARD_H - remaining.length;
   while (remaining.length < BOARD_H) {
     remaining.unshift(new Array(BOARD_W).fill(null));
   }
-  return { board: remaining, cleared };
+  const survivorRows = new Map();
+  keptOldIndices.forEach((oldY, i) => {
+    survivorRows.set(oldY, cleared + i);
+  });
+  return { board: remaining, cleared, survivorRows };
+};
+
+// Garbage Race's objective is clearing the pre-filled garbage specifically, not just any 13
+// lines. A row built entirely from the player's own pieces above the stack, with no garbage
+// cell in it at all, shouldn't count. Call on the pre-clear (merged) board, since clearLines
+// only returns how many rows were removed, not what was in them.
+const countGarbageRows = (board) => {
+  let count = 0;
+  for (const row of board) {
+    if (row.every((cell) => cell) && row.includes('GARBAGE')) {
+      count++;
+    }
+  }
+  return count;
 };
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
 const gravityMs = (level) => Math.max(120, 900 - (level - 1) * 70);
+
+// Only the 3x3-boxed pieces (T/S/Z/J/L) get spin detection. O can't meaningfully spin, since a
+// rotation is always a no-op on it, and I's 4x4 box doesn't fit the same corner geometry.
+const SPIN_NAMES = { T: 'T-Spin', S: 'S-Spin', Z: 'Z-Spin', J: 'J-Spin', L: 'L-Spin' };
+const SPIN_CLEAR_SUFFIX = ['', ' Single', ' Double', ' Triple', ' Quad'];
+const SPIN_NO_CLEAR_BONUS = 100;
+const SPIN_CLEAR_MULTIPLIER = 2;
+const SPIN_BANNER_MS = 1600;
+const SPIN_GLOW_MS = 700;
+
+// A non-spin clear of this many lines or more (Triple, Tetris) gets the same banner/glow/sfx
+// treatment as a spin, plus a brief flash of the full rows before they're actually removed.
+const BIG_CLEAR_THRESHOLD = 3;
+const CLEAR_FLASH_MS = 500;
+const CLEAR_NAMES = ['', 'Single', 'Double', 'Triple', 'Tetris'];
+
+// The standard "3-corner rule" used to detect T-spins, generalized here to every 3x3-boxed
+// piece: counts how many of the piece's bounding-box corners are occupied, by the board
+// edge/floor or an actual filled cell. 3+ occupied corners means the piece is wedged in tight
+// enough (on a spot it could only have reached by rotating into it) to count as a spin.
+const countOccupiedCorners = (board, x, y) => {
+  const corners = [
+    [x, y],
+    [x + 2, y],
+    [x, y + 2],
+    [x + 2, y + 2],
+  ];
+  let count = 0;
+  for (const [cx, cy] of corners) {
+    if (cx < 0 || cx >= BOARD_W || cy >= BOARD_H) {
+      count++;
+      continue;
+    }
+    if (cy < 0) {
+      continue;
+    }
+    if (board[cy][cx]) {
+      count++;
+    }
+  }
+  return count;
+};
 
 const formatTime = (ms) => {
   const totalSeconds = Math.max(0, ms) / 1000;
@@ -254,6 +324,14 @@ const formatTime = (ms) => {
 
 // Server-tracked bests (sprint_best_ds/garbage_best_ds) are in deciseconds, not ms.
 const formatDs = (ds) => formatTime(ds * 100);
+
+// The board Section header is narrow (~230px), so a long RP name would wrap to a second line
+// and break the layout without this.
+const MAX_PLAYER_NAME_LEN = 14;
+const truncateName = (name) =>
+  name && name.length > MAX_PLAYER_NAME_LEN
+    ? `${name.slice(0, MAX_PLAYER_NAME_LEN - 1)}…`
+    : name;
 
 const spawnFromType = (type) => ({
   type,
@@ -321,32 +399,42 @@ const renderMiniPiece = (type) => {
   );
 };
 
-const BoardGrid = ({ board, ghost, overlay }) => (
-  <Box
-    style={{
-      position: 'relative',
-      display: 'inline-grid',
-      'grid-template-columns': `repeat(${BOARD_W}, ${CELL_PX}px)`,
-      'grid-template-rows': `repeat(${BOARD_H}, ${CELL_PX}px)`,
-      gap: '1px',
-      'background-color': 'rgba(0,0,0,0.3)',
-    }}
-  >
-    {board.map((row, y) =>
-      row.map((cell, x) => {
-        const ghostType = !cell && ghost?.[y][x];
-        return (
-          <Box
-            key={`${x}-${y}`}
-            style={{
-              'background-color': cell ? COLORS[cell] : 'rgba(255,255,255,0.03)',
-              'box-sizing': 'border-box',
-              border: ghostType ? `2px solid ${COLORS[ghostType]}` : 'none',
-            }}
-          />
-        );
-      }),
-    )}
+const BoardGrid = ({ board, ghost, overlay, topBanner, glow }) => {
+  const glowSet = glow?.length ? new Set(glow.map(({ x, y }) => `${x}-${y}`)) : null;
+  return (
+    <Box
+      style={{
+        position: 'relative',
+        display: 'inline-grid',
+        'grid-template-columns': `repeat(${BOARD_W}, ${CELL_PX}px)`,
+        'grid-template-rows': `repeat(${BOARD_H}, ${CELL_PX}px)`,
+        gap: '1px',
+        'background-color': 'rgba(0,0,0,0.3)',
+      }}
+    >
+      {board.map((row, y) =>
+        row.map((cell, x) => {
+          const ghostType = !cell && ghost?.[y][x];
+          const isGlowing = glowSet?.has(`${x}-${y}`);
+          return (
+            <Box
+              key={`${x}-${y}`}
+              style={{
+                'background-color': cell ? COLORS[cell] : 'rgba(255,255,255,0.03)',
+                'box-sizing': 'border-box',
+                border: ghostType ? `2px solid ${COLORS[ghostType]}` : 'none',
+                'box-shadow': isGlowing
+                  ? '0 0 6px 2px #fff, inset 0 0 6px 2px #fff'
+                  : '0 0 6px 2px transparent, inset 0 0 6px 2px transparent',
+                // Only box-shadow transitions. background-color/border update instantly since
+                // those change every frame during normal play, and a piece moving or the ghost
+                // outline shifting should never look like it's lagging behind.
+                transition: 'box-shadow 180ms ease-out',
+              }}
+            />
+          );
+        }),
+      )}
     {overlay && (
       <Box
         style={{
@@ -365,8 +453,36 @@ const BoardGrid = ({ board, ghost, overlay }) => (
         {overlay}
       </Box>
     )}
-  </Box>
-);
+    {topBanner && (
+      <Box
+        style={{
+          position: 'absolute',
+          top: '4px',
+          left: 0,
+          right: 0,
+          display: 'flex',
+          'justify-content': 'center',
+          'pointer-events': 'none',
+        }}
+      >
+        <Box
+          bold
+          style={{
+            'background-color': 'rgba(0,0,0,0.8)',
+            color: '#7cfc90',
+            padding: '3px 10px',
+            'border-radius': '4px',
+            'font-size': '12px',
+            'white-space': 'nowrap',
+          }}
+        >
+          {topBanner}
+        </Box>
+      </Box>
+    )}
+    </Box>
+  );
+};
 
 const KEYBINDS = [
   ['← / →', 'Move'],
@@ -413,16 +529,24 @@ const ModeSelect = ({ mode, onSelect }) => (
 );
 
 // Shared between the player's own Stats panel and the spectator's, so the two can't drift.
+// Appends " (holder)" to a best-record line when someone's actually set one.
+const holderSuffix = (holder) => (holder ? ` (${holder})` : '');
+
 const StatsBlock = ({
   mode,
   score,
   lines,
+  garbageCleared,
   level,
   statusMs,
   highScore,
+  highScoreHolder,
   blitzHighScore,
+  blitzHighScoreHolder,
   sprintBestDs,
+  sprintBestHolder,
   garbageBestDs,
+  garbageBestHolder,
   tickets,
 }) => (
   <>
@@ -436,6 +560,7 @@ const StatsBlock = ({
         </Box>
         <Box>
           <b>Best Score:</b> {blitzHighScore}
+          {holderSuffix(blitzHighScoreHolder)}
         </Box>
       </>
     )}
@@ -448,7 +573,8 @@ const StatsBlock = ({
           <b>Lines:</b> {lines}/{SPRINT_TARGET_LINES}
         </Box>
         <Box>
-          <b>Best Time:</b> {sprintBestDs ? formatDs(sprintBestDs) : '--:--'}
+          <b>Best Time:</b>{' '}
+          {sprintBestDs ? `${formatDs(sprintBestDs)}${holderSuffix(sprintBestHolder)}` : '--:--'}
         </Box>
       </>
     )}
@@ -458,10 +584,13 @@ const StatsBlock = ({
           <b>Time:</b> {formatTime(statusMs)}
         </Box>
         <Box>
-          <b>Lines:</b> {lines}/{GARBAGE_TARGET_LINES}
+          <b>Garbage:</b> {garbageCleared}/{GARBAGE_TARGET_LINES}
         </Box>
         <Box>
-          <b>Best Time:</b> {garbageBestDs ? formatDs(garbageBestDs) : '--:--'}
+          <b>Best Time:</b>{' '}
+          {garbageBestDs
+            ? `${formatDs(garbageBestDs)}${holderSuffix(garbageBestHolder)}`
+            : '--:--'}
         </Box>
       </>
     )}
@@ -478,9 +607,13 @@ const StatsBlock = ({
         </Box>
         <Box>
           <b>High Score:</b> {highScore}
+          {holderSuffix(highScoreHolder)}
         </Box>
       </>
     )}
+    <Box>
+      <b>Speed:</b> {gravityMs(level)}ms/row
+    </Box>
     <Box>
       <b>Tickets:</b> {tickets}
     </Box>
@@ -507,6 +640,11 @@ class TetrisGame extends Component {
     this.syncAccumulator = 0;
     this.statusAccumulator = 0;
     this.gameStartTs = 0;
+    // Whether the last successful thing done to the current piece was a rotation (rather than
+    // a slide or a fall), for spin detection - see lockCurrent().
+    this.lastRotated = false;
+    this.bannerToken = null;
+    this.glowToken = null;
 
     this.state = this.buildInitialState(false);
 
@@ -529,16 +667,33 @@ class TetrisGame extends Component {
   }
 
   buildSnapshot() {
-    const { board, current, hold, queue, score, lines, level, mode, statusMs } = this.state;
-    return {
-      board: buildDisplayBoard(board, current),
+    const {
+      board,
+      current,
       hold,
       queue,
       score,
       lines,
+      garbageCleared,
       level,
       mode,
       statusMs,
+      banner,
+      glow,
+    } = this.state;
+    return {
+      board: buildDisplayBoard(board, current),
+      ghost: buildGhostBoard(board, current),
+      hold,
+      queue,
+      score,
+      lines,
+      garbageCleared,
+      level,
+      mode,
+      statusMs,
+      banner,
+      glow,
     };
   }
 
@@ -557,10 +712,41 @@ class TetrisGame extends Component {
       canHold: true,
       score: 0,
       lines: 0,
+      garbageCleared: 0,
       level: 1,
       statusMs: 0,
       completed: false,
+      banner: null,
+      glow: null,
     };
+  }
+
+  // Shows a transient "T-Spin Double! +1200"-style banner pinned to the top of the board.
+  // Token-guarded so an older banner's timeout can't clear a newer one that landed within the
+  // same window.
+  showBanner(text) {
+    const token = {};
+    this.bannerToken = token;
+    this.setState({ banner: text });
+    window.setTimeout(() => {
+      if (this.bannerToken === token) {
+        this.setState({ banner: null });
+      }
+    }, SPIN_BANNER_MS);
+  }
+
+  // Highlights the given cells with a brief glow (a spin's own surviving cells, or the full
+  // rows of a big non-spin clear while they're still visible). Same token-guard idea as the
+  // banner.
+  showGlow(cells, duration = SPIN_GLOW_MS) {
+    const token = {};
+    this.glowToken = token;
+    this.setState({ glow: cells });
+    window.setTimeout(() => {
+      if (this.glowToken === token) {
+        this.setState({ glow: null });
+      }
+    }, duration);
   }
 
   selectMode(modeKey) {
@@ -614,6 +800,9 @@ class TetrisGame extends Component {
     this.statusAccumulator = 0;
     this.reported = false;
     this.gameStartTs = Date.now();
+    this.lastRotated = false;
+    this.bannerToken = null;
+    this.glowToken = null;
 
     this.setState(
       {
@@ -625,9 +814,12 @@ class TetrisGame extends Component {
         canHold: true,
         score: 0,
         lines: 0,
+        garbageCleared: 0,
         level: 1,
         statusMs: mode === 'blitz' ? BLITZ_DURATION_MS : 0,
         completed: false,
+        banner: null,
+        glow: null,
       },
       () => {
         this.lastFrame = null;
@@ -666,6 +858,7 @@ class TetrisGame extends Component {
       this.grounded = false;
       this.lockTimer = LOCK_DELAY_MS;
       this.lockResets = 0;
+      this.lastRotated = false;
       return { current, queue, canHold: true };
     });
   }
@@ -679,34 +872,123 @@ class TetrisGame extends Component {
     if (!current) {
       return;
     }
+
+    // Spin eligibility: a 3x3-boxed piece, the last thing done to it was a rotation (not a
+    // slide or a fall), and it's wedged in on 3+ of its bounding box's 4 corners.
+    const spinName = current.matrix.length === 3 ? SPIN_NAMES[current.type] : undefined;
+    const isSpin =
+      !!spinName && this.lastRotated && countOccupiedCorners(board, current.x, current.y) >= 3;
+
     const merged = mergePiece(board, current.matrix, current.x, current.y, current.type);
-    const { board: cleared, cleared: clearedCount } = clearLines(merged);
-    const scoreGain = LINE_SCORES[clearedCount] * level + bonusScore;
+    const { board: cleared, cleared: clearedCount, survivorRows } = clearLines(merged);
+    const isBigClear = !isSpin && clearedCount >= BIG_CLEAR_THRESHOLD;
+
+    let lineScoreGain;
+    let label = null;
+    if (isSpin) {
+      lineScoreGain =
+        clearedCount > 0
+          ? LINE_SCORES[clearedCount] * level * SPIN_CLEAR_MULTIPLIER
+          : SPIN_NO_CLEAR_BONUS * level;
+      label = `${spinName}${SPIN_CLEAR_SUFFIX[clearedCount]}! +${lineScoreGain}`;
+    } else {
+      lineScoreGain = LINE_SCORES[clearedCount] * level;
+      if (isBigClear) {
+        label = `${CLEAR_NAMES[clearedCount]}! +${lineScoreGain}`;
+      }
+    }
+    const scoreGain = lineScoreGain + bonusScore;
+
     const totalLines = this.state.lines + clearedCount;
     const newLevel = Math.floor(totalLines / 10) + 1;
-    const sfx = clearedCount >= 4 ? 'tetris' : clearedCount > 0 ? 'clear' : 'lock';
+    const sfx = isSpin
+      ? 'spin'
+      : clearedCount >= 4
+        ? 'tetris'
+        : clearedCount > 0
+          ? 'clear'
+          : 'lock';
 
-    const targetLines =
-      mode === 'sprint' ? SPRINT_TARGET_LINES : mode === 'garbage' ? GARBAGE_TARGET_LINES : null;
-    const objectiveComplete = targetLines !== null && totalLines >= targetLines;
+    // Garbage Race's own progress is tracked separately from totalLines (which still governs
+    // scoring/level for every mode uniformly), since only rows that actually contained garbage
+    // should count toward its objective. See countGarbageRows().
+    const totalGarbageCleared =
+      mode === 'garbage' ? this.state.garbageCleared + countGarbageRows(merged) : 0;
 
-    this.setState(
-      {
-        board: cleared,
-        score: this.state.score + scoreGain,
-        lines: totalLines,
-        level: newLevel,
-        current: null,
-      },
-      () => {
-        this.pushSync(sfx);
-        if (objectiveComplete) {
-          this.finishRun(true);
-        } else {
-          this.spawnNext();
+    const objectiveComplete =
+      mode === 'sprint'
+        ? totalLines >= SPRINT_TARGET_LINES
+        : mode === 'garbage'
+          ? totalGarbageCleared >= GARBAGE_TARGET_LINES
+          : false;
+
+    const commit = () => {
+      this.setState(
+        {
+          board: cleared,
+          score: this.state.score + scoreGain,
+          lines: totalLines,
+          garbageCleared: totalGarbageCleared,
+          level: newLevel,
+          current: null,
+        },
+        () => {
+          this.pushSync(sfx);
+          if (objectiveComplete) {
+            this.finishRun(true);
+          } else {
+            this.spawnNext();
+          }
+        },
+      );
+    };
+
+    if (isSpin) {
+      this.showBanner(label);
+      // Any of the piece's own cells that survived the clear, remapped to their post-clear row
+      // (a spin that also clears lines shifts rows above the clear down), so the glow lands on
+      // the right cells instead of wherever they used to be.
+      const glowCells = [];
+      for (let py = 0; py < current.matrix.length; py++) {
+        for (let px = 0; px < current.matrix[py].length; px++) {
+          if (!current.matrix[py][px]) {
+            continue;
+          }
+          const oldY = current.y + py;
+          const newY = survivorRows.get(oldY);
+          if (newY !== undefined) {
+            glowCells.push({ x: current.x + px, y: newY });
+          }
         }
-      },
-    );
+      }
+      this.showGlow(glowCells);
+      commit();
+      return;
+    }
+
+    if (isBigClear) {
+      // Flash the full rows in place (still part of `merged`, not yet removed) before actually
+      // clearing them, so the glow lands on the rows the player is watching disappear instead
+      // of nothing (they're gone from `cleared` already).
+      this.showBanner(label);
+      const flashCells = [];
+      for (let y = 0; y < BOARD_H; y++) {
+        if (merged[y].every((cell) => cell)) {
+          for (let x = 0; x < BOARD_W; x++) {
+            flashCells.push({ x, y });
+          }
+        }
+      }
+      // Cleared exactly when commit() actually removes these rows, not after. Their
+      // coordinates stop meaning anything once the board shifts, so any lingering glow past
+      // that point would light up whatever unrelated cells happen to share those positions now.
+      this.showGlow(flashCells, CLEAR_FLASH_MS);
+      this.setState({ board: merged, current: null });
+      window.setTimeout(commit, CLEAR_FLASH_MS);
+      return;
+    }
+
+    commit();
   }
 
   tryMove(dx, dy) {
@@ -721,6 +1003,7 @@ class TetrisGame extends Component {
     }
     this.setState({ current: { ...current, x: nx, y: ny } });
     this.updateGroundedState(board, current.matrix, nx, ny);
+    this.lastRotated = false;
     return true;
   }
 
@@ -759,6 +1042,7 @@ class TetrisGame extends Component {
           current: { ...current, matrix: rotated, x: nx },
         });
         this.updateGroundedState(board, rotated, nx, current.y);
+        this.lastRotated = true;
         return;
       }
     }
@@ -806,6 +1090,7 @@ class TetrisGame extends Component {
     this.grounded = false;
     this.lockTimer = LOCK_DELAY_MS;
     this.lockResets = 0;
+    this.lastRotated = false;
     this.setState({ current: swapped, hold: current.type, canHold: false });
   }
 
@@ -917,6 +1202,7 @@ class TetrisGame extends Component {
         const { board, current } = this.state;
         if (current && !collides(board, current.matrix, current.x, current.y + 1)) {
           this.grounded = false;
+          this.lastRotated = false;
           this.setState({ current: { ...current, y: current.y + 1 } });
         } else if (current) {
           this.grounded = true;
@@ -958,16 +1244,23 @@ class TetrisGame extends Component {
       hold,
       score,
       lines,
+      garbageCleared,
       level,
       mode,
       statusMs,
       completed,
+      banner,
+      glow,
     } = this.state;
     const {
       highScore,
+      highScoreHolder,
       blitzHighScore,
+      blitzHighScoreHolder,
       sprintBestDs,
+      sprintBestHolder,
       garbageBestDs,
+      garbageBestHolder,
       tickets,
       isCabinet,
       onClaimTickets,
@@ -987,7 +1280,7 @@ class TetrisGame extends Component {
       } else if (mode === 'garbage') {
         resultText = completed
           ? `Garbage cleared in ${formatTime(statusMs)}!`
-          : `Topped out — ${lines}/${GARBAGE_TARGET_LINES} lines`;
+          : `Topped out — ${garbageCleared}/${GARBAGE_TARGET_LINES} garbage lines`;
       } else {
         resultText = `Game Over — ${score} pts`;
       }
@@ -1005,6 +1298,8 @@ class TetrisGame extends Component {
                 <BoardGrid
                   board={displayBoard}
                   ghost={ghostBoard}
+                  topBanner={banner}
+                  glow={glow}
                   overlay={
                     phase !== 'playing' && (
                       <Stack vertical>
@@ -1057,12 +1352,17 @@ class TetrisGame extends Component {
                       mode={mode}
                       score={score}
                       lines={lines}
+                      garbageCleared={garbageCleared}
                       level={level}
                       statusMs={statusMs}
                       highScore={highScore}
+                      highScoreHolder={highScoreHolder}
                       blitzHighScore={blitzHighScore}
+                      blitzHighScoreHolder={blitzHighScoreHolder}
                       sprintBestDs={sprintBestDs}
+                      sprintBestHolder={sprintBestHolder}
                       garbageBestDs={garbageBestDs}
+                      garbageBestHolder={garbageBestHolder}
                       tickets={tickets}
                     />
                   </Section>
@@ -1158,10 +1458,15 @@ const TetrisSpectator = (props) => {
     gameStatus,
     lastScore,
     lastLines,
+    playerName,
     highScore,
+    highScoreHolder,
     blitzHighScore,
+    blitzHighScoreHolder,
     sprintBestDs,
+    sprintBestHolder,
     garbageBestDs,
+    garbageBestHolder,
     tickets,
     isCabinet,
     onNewGame,
@@ -1169,10 +1474,14 @@ const TetrisSpectator = (props) => {
   } = props;
 
   const board = snapshot?.board || makeEmptyBoard();
+  const ghost = snapshot?.ghost ?? null;
+  const banner = snapshot?.banner ?? null;
+  const glow = snapshot?.glow ?? null;
   const hold = snapshot?.hold ?? null;
   const queue = snapshot?.queue || [];
   const score = snapshot?.score ?? lastScore ?? 0;
   const lines = snapshot?.lines ?? lastLines ?? 0;
+  const garbageCleared = snapshot?.garbageCleared ?? 0;
   const level = snapshot?.level ?? 1;
   const mode = snapshot?.mode ?? 'marathon';
   const statusMs = snapshot?.statusMs ?? 0;
@@ -1184,9 +1493,14 @@ const TetrisSpectator = (props) => {
       <Stack.Item>
         <Stack>
           <Stack.Item>
-            <Section title="Board (Spectating)">
+            <Section
+              title={playerName ? `Spectating ${truncateName(playerName)}` : 'Spectating'}
+            >
               <BoardGrid
                 board={board}
+                ghost={ghost}
+                topBanner={banner}
+                glow={glow}
                 overlay={
                   (finished || !snapshot) && (
                     <>
@@ -1222,12 +1536,17 @@ const TetrisSpectator = (props) => {
                     mode={mode}
                     score={score}
                     lines={lines}
+                    garbageCleared={garbageCleared}
                     level={level}
                     statusMs={statusMs}
                     highScore={highScore}
+                    highScoreHolder={highScoreHolder}
                     blitzHighScore={blitzHighScore}
+                    blitzHighScoreHolder={blitzHighScoreHolder}
                     sprintBestDs={sprintBestDs}
+                    sprintBestHolder={sprintBestHolder}
                     garbageBestDs={garbageBestDs}
+                    garbageBestHolder={garbageBestHolder}
                     tickets={tickets}
                   />
                 </Section>
@@ -1244,7 +1563,6 @@ const TetrisSpectator = (props) => {
             </Stack.Item>
             <Stack.Item grow />
             <Stack.Item>
-              <KeybindsHelpButton />
               {canTakeOver && (
                 <Button
                   content="Take Over"
@@ -1273,9 +1591,13 @@ export const TetrisContent = (props, context) => {
   const { act, data } = useBackend(context);
   const {
     high_score = 0,
+    high_score_holder,
     blitz_high_score = 0,
+    blitz_high_score_holder,
     sprint_best_ds = 0,
+    sprint_best_holder,
     garbage_best_ds = 0,
+    garbage_best_holder,
     tickets = 0,
     is_cabinet,
     is_player,
@@ -1283,6 +1605,7 @@ export const TetrisContent = (props, context) => {
     snapshot,
     last_score = 0,
     last_lines = 0,
+    player_name,
   } = data;
 
   // Nobody's claimed the machine yet (fresh IDLE state) means anyone gets the interactive
@@ -1293,9 +1616,13 @@ export const TetrisContent = (props, context) => {
   return showControls ? (
     <TetrisGame
       highScore={high_score}
+      highScoreHolder={high_score_holder}
       blitzHighScore={blitz_high_score}
+      blitzHighScoreHolder={blitz_high_score_holder}
       sprintBestDs={sprint_best_ds}
+      sprintBestHolder={sprint_best_holder}
       garbageBestDs={garbage_best_ds}
+      garbageBestHolder={garbage_best_holder}
       tickets={tickets}
       isCabinet={is_cabinet}
       onNewGame={() => act('PRG_new_game')}
@@ -1311,10 +1638,15 @@ export const TetrisContent = (props, context) => {
       gameStatus={game_status}
       lastScore={last_score}
       lastLines={last_lines}
+      playerName={player_name}
       highScore={high_score}
+      highScoreHolder={high_score_holder}
       blitzHighScore={blitz_high_score}
+      blitzHighScoreHolder={blitz_high_score_holder}
       sprintBestDs={sprint_best_ds}
+      sprintBestHolder={sprint_best_holder}
       garbageBestDs={garbage_best_ds}
+      garbageBestHolder={garbage_best_holder}
       tickets={tickets}
       isCabinet={is_cabinet}
       onNewGame={() => act('PRG_new_game')}
