@@ -7,7 +7,8 @@
 
 	switch(preview_pref)
 		if(PREVIEW_PREF_JOB)
-			mannequin.underwear_visibility = NONE
+			// META EDIT - REMOVAL - UNDERWEAR_ITEMS
+			/* ORIGINAL: mannequin.underwear_visibility = NONE */
 			if(preview_job) // SKYRAT EDIT CHANGE
 				// Silicons only need a very basic preview since there is no customization for them.
 				if (istype(preview_job, /datum/job/ai))
@@ -17,20 +18,30 @@
 				mannequin.job = preview_job.title
 				mannequin.equip_outfit_and_loadout(preview_job.outfit, src, TRUE)
 		if(PREVIEW_PREF_LOADOUT)
-			mannequin.underwear_visibility = NONE
+			// META EDIT - REMOVAL - UNDERWEAR_ITEMS
+			/* ORIGINAL: mannequin.underwear_visibility = NONE */
 			var/default_outfit = new /datum/outfit()
 			mannequin.equip_outfit_and_loadout(default_outfit, src, TRUE)
+		// META EDIT - REMOVAL - UNDERWEAR_ITEMS
+		/* ORIGINAL:
 		if(PREVIEW_PREF_UNDERWEAR)
 			mannequin.underwear_visibility = NONE
+		*/
 		if(PREVIEW_PREF_NAKED)
-			mannequin.underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
+			// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+			// ORIGINAL: mannequin.underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
+			mannequin.remove_all_underwear_items()
+			// META EDIT - CHANGE - END
 			for(var/organ_key in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_BREASTS, ORGAN_SLOT_ANUS))
 				var/obj/item/organ/genital/gent = mannequin.get_organ_slot(organ_key)
 				if(gent)
 					gent.aroused = AROUSAL_NONE
 					gent.update_sprite_suffix()
 		if(PREVIEW_PREF_NAKED_AROUSED)
-			mannequin.underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
+			// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+			// ORIGINAL: mannequin.underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
+			mannequin.remove_all_underwear_items()
+			// META EDIT - CHANGE - END
 			for(var/organ_key in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_BREASTS, ORGAN_SLOT_ANUS))
 				var/obj/item/organ/genital/gent = mannequin.get_organ_slot(organ_key)
 				if(gent)

@@ -242,10 +242,13 @@
 
 ///copies over clothing preferences like underwear to another human
 /mob/living/carbon/human/proc/copy_clothing_prefs(mob/living/carbon/human/destination)
-	destination.underwear = underwear
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// Colors first, so set_X() below picks up the copied color rather than destination's old one.
 	destination.underwear_color = underwear_color
-	destination.undershirt = undershirt
-	destination.socks = socks
+	destination.set_underwear(w_underwear?.name || "Nude")
+	destination.set_undershirt(w_undershirt?.name || "Nude")
+	destination.set_socks(w_socks?.name || "Nude")
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 	destination.jumpsuit_style = jumpsuit_style
 
 /// Fully randomizes everything according to the given flags.

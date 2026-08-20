@@ -139,8 +139,10 @@
 
 	return generate_underwear_icon(SSaccessories.socks_list[value], lower_half)
 
+// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
 /datum/preference/choiced/socks/apply_to_human(mob/living/carbon/human/target, value)
-	target.socks = value
+	target.set_socks(value)
+// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 /// Undershirt preference
 /datum/preference/choiced/undershirt
@@ -190,8 +192,10 @@
 	icon_with_undershirt.scale(32, 32)
 	return icon_with_undershirt
 
+// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
 /datum/preference/choiced/undershirt/apply_to_human(mob/living/carbon/human/target, value)
-	target.undershirt = value
+	target.set_undershirt(value)
+// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 /// Underwear preference
 /datum/preference/choiced/underwear
@@ -219,8 +223,10 @@
 
 	return generate_underwear_icon(SSaccessories.underwear_list[value], lower_half, COLOR_ALMOST_BLACK, icon_offset = 5) // SKYRAT EDIT CHANGE : ICON_OFFSET // SKYRAT EDIT CHANGE - ORIGINAL: return generate_underwear_icon(SSaccessories.underwear_list[value], lower_half, COLOR_ALMOST_BLACK)
 
+// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
 /datum/preference/choiced/underwear/apply_to_human(mob/living/carbon/human/target, value)
-	target.underwear = value
+	target.set_underwear(value)
+// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 /datum/preference/choiced/underwear/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

@@ -757,7 +757,8 @@ There are several things that need to be remembered:
 
 /// Modifies a sprite slightly to conform to female body shapes
 /proc/wear_female_version(icon_state, icon, type, greyscale_colors, mutant_styles) // BUBBER EDIT CHANGE - Digi female gender shaping
-	var/index = "[icon_state]-[greyscale_colors][(mutant_styles & STYLE_DIGI) ? "-d" : ""]" // BUBBER EDIT CHANGE - Digi female gender shaping
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS: icon added to the cache key. Two different icon files sharing an icon_state name used to collide and return whichever was cached first.
+	var/index = "[icon]-[icon_state]-[greyscale_colors][(mutant_styles & STYLE_DIGI) ? "-d" : ""]" // BUBBER EDIT CHANGE - Digi female gender shaping
 	var/static/list/female_clothing_icons = list()
 	var/icon/female_clothing_icon = female_clothing_icons[index]
 	if(!female_clothing_icon) //Create standing/laying icons if they don't exist
@@ -1026,42 +1027,15 @@ mutant_styles: The mutant style - taur bodytype, STYLE_TESHARI, etc. // SKYRAT E
 /mob/living/carbon/human/update_body(is_creating = FALSE)
 	remove_overlay(BODY_LAYER)
 
-	var/list/body_overlays = list()
-	body_overlays += get_underwear_overlays()
-
-	if(length(body_overlays))
-		overlays_standing[BODY_LAYER] = body_overlays
-		apply_overlay(BODY_LAYER)
+	// META EDIT - REMOVAL - START - UNDERWEAR_ITEMS
+	// Underwear/bra/undershirt/socks used to be baked into this same BODY_LAYER overlay via
+	// get_underwear_overlays() (a cosmetic string-var lookup). They're now real equipped items
+	// rendered through their own overlays_standing slots, see
+	// modular_zzmeta/code/modules/mob/living/carbon/human/human_underwear_icons.dm.
+	// META EDIT - REMOVAL - END - UNDERWEAR_ITEMS
 
 	// parent call will update the actual bodyparts
 	return ..()
-
-/// Returns a list of all underclothing overlays to be applied to the mob
-/mob/living/carbon/human/proc/get_underwear_overlays() // OVERRIDDEN IN MODULAR_ZUBBERS
-	. = list()
-	if(HAS_TRAIT(src, TRAIT_HUSK) || HAS_TRAIT(src, TRAIT_INVISIBLE_MAN) || HAS_TRAIT(src, TRAIT_NO_UNDERWEAR))
-		return .
-
-	// Underwear, Undershirts & Socks
-	if(underwear)
-		var/datum/sprite_accessory/clothing/underwear/undie_accessory = SSaccessories.underwear_list[underwear]
-		var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape)
-		if(underwear_overlay)
-			. += underwear_overlay
-
-	if(undershirt)
-		var/datum/sprite_accessory/clothing/undershirt/shirt_accessory = SSaccessories.undershirt_list[undershirt]
-		var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(null, physique, bodyshape)
-		if(shirt_overlay)
-			. += shirt_overlay
-
-	if(socks && num_legs >= 2 && !(bodyshape & BODYSHAPE_DIGITIGRADE))
-		var/datum/sprite_accessory/clothing/socks/sock_accessory = SSaccessories.socks_list[socks]
-		var/mutable_appearance/socks_overlay = sock_accessory?.make_appearance(null, physique, bodyshape)
-		if(socks_overlay)
-			. += socks_overlay
-
-	return .
 
 /// Updates eye sprites if relevant
 /mob/living/proc/update_eyes(refresh = TRUE)

@@ -53,10 +53,14 @@
 	var/physique = MALE
 
 	//consider updating /mob/living/carbon/human/copy_clothing_prefs() if adding more of these
-	var/underwear = "Nude" //Which underwear the player wants
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// Was `var/underwear = "Nude"` etc, plain strings selecting a cosmetic sprite_accessory.
+	// Underwear is now a real equipped item; see modular_zzmeta/code/modules/clothing/underwear/.
+	var/obj/item/clothing/underwear/underwear/w_underwear = null
 	var/underwear_color = COLOR_BLACK
-	var/undershirt = "Nude" //Which undershirt the player wants
-	var/socks = "Nude" //Which socks the player wants
+	var/obj/item/clothing/underwear/undershirt/w_undershirt = null
+	var/obj/item/clothing/underwear/socks/w_socks = null
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 	var/backpack = DBACKPACK //Which backpack type the player has chosen.
 	var/jumpsuit_style = PREF_SUIT //suit/skirt
 

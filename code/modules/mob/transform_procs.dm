@@ -79,9 +79,10 @@
 	return src
 
 /mob/living/carbon/human/finish_humanize(species = /datum/species/human)
-	underwear = "Nude"
-	undershirt = "Nude"
-	socks = "Nude"
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	set_underwear("Nude")
+	set_undershirt("Nude")
+	set_socks("Nude")
 	return ..()
 
 /mob/proc/AIize(client/preference_source, move = TRUE)

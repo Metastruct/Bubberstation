@@ -908,7 +908,11 @@ GLOBAL_LIST_INIT(human_heights_to_offsets, list(
 /// Total number of standing overlays.
 /// KEEP THIS UP-TO-DATE OR SHIT WILL BREAK.
 /// (You ONLY need to update this if you add a standing overlay, adding an integer.)
-#define TOTAL_LAYERS 29
+// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+// Bumped from 29 to 33 to make room for the four new underwear-category overlays_standing
+// slots added in modular_zzmeta/code/modules/mob/living/carbon/human/human_underwear_icons.dm.
+#define TOTAL_LAYERS 33
+// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 #define UPPER_BODY "upper body"
 #define LOWER_BODY "lower body"

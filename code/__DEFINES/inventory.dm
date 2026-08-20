@@ -64,7 +64,11 @@
 #define ITEM_SLOT_LEGCUFFED (1<<18)
 
 /// Total amount of slots
-#define SLOTS_AMT 19 // Keep this up to date!
+// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+// Bumped from 19 to 23 for the new ITEM_SLOT_UNDERWEAR/BRA/UNDERSHIRT/SOCKS bits, defined in
+// code/__DEFINES/~~zzmeta_defines/underwear.dm (needed early by this file's own consumers).
+#define SLOTS_AMT 23 // Keep this up to date!
+// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 ///Inventory slots that can be blacklisted by a species from being equipped into
 DEFINE_BITFIELD(no_equip_flags, list(

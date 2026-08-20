@@ -13,5 +13,8 @@
 /mob/living/carbon/human/copy_clothing_prefs(mob/living/carbon/human/destination)
 	. = ..()
 
-	destination.bra = bra
 	destination.bra_color = bra_color
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// ORIGINAL: destination.bra = bra
+	destination.set_bra(w_bra?.name || "Nude")
+	// META EDIT - CHANGE - END

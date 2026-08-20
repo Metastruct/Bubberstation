@@ -388,7 +388,10 @@
 
 		LAZYINITLIST(result)
 
-		result["icon"] = icon2base64(icon(item.icon, item.icon_state, frame = 1))
+		// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+		// dir = SOUTH added: without it, items whose ground icon has dirs > 1 render all directions at once.
+		result["icon"] = icon2base64(icon(item.icon, item.icon_state, dir = SOUTH, frame = 1))
+		// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 		result["name"] = item.name
 		result["alternate"] = item_data.get_alternate_actions(owner, user, item)
 		list_clear_nulls(result["alternate"])

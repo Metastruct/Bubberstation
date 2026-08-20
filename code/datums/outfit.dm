@@ -124,10 +124,12 @@
 	///Should we preload some of this job's items?
 	var/preload = FALSE
 
-	/// Any undershirt. While on humans it is a string, here we use paths to stay consistent with the rest of the equips.
-	var/datum/sprite_accessory/clothing/undershirt = null
-	var/datum/sprite_accessory/clothing/underwear = null
-	var/datum/sprite_accessory/clothing/socks = null
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// Was typed as /datum/sprite_accessory/clothing/* (cosmetic-only). These are now real items.
+	var/obj/item/clothing/underwear/undershirt/undershirt = null
+	var/obj/item/clothing/underwear/underwear/underwear = null
+	var/obj/item/clothing/underwear/socks/socks = null
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 /**
  * Called at the start of the equip proc
@@ -218,19 +220,20 @@
 	if(suit_store)
 		EQUIP_OUTFIT_ITEM(suit_store, ITEM_SLOT_SUITSTORE)
 
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
 	if(undershirt)
-		user.undershirt = initial(undershirt.name)
+		EQUIP_OUTFIT_ITEM(undershirt, ITEM_SLOT_UNDERSHIRT)
 
 	if(underwear)
-		user.underwear = initial(underwear.name)
+		EQUIP_OUTFIT_ITEM(underwear, ITEM_SLOT_UNDERWEAR)
 
 	if(socks)
-		user.socks = initial(socks.name)
-
+		EQUIP_OUTFIT_ITEM(socks, ITEM_SLOT_SOCKS)
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 	// SKYRAT EDIT ADDITION START - Underwear and bra split
 	if(bra)
-		user.bra = initial(bra.name)
+		EQUIP_OUTFIT_ITEM(bra, ITEM_SLOT_BRA) // META EDIT - CHANGE - UNDERWEAR_ITEMS
 	// SKYRAT EDIT END
 
 	if(accessory)

@@ -526,10 +526,12 @@ GLOBAL_LIST_EMPTY(features_by_species)
 ///Proc that will randomise the underwear (i.e. top, pants and socks) of a species' associated mob,
 /// but will not update the body right away.
 /datum/species/proc/randomize_active_underwear_only(mob/living/carbon/human/human_mob)
-	human_mob.undershirt = random_undershirt(human_mob.gender)
-	human_mob.underwear = random_underwear(human_mob.gender)
-	human_mob.socks = random_socks(human_mob.gender)
-	human_mob.bra = random_bra(human_mob.gender) //SKYRAT EDIT ADDITION - Underwear and Bra split
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	human_mob.set_undershirt(random_undershirt(human_mob.gender))
+	human_mob.set_underwear(random_underwear(human_mob.gender))
+	human_mob.set_socks(random_socks(human_mob.gender))
+	human_mob.set_bra(random_bra(human_mob.gender))
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
 ///Proc that will randomise the underwear (i.e. top, pants and socks) of a species' associated mob
 /datum/species/proc/randomize_active_underwear(mob/living/carbon/human/human_mob)
@@ -704,6 +706,14 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			if(H.num_legs < 2)
 				return FALSE
 			return TRUE
+		// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
+		if(ITEM_SLOT_UNDERWEAR, ITEM_SLOT_BRA, ITEM_SLOT_UNDERSHIRT)
+			return equip_delay_self_check(I, H, bypass_equip_delay_self)
+		if(ITEM_SLOT_SOCKS)
+			if(H.num_legs < 2)
+				return FALSE
+			return equip_delay_self_check(I, H, bypass_equip_delay_self)
+		// META EDIT - ADDITION - END - UNDERWEAR_ITEMS
 	return FALSE //Unsupported slot
 
 /datum/species/proc/equip_delay_self_check(obj/item/I, mob/living/carbon/human/H, bypass_equip_delay_self)
