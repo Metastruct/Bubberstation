@@ -62,7 +62,9 @@
 		COMSIG_LIVING_SET_PULL_OFFSET,
 		COMSIG_MOVABLE_MOVED,
 		COMSIG_LIVING_CAN_ALLOW_THROUGH,
+		// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
 		COMSIG_MOB_CLIENT_MOVED,
+		// META EDIT - ADDITION - END
 	))
 
 //locks our movement when holding our keybinds
@@ -148,7 +150,10 @@
 	qdel(src)
 
 /// In-turf pixel movement which can allow things to pass through if the threshold is met.
+// META EDIT - CHANGE - START - PIXEL_SHIFT_TILE_CROSS
+// ORIGINAL: /datum/component/pixel_shift/proc/pixel_shift(mob/source, direct)
 /datum/component/pixel_shift/proc/pixel_shift(mob/source, direct, new_loc)
+// META EDIT - CHANGE - END
 	passthroughable = NONE
 	var/mob/living/owner = parent
 	switch(shifting)
