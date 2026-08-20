@@ -66,7 +66,10 @@
 	return icon_with_bra
 
 /datum/preference/choiced/bra/apply_to_human(mob/living/carbon/human/target, value)
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// ORIGINAL: target.bra = value
 	target.set_bra(value)
+	// META EDIT - CHANGE - END
 
 /datum/preference/choiced/bra/compile_constant_data()
 	var/list/data = ..()

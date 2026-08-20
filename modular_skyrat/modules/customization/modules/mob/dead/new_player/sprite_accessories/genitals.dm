@@ -23,6 +23,31 @@
 			if(istype(target_mob.wear_suit, /obj/item/clothing/suit/toggle/labcoat/hospitalgown))
 				return TRUE
 
+			// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+			/* ORIGINAL:
+			//Are they wearing an Undershirt?
+			if(target_mob.undershirt != "Nude" && !(target_mob.underwear_visibility & UNDERWEAR_HIDE_SHIRT))
+				var/datum/sprite_accessory/clothing/undershirt/worn_undershirt = SSaccessories.undershirt_list[target_mob.undershirt]
+				//Does this Undershirt cover a relevant slot?
+				if(genital_location == CHEST) //(Undershirt always covers chest)
+					return TRUE
+
+				else if(genital_location == GROIN && worn_undershirt.hides_groin)
+					return TRUE
+
+			//Undershirt didn't cover them, are they wearing Underwear?
+			if(target_mob.underwear != "Nude" && !(target_mob.underwear_visibility & UNDERWEAR_HIDE_UNDIES))
+				var/datum/sprite_accessory/clothing/underwear/worn_underwear = SSaccessories.underwear_list[target_mob.underwear]
+				//Does this Underwear cover a relevant slot?
+				if(genital_location == GROIN) //(Underwear always covers groin)
+					return TRUE
+
+				else if(genital_location == CHEST && worn_underwear.hides_breasts)
+					return TRUE
+
+			//Are they wearing a bra?
+			if(target_mob.bra != "Nude" && !(target_mob.underwear_visibility & UNDERWEAR_HIDE_BRA) && genital_location == CHEST)
+			*/
 			//Are they wearing an Undershirt?
 			if(target_mob.w_undershirt)
 				//Does this Undershirt cover a relevant slot?
@@ -37,6 +62,7 @@
 
 			//Are they wearing a bra?
 			if(target_mob.w_bra && genital_location == CHEST)
+			// META EDIT - CHANGE - END
 				return TRUE
 
 			//Nothing they're wearing will cover them
