@@ -33,7 +33,7 @@ const MAX_LOCK_RESETS = 15;
 // How often the player's client pushes a board snapshot for spectators. Matches
 // config/comms.txt's TICKLAG (0.5s), since the server can't relay updates faster than one per
 // world tick anyway.
-const SYNC_MS = 500;
+const SYNC_MS = 250;
 
 // Must match TETRIS_IDLE/TETRIS_PLAYING/TETRIS_GAMEOVER in
 // modular_zzmeta/modules/tetris/code/tetris.dm.
