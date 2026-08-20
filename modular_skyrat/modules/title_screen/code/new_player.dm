@@ -148,7 +148,9 @@
 
 /mob/dead/new_player/Login()
 	. = ..()
+	// META EDIT - ADDITION - START - LOBBY_MUSIC_RECONNECT_FIX
 	client.playlobbymusic()
+	// META EDIT - ADDITION - END
 	show_title_screen()
 
 /**

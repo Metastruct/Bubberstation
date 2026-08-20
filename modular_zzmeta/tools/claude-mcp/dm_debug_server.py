@@ -22,8 +22,12 @@ the server's secret key never has to pass through the model's context:
 
 import asyncio
 import base64
+import functools
 import glob
+import itertools
 import json
+import logging
+import logging.handlers
 import os
 import re
 import shutil
@@ -53,6 +57,20 @@ BOOT_PID_FILE = os.path.join(BOOT_STATE_DIR, "pid")
 BOOT_LOG_FILE = os.path.join(BOOT_STATE_DIR, "boot.log")
 NEXT_MAP_FILE = os.path.join(REPO_ROOT, "data", "next_map.json")
 
+# This process's own debug log - separate from the DreamDaemon logs under
+# data/logs/ that dm_debug_find_log searches. The MCP framework normally logs
+# nothing at all for a tool call (see _handle_call_tool in
+# mcp/server/mcpserver/server.py - a raised exception just becomes a
+# CallToolResult(is_error=True) with no log line anywhere), and even what it
+# does log via logging.basicConfig only goes to this process's own stderr,
+# which isn't reachable after the fact. Every tool call/result/exception is
+# logged here instead (see _logged_tool below) so a failure can be diagnosed
+# by tailing a file instead of re-triggering it blind. Rotated (5MB x3) since
+# this is a long-lived dev process that can accumulate a lot of SDQL traffic
+# over weeks.
+CLAUDE_MCP_LOG_DIR = os.path.join(REPO_ROOT, "data", "logs", "claude_mcp")
+CLAUDE_MCP_LOG_FILE = os.path.join(CLAUDE_MCP_LOG_DIR, "dm_debug_server.log")
+
 # CDP (Chrome DevTools Protocol) access into tgui's embedded WebView2 browser.
 # Separate from the DM_DEBUG_* config above - doesn't go through world.Topic()
 # at all, talks directly to the browser. Needs the one-time setup described in
@@ -74,11 +92,81 @@ SCREENSHOT_DIR_PATTERNS = [
     "/mnt/c/Users/*/*/BYOND/screenshots",
 ]
 
-mcp = MCPServer("dm-debug")
+mcp = MCPServer("dm-debug", log_level="DEBUG")
+
+# MCPServer(..., log_level="DEBUG") already ran logging.basicConfig() (see
+# configure_logging() in mcp/server/mcpserver/utilities/logging.py), which
+# attaches a stderr handler to the root logger and sets its level - a second
+# basicConfig call is a no-op once handlers exist, so add the file handler
+# directly instead of trying to reconfigure via basicConfig again.
+os.makedirs(CLAUDE_MCP_LOG_DIR, exist_ok=True)
+_file_handler = logging.handlers.RotatingFileHandler(
+    CLAUDE_MCP_LOG_FILE, maxBytes=5_000_000, backupCount=3
+)
+_file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+logging.getLogger().addHandler(_file_handler)
+
+logger = logging.getLogger("dm_debug_server")
+logger.info(
+    "dm_debug_server starting: pid=%s port=%s key_set=%s timeout=%s cdp=%s:%s repo_root=%s",
+    os.getpid(), PORT, bool(KEY), TIMEOUT, CDP_HOST, CDP_PORT, REPO_ROOT,
+)
 
 
 class TopicError(RuntimeError):
     pass
+
+
+_call_ids = itertools.count(1)
+_MAX_LOGGED_VALUE = 600  # chars - SDQL results/args can be huge, keep the log readable
+
+
+def _truncate(text: str) -> str:
+    text = str(text)
+    if len(text) <= _MAX_LOGGED_VALUE:
+        return text
+    return text[:_MAX_LOGGED_VALUE] + f"... ({len(text)} chars total)"
+
+
+def _safe_result_repr(value) -> str:
+    # Image (from mcp.server.mcpserver) carries raw PNG bytes - never dump those
+    # into a text log, just note the size.
+    data = getattr(value, "data", None)
+    fmt = getattr(value, "format", None)
+    if data is not None and fmt is not None:
+        return f"<Image format={fmt} bytes={len(data)}>"
+    return _truncate(repr(value))
+
+
+def _logged_tool(fn):
+    """Wrap an @mcp.tool() function so every call, its result/exception, and
+    timing land in CLAUDE_MCP_LOG_FILE - see the comment on that constant for
+    why this exists. Never logs DM_DEBUG_KEY (env-only, never a tool arg, so
+    there's nothing to redact from args/kwargs here).
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        call_id = next(_call_ids)
+        arg_repr = ", ".join(
+            [repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()]
+        )
+        logger.info("#%d %s(%s) called", call_id, fn.__name__, _truncate(arg_repr))
+        start = time.monotonic()
+        try:
+            result = fn(*args, **kwargs)
+        except Exception:
+            logger.exception(
+                "#%d %s raised after %.2fs", call_id, fn.__name__, time.monotonic() - start
+            )
+            raise
+        logger.info(
+            "#%d %s -> %s (%.2fs)",
+            call_id, fn.__name__, _safe_result_repr(result), time.monotonic() - start,
+        )
+        return result
+
+    return wrapper
 
 
 # Matches a bracket/brace whose entire content is a single bareword ending in digits, e.g.
@@ -145,6 +233,7 @@ def _send_topic(host: str, port: int, topic: str, timeout: float) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_query(query: str) -> str:
     """Run a read/write debug query against the live DreamDaemon dev server.
 
@@ -318,6 +407,7 @@ def dm_debug_query(query: str) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.0) -> str:
     """Boot a disposable DreamDaemon instance in THIS checkout, for live
     testing via dm_debug_query - and block until it's ready (or timed out).
@@ -421,8 +511,21 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
     # first second or so) until it succeeds once.
     forced_immediate_start = not KEY
 
-    deadline = time.time() + boot_timeout
+    start_time = time.time()
+    logger.info("dm_debug_boot_server: launched pid=%s map=%r, polling boot.log", proc.pid, map)
+    deadline = start_time + boot_timeout
+    last_progress_log = 0.0
     while time.time() < deadline:
+        # This loop runs inside a single _logged_tool call that can legitimately
+        # block for minutes, so its own entry/exit log lines alone would leave a
+        # long silent gap on a slow boot - log progress periodically so tailing
+        # the log live actually shows something moving, not just a hang.
+        if time.time() - last_progress_log > 10:
+            logger.info(
+                "dm_debug_boot_server: still waiting, %.0fs elapsed, alive=%s",
+                time.time() - start_time, proc.poll() is None,
+            )
+            last_progress_log = time.time()
         if proc.poll() is not None:
             log_f.close()
             with open(BOOT_LOG_FILE, "rb") as f:
@@ -462,6 +565,7 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_stop_server() -> str:
     """Stop the disposable DreamDaemon instance started by dm_debug_boot_server,
     and clean up everything it left behind: kills the process (group),
@@ -528,6 +632,7 @@ def _claude_debug_call(**params) -> dict:
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_find(type_path: str, where: str = "", limit: int = 25) -> str:
     """Find live objects by type (+ optional SDQL WHERE filter) and get back
     real handles you can pass to dm_debug_get_var/dm_debug_set_var/
@@ -580,6 +685,7 @@ def dm_debug_find(type_path: str, where: str = "", limit: int = 25) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_get_var(handle: str, var: str) -> str:
     """Read one var off a handle returned by dm_debug_find (or nested inside
     a prior dm_debug_get_var/dm_debug_call_proc result's "ref" value).
@@ -597,6 +703,7 @@ def dm_debug_get_var(handle: str, var: str) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_set_var(handle: str, var: str, value_type: str, value: str = "") -> str:
     """Write one var on a handle returned by dm_debug_find.
 
@@ -624,6 +731,7 @@ def dm_debug_set_var(handle: str, var: str, value_type: str, value: str = "") ->
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_call_proc(handle: str, proc: str, args: str = "[]") -> str:
     """Call a named proc on a handle returned by dm_debug_find, with real
     argument values instead of string-interpolated SDQL syntax - no
@@ -675,13 +783,29 @@ def dm_debug_call_proc(handle: str, proc: str, args: str = "[]") -> str:
     return json.dumps(result, indent=2)
 
 
+def _find_log_path(log_name: str) -> str:
+    """Newest data/logs/**/<log_name>.log, or raises if none exists yet.
+    Shared by dm_debug_find_log (one-shot lookup) and dm_debug_listen
+    (polls this repeatedly since the file may not exist yet at call time).
+    """
+    pattern = os.path.join(REPO_ROOT, "data", "logs", "**", f"{log_name}.log")
+    candidates = glob.glob(pattern, recursive=True)
+    if not candidates:
+        raise TopicError(
+            f"No {log_name}.log found under data/logs/ - is a server running/has it logged anything yet?"
+        )
+    return max(candidates, key=os.path.getmtime)
+
+
 @mcp.tool()
+@_logged_tool
 def dm_debug_find_log(log_name: str = "runtime") -> str:
     """Find the newest matching DreamDaemon log file under this checkout's
     data/logs/ tree, so you can tail it directly (e.g. `tail -f <path>` in a
     background Bash call + the Monitor tool, for a live-updating feed of
-    server output instead of adding temporary debug prints to code and
-    recompiling/rebooting to see them).
+    server output). For watching ad-hoc debug prints specifically as they
+    happen (e.g. chasing a race condition), dm_debug_listen below is usually
+    more convenient - it does the polling and new-line extraction for you.
 
     Every DreamDaemon boot writes its own freshly timestamped/round-numbered
     directory (data/logs/YYYY/MM/DD/round-<id>/, see SetupLogs() in
@@ -700,16 +824,279 @@ def dm_debug_find_log(log_name: str = "runtime") -> str:
     Returns the file's path as plain text, or raises if nothing matches -
     check a server is actually running and has logged anything yet.
     """
-    pattern = os.path.join(REPO_ROOT, "data", "logs", "**", f"{log_name}.log")
-    candidates = glob.glob(pattern, recursive=True)
-    if not candidates:
-        raise TopicError(
-            f"No {log_name}.log found under data/logs/ - is a server running/has it logged anything yet?"
-        )
-    return max(candidates, key=os.path.getmtime)
+    return _find_log_path(log_name)
 
 
 @mcp.tool()
+@_logged_tool
+def dm_debug_listen(log_name: str = "debug", pattern: str = "", duration: float = 30.0) -> str:
+    """Block for `duration` seconds and report every NEW line appended to a
+    data/logs/**/<log_name>.log file during that window - built for chasing
+    race conditions: drop a temporary debug line at each suspected point in
+    the DM code, trigger the scenario, and get back exactly which lines
+    fired, in what real order, with real timestamps - instead of guessing
+    from a scrollback tail or adding a print and hoping you catch it.
+
+    The natural pairing is `logger.Log(LOG_CATEGORY_DEBUG, "some tag: [var]")`
+    (see code/modules/logging/log_holder.dm, code/__DEFINES/logging.dm) at
+    each point you're suspicious of - it needs no category/config setup,
+    always writes to human-readable `debug.log` (LOG_CATEGORY_DEBUG, config
+    flag `log_as_human_readable` defaults TRUE - see
+    code/controllers/configuration/entries/general.dm) with a real
+    timestamp per line, and several unrelated subsystems (asset/job/lua/tts/
+    mapping debug logging) funnel into that same file too - use a distinct
+    tag string per debug line and pass it as `pattern` to cut the noise down
+    to just yours. `log_world("...")` is the other common one-liner (see
+    code/__HELPERS/logging/debug.dm) but writes to the DD engine's own
+    `dd.log`/`runtime.log` instead - pass `log_name="runtime"` if you used
+    that one.
+
+    IMPORTANT: DM is not hot-reloadable like tgui - a newly added debug line
+    only takes effect after tools/build/build.sh dm (--skip-icon-cutter for
+    plain code changes) AND a fresh boot (dm_debug_stop_server +
+    dm_debug_boot_server, or ask the user to restart their own server).
+    Adding the line alone, without recompiling/rebooting, produces nothing
+    for this tool to see.
+
+    Starts reading from the file's CURRENT end (like `tail -f`, not `cat`) -
+    already-logged history before this call is never included, so old noise
+    from before you started investigating doesn't drown the new lines. If
+    the file doesn't exist yet (nothing in that category has logged this
+    round), keeps polling for it to appear for the full duration rather than
+    failing immediately.
+
+    `pattern` (optional): a plain case-insensitive substring - only lines
+    containing it are returned. Leave empty to see every new line in the
+    file, matched or not (useful the first time, to see the file's actual
+    format/volume before narrowing down).
+
+    Reload/retrigger the suspected race while this is running - it blocks
+    for the full duration either way. Call it again for another window;
+    there's no cap on how many times.
+
+    Returns the matched lines (newline-joined, in file order = real
+    chronological order), or a message noting how many total new lines
+    appeared but didn't match `pattern` (so you can tell "nothing happened
+    yet" apart from "it happened but under a different tag than you
+    expected").
+    """
+    deadline = time.time() + duration
+    matched: list[str] = []
+    total_new_lines = 0
+
+    # Start offset depends on whether the file already existed the moment this
+    # call began: if it did, skip straight to its current size (tail -f-style -
+    # don't replay old history). If it didn't, the file appearing at all during
+    # the poll below means it was created fresh by this round's own logging
+    # sometime after this call started - read it from byte 0 in that case, since
+    # nothing in it can predate this call. Getting this backwards (always
+    # seeking to "current end" only once found) loses exactly the first line(s)
+    # whenever file-creation and this tool's poll land in the same ~0.3s window.
+    try:
+        path = _find_log_path(log_name)
+        start_offset = os.path.getsize(path)
+    except TopicError:
+        path = None
+        start_offset = 0
+        while path is None and time.time() < deadline:
+            time.sleep(0.3)
+            try:
+                path = _find_log_path(log_name)
+            except TopicError:
+                continue
+        if path is None:
+            raise TopicError(
+                f"No {log_name}.log ever appeared under data/logs/ during {duration}s - "
+                "is a server running, and has anything actually logged to that category yet?"
+            )
+
+    pattern_lower = pattern.lower()
+    with open(path, "rb") as f:
+        f.seek(start_offset)
+        offset = f.tell()
+        while time.time() < deadline:
+            f.seek(offset)
+            chunk = f.read()
+            if chunk:
+                offset = f.tell()
+                lines = chunk.decode(errors="replace").splitlines()
+                total_new_lines += len(lines)
+                matched.extend(line for line in lines if not pattern_lower or pattern_lower in line.lower())
+            time.sleep(0.3)
+
+    if matched:
+        return "\n".join(matched)
+    if total_new_lines:
+        return (
+            f"{total_new_lines} new line(s) appeared in {path} during {duration}s, "
+            f"but none matched pattern {pattern!r}."
+        )
+    return f"No new lines appeared in {path} during {duration}s."
+
+
+def _run_check(name: str, cmd: list[str], stdin_path: str | None = None, timeout: float = 60.0) -> dict:
+    """Run one CI-lint subprocess in REPO_ROOT and capture its outcome.
+    Shared by dm_debug_run_linters for every check except dreamchecker, which
+    needs bespoke handling (see that tool - its exit code isn't trustworthy).
+    """
+    start = time.monotonic()
+    stdin_data = None
+    if stdin_path:
+        with open(os.path.join(REPO_ROOT, stdin_path), "rb") as f:
+            stdin_data = f.read()
+    try:
+        result = subprocess.run(
+            cmd, cwd=REPO_ROOT, input=stdin_data,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout,
+        )
+        return {
+            "name": name, "ok": result.returncode == 0, "exit_code": result.returncode,
+            "duration": time.monotonic() - start, "output": result.stdout.decode(errors="replace"),
+        }
+    except subprocess.TimeoutExpired as e:
+        output = (e.output or b"").decode(errors="replace") + f"\n[TIMED OUT after {timeout}s]"
+        return {"name": name, "ok": False, "exit_code": None, "duration": time.monotonic() - start, "output": output}
+    except FileNotFoundError as e:
+        return {"name": name, "ok": False, "exit_code": None, "duration": time.monotonic() - start, "output": str(e)}
+
+
+def _format_check_result(r: dict) -> str:
+    status = "OK  " if r["ok"] else ("SKIP" if r["ok"] is None else "FAIL")
+    line = f"[{status}] {r['name']} ({r['duration']:.1f}s)"
+    if "diagnostic_count" in r:
+        line += f" - {r['diagnostic_count']} diagnostic(s)" if r["diagnostic_count"] is not None else " - count unparseable"
+    if r["ok"] is not True:
+        tail = r["output"][-3000:]
+        line += f"\n{tail}"
+    return line
+
+
+@mcp.tool()
+@_logged_tool
+def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = False, run_tgui_lint: bool = False) -> str:
+    """Run the locally-runnable subset of .github/workflows/run_linters.yml
+    (see the checklist this was built from) and report a pass/fail summary -
+    a clean `tools/build/build.sh dm` compile alone does NOT catch everything
+    CI checks (include ordering, unhandled local #defines, trait
+    registration completeness, dreamchecker's stricter static typing). Two
+    real incidents motivated this: an out-of-order #include that compiled
+    fine but failed CI, and a feature whose files were missing 3 of 5
+    #include lines entirely - compiled clean, ran with zero errors, and
+    silently did nothing all session because none of its code was actually
+    linked in. Run this after any nontrivial DM change (new files, new
+    #include lines, new #defines outside __DEFINES/, trait additions) before
+    calling the work done, not just a compile.
+
+    Always runs (in order): check_genesis.sh (genesis_call.dme unchanged),
+    check_grep.sh (misc grep-based style rules), ticked_file_enforcement.py
+    against BOTH schemas (tgstation.dme and
+    code/modules/unit_tests/_unit_tests.dm - every .dm/.dmf file needs
+    exactly one #include, in strict alphabetical order; this is the check
+    that catches both real incidents above), define_sanity.check (every
+    local #define outside __DEFINES/__HELPERS/_globalvars needs a matching
+    #undef in the same file), trait_validity.check (trait
+    registration/declaration consistency), check_filedirs.sh (File DIR must
+    not be ticked in tgstation.dme), and dmi.test (every .dmi parses).
+
+    `run_dreamchecker=True` (default) additionally runs dreamchecker - a
+    static-type checker stricter than the DM compiler itself, catching
+    things like a weakly-typed asset-datum return where the compiler accepts
+    a proc call but dreamchecker flags "requires static type". Not a
+    pass/fail gate here: dreamchecker's own exit code is NOT trustworthy
+    (confirmed live - it returns 0 even for a rejected/unknown argument), so
+    this instead confirms the run was real by checking for its own "Parsing
+    tgstation.dme..." progress line, and separately reports the "Found N
+    diagnostics" count. That count is NOT necessarily caused by your
+    change - this codebase can carry pre-existing diagnostics on a clean
+    checkout with no relevant changes at all (confirmed live: 147 on an
+    unmodified tree at the time this tool was built). Skip re-litigating
+    every diagnostic; check whether any reported file:line falls inside
+    something you actually touched this session before treating it as a
+    real regression. If `dreamchecker` isn't on PATH, this is reported as
+    skipped (not a failure) with the install command
+    (`bash tools/ci/install_spaceman_dmm.sh dreamchecker`, then symlink onto
+    PATH - see the project's own linter-checklist notes for why a bare
+    missing-binary case can otherwise look identical to a false "clean"
+    pass).
+
+    `run_icon_cutter`/`run_tgui_lint` (both default False, opt in) run
+    icon_cutter.check and `build.sh --ci lint tgui-test` - only relevant if
+    icon templates or tgui/ files changed respectively, and slower, so not
+    run by default.
+
+    Deliberately NEVER runs (do not add these): check_changelogs.sh (NOT
+    read-only despite the name - confirmed live it actually deleted a real
+    committed changelog fragment and merged it elsewhere, meant only for an
+    actual release pipeline), check_misc.sh (hard-fails immediately in this
+    environment, PHP isn't installed - not a real signal here), the OpenDream
+    DMCompiler (not installed, needs a separate .NET download), or the map
+    checks (mapmerge2/maplint - only relevant when .dmm files changed, out
+    of scope for a generic post-change lint pass).
+
+    Returns one line per check: `[OK]`/`[FAIL]`/`[SKIP]`, its duration, and
+    (only when not a clean OK) up to 3000 chars of its own output tail.
+    """
+    checks = [
+        _run_check("check_genesis", ["bash", "tools/ci/check_genesis.sh"], timeout=30),
+        _run_check("check_grep", ["bash", "tools/ci/check_grep.sh"], timeout=60),
+        _run_check(
+            "ticked_file_enforcement (tgstation.dme)",
+            ["tools/bootstrap/python", "tools/ticked_file_enforcement/ticked_file_enforcement.py"],
+            stdin_path="tools/ticked_file_enforcement/schemas/tgstation_dme.json", timeout=30,
+        ),
+        _run_check(
+            "ticked_file_enforcement (unit_tests)",
+            ["tools/bootstrap/python", "tools/ticked_file_enforcement/ticked_file_enforcement.py"],
+            stdin_path="tools/ticked_file_enforcement/schemas/unit_tests.json", timeout=30,
+        ),
+        _run_check("define_sanity", ["tools/bootstrap/python", "-m", "tools.define_sanity.check"], timeout=60),
+        _run_check("trait_validity", ["tools/bootstrap/python", "-m", "tools.trait_validity.check"], timeout=60),
+        _run_check("check_filedirs", ["bash", "tools/ci/check_filedirs.sh", "tgstation.dme"], timeout=30),
+        _run_check("dmi.test", ["tools/bootstrap/python", "-m", "dmi.test"], timeout=90),
+    ]
+
+    if run_icon_cutter:
+        checks.append(_run_check("icon_cutter.check", ["tools/bootstrap/python", "-m", "tools.icon_cutter.check"], timeout=90))
+    if run_tgui_lint:
+        checks.append(_run_check("tgui lint", ["tools/build/build.sh", "--ci", "lint", "tgui-test"], timeout=300))
+
+    if run_dreamchecker:
+        if not shutil.which("dreamchecker"):
+            checks.append({
+                "name": "dreamchecker", "ok": None, "duration": 0.0,
+                "output": "not found on PATH - install via "
+                          "'bash tools/ci/install_spaceman_dmm.sh dreamchecker' then symlink onto PATH.",
+            })
+        else:
+            start = time.monotonic()
+            try:
+                result = subprocess.run(
+                    ["dreamchecker"], cwd=REPO_ROOT,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300,
+                )
+                output = result.stdout.decode(errors="replace")
+            except subprocess.TimeoutExpired as e:
+                output = (e.output or b"").decode(errors="replace") + "\n[TIMED OUT after 300s]"
+            ran_for_real = "Parsing tgstation.dme" in output
+            match = re.search(r"Found (\d+) diagnostics?", output)
+            checks.append({
+                "name": "dreamchecker", "ok": ran_for_real,
+                "diagnostic_count": int(match.group(1)) if match else None,
+                "duration": time.monotonic() - start, "output": output,
+            })
+
+    lines = [_format_check_result(r) for r in checks]
+    total_time = sum(r["duration"] for r in checks)
+    failed = [r["name"] for r in checks if r["ok"] is False]
+    summary = (
+        f"{len(checks) - len(failed)}/{len(checks)} checks passed ({total_time:.1f}s total)"
+        + (f" - FAILED: {', '.join(failed)}" if failed else "")
+    )
+    return summary + "\n\n" + "\n".join(lines)
+
+
+@mcp.tool()
+@_logged_tool
 def dm_debug_render_atom(ref: str) -> Image:
     """Render a single atom's current flattened appearance as a PNG.
 
@@ -746,6 +1133,7 @@ def _find_screenshot_dir() -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_latest_screenshot(max_age_seconds: int = 120) -> Image:
     """Read back your most recent BYOND client screenshot (the F2 hotkey).
 
@@ -814,6 +1202,7 @@ def _get_byond_window_geometry():
 
 
 @mcp.tool()
+@_logged_tool
 def dm_debug_screenshot_full_window() -> Image:
     """LAST RESORT: OS-level screenshot of the entire BYOND client window,
     including the sidebar (menu tabs, stat panel tabs, chat log) that
@@ -907,6 +1296,7 @@ async def _cdp_send(ws_url: str, method: str, params: dict) -> dict:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_list_targets() -> str:
     """List debuggable tgui/pager browser targets over the Chrome DevTools
     Protocol (CDP) - separate from and unrelated to the SDQL/world.Topic()
@@ -930,6 +1320,7 @@ def tgui_list_targets() -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_find_window(query: str) -> str:
     """Find which open tgui window is which, by content rather than title.
 
@@ -975,6 +1366,7 @@ def tgui_find_window(query: str) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_eval(target: str, expression: str) -> str:
     """Evaluate JavaScript in a live tgui browser target and return the result.
 
@@ -997,6 +1389,7 @@ def tgui_eval(target: str, expression: str) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_click(target: str, x: float, y: float) -> str:
     """Dispatch a real mouse click at (x, y) in a live tgui browser target.
 
@@ -1030,6 +1423,7 @@ def tgui_click(target: str, x: float, y: float) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_type(target: str, x: float, y: float, text: str) -> str:
     """Click a text field/textarea at (x, y) and type `text` into it via real
     keyboard events (Input.dispatchKeyEvent, one keyDown+keyUp per character)
@@ -1071,6 +1465,7 @@ def tgui_type(target: str, x: float, y: float, text: str) -> str:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_screenshot(target: str) -> Image:
     """Screenshot exactly one tgui target's rendered content as a PNG - not
     the whole BYOND window, just this one panel's own viewport. No window
@@ -1090,6 +1485,7 @@ def tgui_screenshot(target: str) -> Image:
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_watch(target: str, duration: float = 5.0) -> str:
     """Watch a tgui target for `duration` seconds and report what happened:
     console output (console.log/warn/error), uncaught JS exceptions, browser
@@ -1209,6 +1605,7 @@ _REACT_WALK_JS = """
 
 
 @mcp.tool()
+@_logged_tool
 def tgui_react_props(target: str, selector: str, prop_name: str = "", max_depth: int = 15) -> str:
     """Inspect a live React component's actual props/state by walking up the
     Fiber tree from a DOM element - a lighter, scriptable alternative to
@@ -1247,4 +1644,13 @@ def tgui_react_props(target: str, selector: str, prop_name: str = "", max_depth:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    logger.info("dm_debug_server entering stdio run loop")
+    try:
+        mcp.run()
+    except KeyboardInterrupt:
+        logger.info("dm_debug_server stopped (KeyboardInterrupt)")
+    except Exception:
+        logger.exception("dm_debug_server crashed")
+        raise
+    else:
+        logger.info("dm_debug_server stdio run loop exited cleanly")

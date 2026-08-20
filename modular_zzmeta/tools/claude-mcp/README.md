@@ -7,7 +7,7 @@ yet, boot and tear down a disposable one itself. Talks to the `claude_debug`
 topic handler in `code/datums/world_topic.dm` and
 `modular_zzmeta/modules/claude_debug/code/claude_debug.dm`. Also has eight
 tools that bypass `world.Topic()` entirely and drive tgui's embedded browser
-directly over the Chrome DevTools Protocol. Nineteen tools total.
+directly over the Chrome DevTools Protocol. Twenty-one tools total.
 
 **`dm_debug_find`/`get_var`/`set_var`/`call_proc` vs `dm_debug_query`:** the
 find/get_var/set_var/call_proc family is newer and bypasses SDQL2's own
@@ -43,6 +43,26 @@ covers most of that already) or a statement type these four don't cover
 - `dm_debug_stop_server()` — kills the tracked disposable boot and removes
   everything it left behind (`data/next_map.json`, its log directory). Safe
   to call speculatively even if nothing is tracked as running.
+- `dm_debug_run_linters(run_dreamchecker=True, run_icon_cutter=False,
+  run_tgui_lint=False)` — runs the locally-runnable subset of
+  `.github/workflows/run_linters.yml` and reports a pass/fail summary. A
+  clean compile alone doesn't catch include-ordering, unhandled local
+  `#define`s, trait registration gaps, or dreamchecker's stricter static
+  typing — run this after any nontrivial DM change, not just a compile.
+  Always runs `check_genesis`/`check_grep`/`ticked_file_enforcement` (both
+  schemas)/`define_sanity`/`trait_validity`/`check_filedirs`/`dmi.test`;
+  `run_icon_cutter`/`run_tgui_lint` opt into the two checks that only matter
+  if icons/tgui files changed. `dreamchecker`'s own exit code isn't
+  trustworthy (confirmed live: returns 0 even for a bad argument) so this
+  instead confirms a real run via its "Parsing tgstation.dme..." line and
+  reports its diagnostic count separately as informational — that count can
+  include pre-existing baseline diagnostics unrelated to your change
+  (confirmed live: 147 on an untouched checkout), so check whether a
+  reported line falls inside something you actually edited before treating
+  it as a regression. Deliberately never runs `check_changelogs.sh` (not
+  read-only despite the name — confirmed live it deletes real changelog
+  fragments, meant only for an actual release pipeline) or `check_misc.sh`
+  (hard-fails here, PHP isn't installed).
 - `dm_debug_query(query)` — runs SDQL2 queries (see
   `code/modules/admin/verbs/SDQL2/SDQL_2.dm` for syntax) with elevated
   permissions. Returns the JSON-formatted text response, including any
@@ -107,9 +127,29 @@ covers most of that already) or a statement type these four don't cover
   log directory is timestamped/round-numbered with no fixed path — see
   `SetupLogs()` in `code/game/world.dm`) so you can `tail -f` it directly
   (background Bash + the Monitor tool) for a live-updating feed of server
-  output, instead of adding temporary debug prints and recompiling/
-  rebooting to see them. Defaults to `"runtime"`, DreamDaemon's own native
-  RUNTIME:/error log.
+  output. Defaults to `"runtime"`, DreamDaemon's own native RUNTIME:/error
+  log. For watching ad-hoc debug prints specifically, `dm_debug_listen`
+  below does the tailing for you.
+- `dm_debug_listen(log_name="debug", pattern="", duration=30.0)` — blocks for
+  `duration` seconds and returns every NEW line appended to `<log_name>.log`
+  during that window, in real chronological order. Built for chasing race
+  conditions: drop a `logger.Log(LOG_CATEGORY_DEBUG, "some tag: [var]")` line
+  (needs no category/config setup, always writes to human-readable
+  `debug.log`) at each point you're suspicious of, recompile + reboot (DM
+  isn't hot-reloadable — a line added without both has nothing for this tool
+  to see), then call this while triggering the scenario. `pattern` is an
+  optional case-insensitive substring filter — several unrelated subsystems
+  (asset/job/lua/tts/mapping debug logging) funnel into the same `debug.log`
+  file, so a distinct tag per debug line plus `pattern` cuts straight to just
+  yours; leave it empty to see everything and get a feel for the file's
+  volume/format first. Starts from the file's current end (`tail -f`
+  semantics, not `cat`) and correctly handles the file not existing yet
+  (keeps polling for its creation, then reads from byte 0 once it appears —
+  never skips the very first lines of a brand-new file, which a naive
+  "seek to end once found" would). `log_world("...")` is the other common
+  one-liner debug print (see `code/__HELPERS/logging/debug.dm`) but writes to
+  the engine's own `dd.log`/`runtime.log` instead — pass `log_name="runtime"`
+  for that one.
 - `dm_debug_render_atom(ref)` — flattens one atom's current sprite (icon +
   overlays, via `getFlatIcon()`) to a PNG and returns it as an image, given
   a ref from a prior `dm_debug_query` SELECT. Separate from the query path
@@ -267,10 +307,31 @@ check on the caller's address.
    a port other than 9222.
 
 4. Boot your dev DreamDaemon as usual — or call `dm_debug_boot_server` to
-   have Claude boot a disposable one itself. Either way, all nineteen tools
+   have Claude boot a disposable one itself. Either way, all twenty-one tools
    will now be available in Claude Code sessions in this repo — except the
    eight `tgui_*` ones, which additionally need the one-time setup in
    [`webview2-debugging.md`](webview2-debugging.md) done first.
+
+## Debugging the MCP server itself
+
+`dm_debug_server.py` is a long-lived process Claude Code launches over stdio
+per the `.mcp.json` entry above — separate from any DreamDaemon it happens to
+be talking to. Its own crashes/hangs/exceptions are otherwise invisible: the
+MCP framework turns a raised exception into a plain error result with no log
+line anywhere, and what little it does log via Python's `logging` only goes
+to this process's own stderr, which isn't reachable after the fact.
+
+Every tool call, its result (or full exception traceback) and timing, plus a
+startup line with the resolved config (port, whether the key is set, repo
+root — never the key's actual value), are logged to
+`data/logs/claude_mcp/dm_debug_server.log` (rotated at 5MB × 3 backups).
+`dm_debug_boot_server` additionally logs progress every ~10s while it's
+polling, since that call alone can legitimately block for minutes. Tail this
+file (background `Bash` + `Monitor`, same pattern as `dm_debug_find_log`) to
+watch what the MCP server is actually doing instead of guessing from an
+opaque tool error, or to check it started at all with the config you expect
+after editing `.mcp.json` (which needs the MCP connection restarted —
+reconnect via `/mcp` or restart Claude Code — to pick up env var changes).
 
 ## What it can't do
 
