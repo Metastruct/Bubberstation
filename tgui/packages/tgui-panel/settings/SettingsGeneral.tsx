@@ -156,6 +156,40 @@ export function SettingsGeneral(props) {
             }
           />
         </LabeledList.Item>
+        {/* META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS */}
+        <LabeledList.Item label="Say color mix">
+          <Slider
+            width="100%"
+            step={1}
+            minValue={0}
+            maxValue={100}
+            value={settings.chatNameColorMixSay}
+            unit="%"
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({
+                chatNameColorMixSay: value,
+              })
+            }
+          />
+        </LabeledList.Item>
+        <LabeledList.Item label="Radio color mix">
+          <Slider
+            width="100%"
+            step={1}
+            minValue={0}
+            maxValue={100}
+            value={settings.chatNameColorMixRadio}
+            unit="%"
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({
+                chatNameColorMixRadio: value,
+              })
+            }
+          />
+        </LabeledList.Item>
+        {/* META EDIT - ADDITION - END */}
       </LabeledList>
       <Divider />
       <Stack fill>

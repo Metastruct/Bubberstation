@@ -39,3 +39,30 @@
   --color-section: hsl(from var(--color-base) h s calc(l - 4.2));
   --base-gradient-spread: 0;
 }
+
+// META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
+// Colors the per-speaker name spans compose_message() puts on chat messages. --chat-color-name-value
+// (the speaker's own chat color) and, on radio, --chat-color-name-channel (the channel's own color) are
+// set inline per message; the "Say color mix" / "Radio color mix" sliders in SettingsGeneral drive how
+// much of each shows, via these two percentages.
+//
+// Off radio there's no channel color to weigh against, so 100% is the speaker's full color and 0% is the
+// classic look (the normal inherited text color). On radio, both colors are always real channel/speaker
+// colors, so 100% is the speaker's full color and 0% is the plain channel color, with 50% (the default)
+// reproducing the original 50/50 blend.
+.chat-color-name-say {
+  color: color-mix(
+    in srgb,
+    var(--chat-color-name-value, currentColor) var(--chat-name-color-mix-say, 100%),
+    currentColor
+  );
+}
+
+.chat-color-name-radio {
+  color: color-mix(
+    in srgb,
+    var(--chat-color-name-value, currentColor) var(--chat-name-color-mix-radio, 50%),
+    var(--chat-color-name-channel, currentColor)
+  );
+}
+// META EDIT - ADDITION - END

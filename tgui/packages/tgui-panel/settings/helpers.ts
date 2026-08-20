@@ -57,6 +57,14 @@ function setStatTabsStyle(style: string): void {
   }, 1500);
 }
 
+// META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
+/** Drives the --chat-name-color-mix-say/-radio CSS variables the color-mix() rules in main.scss read. */
+function setChatNameColorMix(sayMix: number, radioMix: number): void {
+  document.body.style.setProperty('--chat-name-color-mix-say', `${sayMix}%`);
+  document.body.style.setProperty('--chat-name-color-mix-radio', `${radioMix}%`);
+}
+// META EDIT - ADDITION - END
+
 export function generalSettingsHandler(update: SettingsState): void {
   // Set client theme
   const theme = update?.theme;
@@ -71,4 +79,8 @@ export function generalSettingsHandler(update: SettingsState): void {
   setGlobalFontSize(update.fontSize, update.statFontSize, update.statLinked);
   setGlobalFontFamily(update.fontFamily);
   updateGlobalOverrideRule();
+
+  // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
+  setChatNameColorMix(update.chatNameColorMixSay, update.chatNameColorMixRadio);
+  // META EDIT - ADDITION - END
 }

@@ -166,28 +166,38 @@ GLOBAL_LIST_INIT(freqtospan, list(
 	//Basic span
 	var/freq_color = get_radio_color(radio_freq, radio_freq_color)
 	var/spanpart1 = "<span class='[radio_freq ? get_radio_span(radio_freq) : "game say"]' [freq_color ? "style='color:[freq_color];'" : ""]>"
-	//Start name span.
-	var/spanpart2 = "<span class='name'>"
 	//Radio freq/name display
 	var/freqpart = radio_freq ? "\[[get_radio_name(radio_freq, radio_freq_name)]\] " : ""
-	//Speaker name
-	var/namepart = message_mods[MODE_SPEAKER_NAME_OVERRIDE] || speaker.get_message_voice(visible_name)
-
-	//End name span.
-	var/endspanpart = "</span>"
-
 	// Language icon.
 	var/languageicon = ""
 	if(!message_mods[MODE_CUSTOM_SAY_ERASE_INPUT])
 		var/datum/language/dialect = GLOB.language_datum_instances[message_language]
 		if(istype(dialect) && dialect.display_icon(src))
 			languageicon = "[dialect.get_icon()] "
+	//Start name span.
+	// META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
+	// Colors the speaker's name with their chat color so speakers stay distinguishable in the chat log.
+	// freqpart/languageicon are built above so they land outside this span and stay uncolored.
+	// Only the raw colors are set here, as CSS variables; the client blends them per its own settings (see main.scss).
+	// On radio, both the speaker's color and the channel's own color are exposed, so the client can mix between the two;
+	// off radio there's no channel color to mix with, so the client just mixes the speaker's color toward the default text color.
+	var/name_color = speaker.get_chat_name_color()
+	var/name_color_class = radio_freq ? "chat-color-name-radio" : "chat-color-name-say"
+	var/channel_color = radio_freq ? get_radio_base_color(radio_freq, radio_freq_color) : null
+	var/name_style = name_color ? "--chat-color-name-value:[name_color];[channel_color ? " --chat-color-name-channel:[channel_color];" : ""]" : ""
+	var/spanpart2 = "<span class='name[name_color ? " [name_color_class]" : ""]' [name_style ? "style='[name_style]'" : ""]>"
+	// META EDIT - ADDITION - END
+	//Speaker name
+	var/namepart = message_mods[MODE_SPEAKER_NAME_OVERRIDE] || speaker.get_message_voice(visible_name)
+
+	//End name span.
+	var/endspanpart = "</span>"
 
 	// The actual message part.
 	var/messagepart = speaker.generate_messagepart(raw_message, spans, message_mods)
 	messagepart = " <span class='message'>[messagepart]</span></span>"
 
-	return "[spanpart1][spanpart2][freqpart][languageicon][compose_track_href(speaker, namepart)][namepart][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
+	return "[spanpart1][freqpart][languageicon][spanpart2][compose_track_href(speaker, namepart)][namepart][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
 
 /atom/movable/proc/compose_track_href(atom/movable/speaker, message_langs, raw_message, radio_freq)
 	return ""

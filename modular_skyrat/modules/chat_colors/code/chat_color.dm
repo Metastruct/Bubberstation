@@ -30,7 +30,8 @@
 #define CHAT_COLOR_DARKENED 2
 
 /// Get the mob's chat color by looking up their name in the cached list, if no match is found default to colorize_string().
-/datum/chatmessage/proc/get_chat_color_string(name, darkened)
+/// Global so it can be reused outside of chatmessage.dm, e.g. for coloring names in the main chat log (see modular_zzmeta/modules/chat_colors).
+/proc/get_chat_color_string(name, darkened)
 	var/chat_color_strings = GLOB.chat_colors_by_mob_name[name]
 	if(chat_color_strings)
 		return darkened ? chat_color_strings[CHAT_COLOR_DARKENED] : chat_color_strings[CHAT_COLOR_NORMAL]

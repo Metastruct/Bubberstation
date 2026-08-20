@@ -10535,6 +10535,7 @@
 #include "modular_zzmeta\code\modules\mob\living\silicon\silicon_headshot.dm"
 #include "modular_zzmeta\code\modules\reagents\chemistry\reagents.dm"
 #include "modular_zzmeta\maps\offstation\ghostcafe\ghost_role_spawners.dm"
+#include "modular_zzmeta\modules\chat_colors\code\say_chat_colors.dm"
 #include "modular_zzmeta\modules\claude_debug\code\claude_debug.dm"
 #include "modular_zzmeta\modules\close_eyes\code\close_eyes.dm"
 #include "modular_zzmeta\modules\interaction_menu\code\_interaction_defines.dm"
