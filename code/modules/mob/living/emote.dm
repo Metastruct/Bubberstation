@@ -786,6 +786,11 @@
 	if(!emote_is_valid(user, our_message))
 		return FALSE
 
+	// META EDIT ADDITION START - CUSTOM_EMOTE_AUTOPUNCTUATION
+	if(user.client?.autopunctuation)
+		our_message = autopunct_bare(our_message)
+	// META EDIT ADDITION END - CUSTOM_EMOTE_AUTOPUNCTUATION
+
 	if(!params)
 		var/user_emote_type = get_custom_emote_type_from_user()
 
