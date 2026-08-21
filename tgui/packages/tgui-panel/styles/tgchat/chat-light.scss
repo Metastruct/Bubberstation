@@ -1133,6 +1133,45 @@ h2.alert {
   overflow: visible;
 }
 
+// META EDIT - ADDITION - START - CHAT_IMAGE_EMBED
+.chat_image_embed_btn {
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: inherit;
+  background: transparent;
+  border: 1px solid hsla(220, 75%, 25%, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat_image_embed_btn:hover {
+  background: hsla(220, 75%, 25%, 0.1);
+}
+
+.chat_image_embed_frame {
+  display: none;
+  margin: 4px 0;
+  padding: 4px;
+  background: hsl(220, 100%, 97.5%);
+  border: 1px solid;
+  border-left: 4px solid;
+  border-color: hsla(220, 75%, 25%, 0.5);
+  border-radius: 4px;
+}
+
+.chat_image_embed_frame--expanded {
+  display: inline-flex;
+}
+
+.chat_image_embed_frame img {
+  max-width: min(400px, 100%);
+  max-height: 400px;
+  object-fit: contain;
+}
+// META EDIT - ADDITION - END
+
 $alert-stripe-colors: (
   'default': hsl(230.5, 100%, 85.1%),
   'green': hsl(120, 100%, 83.9%),

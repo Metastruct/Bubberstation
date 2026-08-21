@@ -1142,6 +1142,45 @@ em {
   overflow: visible;
 }
 
+// META EDIT - ADDITION - START - CHAT_IMAGE_EMBED
+.chat_image_embed_btn {
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: inherit;
+  background: transparent;
+  border: var(--border-thickness-tiny) solid hsla(220, 40%, 75%, 0.25);
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+}
+
+.chat_image_embed_btn:hover {
+  background: hsla(220, 40%, 75%, 0.15);
+}
+
+.chat_image_embed_frame {
+  display: none;
+  margin: var(--space-xs) 0;
+  padding: var(--space-xs);
+  background: hsl(220, 10%, 10%);
+  border: var(--border-thickness-tiny) solid;
+  border-left: var(--border-thickness-large) solid;
+  border-color: hsla(220, 40%, 75%, 0.25);
+  border-radius: var(--border-radius-medium);
+}
+
+.chat_image_embed_frame--expanded {
+  display: inline-flex;
+}
+
+.chat_image_embed_frame img {
+  max-width: min(400px, 100%);
+  max-height: 400px;
+  object-fit: contain;
+}
+// META EDIT - ADDITION - END
+
 $alert-stripe-colors: (
   'default': hsl(198.6, 100%, 11.4%),
   'green': hsl(120, 100%, 12%),

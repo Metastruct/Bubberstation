@@ -92,13 +92,19 @@
 		if (is_holder)
 			continue //admins are handled afterwards
 
+		// META EDIT - CHANGE - START - LOOC_LINKIFY
+		// ORIGINAL: <span class='message'>[msg] (no linkify class, LOOC links weren't clickable)
 		if(holder && isdead(src.mob)) // Admins ghosted display ckey
-			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.ckey]:</EM> <span class='message'>[msg]")))
+			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.ckey]:</EM> <span class='message linkify'>[msg]")))
 		else
-			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.mob.name]:</EM> <span class='message'>[msg]")))
+			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.mob.name]:</EM> <span class='message linkify'>[msg]")))
+		// META EDIT - CHANGE - END
 
 	for(var/client/cli_client as anything in GLOB.admins)
+		// META EDIT - CHANGE - START - LOOC_LINKIFY
+		// ORIGINAL: <span class='message'>[msg]</span> (no linkify class, LOOC links weren't clickable)
 		if (admin_seen[cli_client])
-			to_chat(cli_client, span_looc("[ADMIN_FLW(usr)] <span class='prefix'>LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.key]/[src.mob.name]:</EM> <span class='message'>[msg]</span>"))
+			to_chat(cli_client, span_looc("[ADMIN_FLW(usr)] <span class='prefix'>LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.key]/[src.mob.name]:</EM> <span class='message linkify'>[msg]</span>"))
 		else if (cli_client.prefs.read_preference(/datum/preference/toggle/admin/see_looc))
-			to_chat(cli_client, span_rlooc("[ADMIN_FLW(usr)] <span class='prefix'>(R)LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.key]/[src.mob.name]:</EM> <span class='message'>[msg]</span>"))
+			to_chat(cli_client, span_rlooc("[ADMIN_FLW(usr)] <span class='prefix'>(R)LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.key]/[src.mob.name]:</EM> <span class='message linkify'>[msg]</span>"))
+		// META EDIT - CHANGE - END

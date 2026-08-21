@@ -189,6 +189,10 @@ export function highlightNode(
 const URL_REGEX =
   /(?:(?:https?:\/\/)|(?:www\.))(?:[^ ]*?\.[^ ]*?)+[-A-Za-z0-9+&@#/%?=~_|$!:,.;(){}]+/gi;
 
+// META EDIT - ADDITION - START - CHAT_IMAGE_EMBED
+const IMAGE_URL_REGEX = /\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?$/i;
+// META EDIT - ADDITION - END
+
 /**
  * Highlights the text in the node based on the provided regular expression.
  */
@@ -208,9 +212,63 @@ export function linkifyNode(node: Node): number {
   return n;
 }
 
-const linkifyTextNode = replaceInTextNode(URL_REGEX, null, (text) => {
-  const node = document.createElement('a');
-  node.href = text;
-  node.textContent = text;
-  return node;
-});
+// META EDIT - ADDITION - START - CHAT_IMAGE_EMBED
+/**
+ * Toggles the inline embed of an image link, lazily loading the
+ * image on first expand so it is never fetched until the user opts in.
+ */
+function toggleImageEmbed(url: string, btn: HTMLButtonElement, frame: HTMLDivElement) {
+  const expanded = frame.classList.toggle('chat_image_embed_frame--expanded');
+  if (expanded && !frame.firstChild) {
+    const img = document.createElement('img');
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => {
+      frame.classList.add('chat_image_embed_frame--error');
+      frame.textContent = 'Failed to load image';
+    });
+    img.src = url;
+    frame.appendChild(img);
+  }
+  btn.textContent = expanded ? '▾' : '▸';
+  btn.title = expanded ? 'Collapse image' : 'Expand image';
+}
+// META EDIT - ADDITION - END
+
+// META EDIT - CHANGE - START - CHAT_IMAGE_EMBED
+// ORIGINAL:
+// const linkifyTextNode = replaceInTextNode(URL_REGEX, null, (text) => {
+//   const node = document.createElement('a');
+//   node.href = text;
+//   node.textContent = text;
+//   return node;
+// });
+function createLinkNode(text: string): Node {
+  const linkNode = document.createElement('a');
+  linkNode.href = text;
+  linkNode.textContent = text;
+
+  if (!IMAGE_URL_REGEX.test(text)) {
+    return linkNode;
+  }
+
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(linkNode);
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'chat_image_embed_btn';
+  btn.textContent = '▸';
+  btn.title = 'Expand image';
+  fragment.appendChild(btn);
+
+  const frame = document.createElement('div');
+  frame.className = 'chat_image_embed_frame';
+  fragment.appendChild(frame);
+
+  btn.addEventListener('click', () => toggleImageEmbed(text, btn, frame));
+
+  return fragment;
+}
+
+const linkifyTextNode = replaceInTextNode(URL_REGEX, null, createLinkNode);
+// META EDIT - CHANGE - END
