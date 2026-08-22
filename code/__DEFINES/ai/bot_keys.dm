@@ -61,6 +61,7 @@
 #define BB_ACID_SPRAY_TARGET "acid_spray_target"
 ///key that holds trash we will burn
 #define BB_HUNTABLE_TRASH "huntable_trash"
+#define BB_CLEANABLE_LIQUIDS "cleanable_liquids" // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 
 //hygienebots
 ///key that holds our threats

@@ -37,6 +37,7 @@
 		BB_HUNTABLE_PESTS = CLEANBOT_CLEAN_PESTS,
 		BB_CLEANABLE_DRAWINGS = CLEANBOT_CLEAN_DRAWINGS,
 		BB_HUNTABLE_TRASH = CLEANBOT_CLEAN_TRASH,
+		BB_CLEANABLE_LIQUIDS = CLEANBOT_CLEAN_LIQUIDS, // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 	)
 
 /datum/ai_planning_subtree/pet_planning/cleanbot/SelectBehaviors(datum/ai_controller/basic_controller/bot/controller, seconds_per_tick)
