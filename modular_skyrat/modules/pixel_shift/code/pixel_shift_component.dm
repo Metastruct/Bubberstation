@@ -178,7 +178,7 @@
 		if(SHIFTING_PARENT)
 			// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
 			var/turf/target_turf = isturf(new_loc) ? new_loc : null
-			var/turf_blocked = target_turf ? target_turf.is_blocked_turf(source_atom = owner) : TRUE
+			var/turf_blocked = source.buckled || (target_turf ? target_turf.is_blocked_turf(source_atom = owner) : TRUE)
 			switch(direct)
 				if(NORTH)
 					if(shift_y < maximum_pixel_shift)
