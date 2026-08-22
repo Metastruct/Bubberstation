@@ -33,7 +33,7 @@ GLOBAL_VAR_INIT(afk_indicator_overlay, generate_afk_indicator_overlay())
 
 /mob/living/proc/evaluate_afk_indicator()
 	SIGNAL_HANDLER
-	if(client == NULL) // don't bother with disconnected people shoudld already be handled
+	if(client == null) // don't bother with disconnected people shoudld already be handled
 		return
 	if(client.is_afk())
 		set_afk_indicator(TRUE)
