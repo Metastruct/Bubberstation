@@ -1161,6 +1161,7 @@ em {
 
 .chat_image_embed_frame {
   display: none;
+  max-width: min(400px, 100%);
   margin: var(--space-xs) 0;
   padding: var(--space-xs);
   background: hsl(220, 10%, 10%);
@@ -1175,7 +1176,7 @@ em {
 }
 
 .chat_image_embed_frame img {
-  max-width: min(400px, 100%);
+  max-width: 100%;
   max-height: 400px;
   object-fit: contain;
 }
