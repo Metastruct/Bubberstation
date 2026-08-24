@@ -3,7 +3,12 @@
 /mob/living/carbon/get_eye_protection()
 	. = ..()
 	if(is_blind() && !is_blind_from(list(UNCONSCIOUS_TRAIT, HYPNOCHAIR_TRAIT)))
-		return INFINITY //For all my homies that can not see in the world
+		// META EDIT START - CHANGE - closing your eyes isn't a reliable substitute for real eye protection - Original: return INFINITY //For all my homies that can not see in the world
+		var/datum/status_effect/grouped/blindness/blindness_effect = has_status_effect(/datum/status_effect/grouped/blindness)
+		var/closed_eyes_only = HAS_TRAIT(src, TRAIT_EYES_CLOSED) && blindness_effect && length(blindness_effect.sources) == 1
+		if(!closed_eyes_only || prob(15))
+			return INFINITY //For all my homies that can not see in the world
+		// META EDIT END
 	var/obj/item/organ/eyes/eyes = get_organ_slot(ORGAN_SLOT_EYES)
 	if(eyes)
 		. += eyes.flash_protect
