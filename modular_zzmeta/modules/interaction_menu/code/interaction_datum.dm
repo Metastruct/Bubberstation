@@ -179,43 +179,59 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
  *   9. the plain "[zone]" entry
  * Only defined keys need to exist. Anything not defined just falls through to the next, less specific
  * match, and ultimately to the interaction's base fields if nothing at all is defined.
+ *
+ * `matched_tier`, if passed, is set to which of the above tiers actually matched: "self", "combat",
+ * "prone", or "plain" (tiers 5/9, neither combat nor prone specific). Used by the UI to tell a genuine
+ * combat/prone-specific variant apart from a plain zone override that merely happens to also apply
+ * while in combat mode or prone.
  */
-/datum/interaction/proc/get_zone_data(zone, combat_mode, prone, is_self)
+/datum/interaction/proc/get_zone_data(zone, combat_mode, prone, is_self, list/matched_tier)
 	if(!zone_overrides?.len)
 		return null
 	if(is_self)
 		var/list/zone_self_data = zone_overrides["[zone]_self"]
 		if(islist(zone_self_data))
+			matched_tier?[1] = "self"
 			return zone_self_data
 		var/list/global_self_data = zone_overrides["_self"]
 		if(islist(global_self_data))
+			matched_tier?[1] = "self"
 			return global_self_data
 	if(combat_mode && prone)
 		var/list/combat_prone_data = zone_overrides["[zone]_combat[prone]"]
 		if(islist(combat_prone_data))
+			matched_tier?[1] = "combat"
 			return combat_prone_data
 	if(combat_mode)
 		var/list/combat_data = zone_overrides["[zone]_combat"]
 		if(islist(combat_data))
+			matched_tier?[1] = "combat"
 			return combat_data
 	if(prone)
 		var/list/prone_data = zone_overrides["[zone][prone]"]
 		if(islist(prone_data))
+			matched_tier?[1] = "prone"
 			return prone_data
 	if(combat_mode && prone)
 		var/list/global_combat_prone_data = zone_overrides["_combat[prone]"]
 		if(islist(global_combat_prone_data))
+			matched_tier?[1] = "combat"
 			return global_combat_prone_data
 	if(combat_mode)
 		var/list/global_combat_data = zone_overrides["_combat"]
 		if(islist(global_combat_data))
+			matched_tier?[1] = "combat"
 			return global_combat_data
 	if(prone)
 		var/list/global_prone_data = zone_overrides[prone]
 		if(islist(global_prone_data))
+			matched_tier?[1] = "prone"
 			return global_prone_data
 	var/list/zone_data = zone_overrides[zone]
-	return islist(zone_data) ? zone_data : null
+	if(islist(zone_data))
+		matched_tier?[1] = "plain"
+		return zone_data
+	return null
 
 /**
  * Returns the list to actually use for `key` (e.g. "message", "target_status_effects"): `zone`'s
@@ -251,7 +267,11 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/prone = target.body_position == LYING_DOWN ? (user.body_position == LYING_DOWN ? "_bothprone" : "_prone") : ""
 	var/is_self = (target == user)
 	var/list/feedback = list()
-	feedback["specialized"] = !isnull(get_zone_data(zone, combat_mode, prone, is_self))
+	var/list/matched_tier = list()
+	feedback["specialized"] = !isnull(get_zone_data(zone, combat_mode, prone, is_self, matched_tier))
+	feedback["self_variant"] = (matched_tier[1] == "self")
+	feedback["combat_variant"] = (matched_tier[1] == "combat")
+	feedback["prone_variant"] = (matched_tier[1] == "prone")
 	feedback["sound"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "sound_possible", sound_possible)) > 0
 	feedback["status_effect"] = length(get_zone_pool(zone, combat_mode, prone, is_self, "target_status_effects", target_status_effects)) > 0 \
 		|| length(get_zone_pool(zone, combat_mode, prone, is_self, "user_status_effects", user_status_effects)) > 0
