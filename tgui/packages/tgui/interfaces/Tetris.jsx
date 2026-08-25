@@ -12,6 +12,7 @@ import {
   KEY_X,
   KEY_Z,
 } from 'tgui-core/keycodes';
+import { classes } from 'tgui-core/react';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
@@ -30,6 +31,11 @@ const SOFT_DROP_MS = 40;
 const MAX_CATCHUP_TICKS = 4;
 const LOCK_DELAY_MS = 500;
 const MAX_LOCK_RESETS = 15;
+// Hard ceiling on how long one piece can sit grounded without locking, regardless of resets
+// remaining: MAX_LOCK_RESETS alone still lets a player rotate a wedged piece in place for
+// MAX_LOCK_RESETS * LOCK_DELAY_MS (7.5s) on every single piece, indefinitely, since resets are
+// per-piece and start fresh on the next one. This caps it outright instead.
+const MAX_GROUNDED_STALL_MS = 5000;
 // How often the player's client pushes a board snapshot for spectators. Matches
 // config/comms.txt's TICKLAG (0.5s), since the server can't relay updates faster than one per
 // world tick anyway.
@@ -317,6 +323,12 @@ const countGarbageRows = (board) => {
   return count;
 };
 
+// Whether the stack has reached DANGER_ROWS from the top, for the board's warning pulse. Only
+// the locked board, not the falling piece, since the piece is always up there at spawn and
+// that's not what "in danger" means.
+const isBoardInDanger = (board) =>
+  board.slice(0, DANGER_ROWS).some((row) => row.some((cell) => cell));
+
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
 const gravityMs = (level) => Math.max(120, 900 - (level - 1) * 70);
@@ -330,11 +342,49 @@ const SPIN_CLEAR_MULTIPLIER = 2;
 const SPIN_BANNER_MS = 1600;
 const SPIN_GLOW_MS = 700;
 
-// A non-spin clear of this many lines or more (Triple, Tetris) gets the same banner/glow/sfx
-// treatment as a spin, plus a brief flash of the full rows before they're actually removed.
+// A non-spin clear of this many lines or more (Triple, Tetris) gets the same banner treatment
+// as a spin. Every clear, big or small, gets the cosmetic flash - see showClearFlash().
 const BIG_CLEAR_THRESHOLD = 3;
-const CLEAR_FLASH_MS = 500;
 const CLEAR_NAMES = ['', 'Single', 'Double', 'Triple', 'Tetris'];
+// Must match the Tetris__ClearFlash keyframe's duration in Tetris.scss.
+const CLEAR_FLASH_MS = 400;
+
+// A cleared row's cells burst into these for PARTICLE_LIFETIME_MS, inheriting the color of
+// whatever piece was actually sitting in each cell. Must match Tetris__ParticleBurst's
+// duration in Tetris.scss.
+const PARTICLE_LIFETIME_MS = 550;
+// Random per-particle horizontal/vertical fling range in px; a small negative bias on Y so the
+// burst reads as popping mostly upward rather than drifting down into the stack below it.
+const PARTICLE_SPREAD_PX = 130;
+const PARTICLE_UPWARD_BIAS_PX = 40;
+
+// A locked stack reaching this close to the top (in rows) pulses the board red as a warning.
+const DANGER_ROWS = 4;
+
+// Combo: +50 * comboCount * level per consecutive clearing lock, on top of the line score.
+const COMBO_SCORE_PER_LEVEL = 50;
+// Back-to-back: a Tetris or spin clear immediately after another one gets +50% of its own
+// line score, same as the guideline bonus.
+const B2B_BONUS_MULTIPLIER = 0.5;
+const ALL_CLEAR_BONUS = 1000;
+
+// Escalating look for the combo banner: bigger and hotter-colored the longer the chain runs.
+// `min` entries must stay ascending; comboVisual() picks the last one the count clears.
+const COMBO_TIERS = [
+  { min: 1, fontSize: '13px', color: '#7cfc90' },
+  { min: 3, fontSize: '16px', color: '#ffd23f' },
+  { min: 5, fontSize: '20px', color: '#ff8c42' },
+  { min: 8, fontSize: '25px', color: '#ff4d4d' },
+];
+const comboVisual = (count) => {
+  let tier = COMBO_TIERS[0];
+  for (const candidate of COMBO_TIERS) {
+    if (count >= candidate.min) {
+      tier = candidate;
+    }
+  }
+  return tier;
+};
 
 // The standard "3-corner rule" for T-spins, generalized to every 3x3-boxed piece: counts
 // occupied bounding-box corners (board edge/floor or a filled cell). 3+ occupied means the
@@ -427,24 +477,53 @@ const decodeBoard = (encoded) => {
 };
 
 // Piece boxes vary in size (2x2 O, 3x3 JLSTZT, 4x4 I - see SHAPES), but the Hold/Next previews
-// should all look the same footprint, so every piece is centered within a fixed 4x4 frame here.
+// should all look the same footprint, so every piece renders inside a fixed 4x4-cell frame
+// here. A 3-wide piece can't be split evenly across 4 grid columns (there's no integer offset
+// that centers it), so rather than placing it in the raw 4x4 grid, this trims each shape down
+// to its own occupied bounding box first and centers *that* in the frame via flexbox, which
+// centers any width/height combination correctly.
 const MINI_GRID = 4;
+const MINI_CELL_PX = 20;
+
+// The occupied [minRow, maxRow, minCol, maxCol] bounding box of a piece matrix (SHAPES pads
+// every entry out to a square, e.g. T/S/Z/J/L carry a dead trailing row of zeros).
+const matrixBounds = (matrix) => {
+  let minRow = matrix.length;
+  let maxRow = -1;
+  let minCol = matrix[0].length;
+  let maxCol = -1;
+  for (let y = 0; y < matrix.length; y++) {
+    for (let x = 0; x < matrix[y].length; x++) {
+      if (matrix[y][x]) {
+        minRow = Math.min(minRow, y);
+        maxRow = Math.max(maxRow, y);
+        minCol = Math.min(minCol, x);
+        maxCol = Math.max(maxCol, x);
+      }
+    }
+  }
+  return { minRow, maxRow, minCol, maxCol };
+};
 
 const renderMiniPiece = (type) => {
-  const cells = [];
+  const frameSize = MINI_GRID * MINI_CELL_PX;
   const matrix = type ? SHAPES[type] : null;
-  const size = matrix ? matrix.length : 0;
-  const offset = Math.floor((MINI_GRID - size) / 2);
-  for (let y = 0; y < MINI_GRID; y++) {
-    for (let x = 0; x < MINI_GRID; x++) {
-      const my = y - offset;
-      const mx = x - offset;
-      const filled = matrix && my >= 0 && my < size && matrix[my]?.[mx];
+  if (!matrix) {
+    return <Box width={`${frameSize}px`} height={`${frameSize}px`} />;
+  }
+
+  const { minRow, maxRow, minCol, maxCol } = matrixBounds(matrix);
+  const height = maxRow - minRow + 1;
+  const width = maxCol - minCol + 1;
+  const cells = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const filled = matrix[minRow + y][minCol + x];
       cells.push(
         <Box
           key={`${x}-${y}`}
-          width="12px"
-          height="12px"
+          width={`${MINI_CELL_PX}px`}
+          height={`${MINI_CELL_PX}px`}
           style={{
             'background-color': filled ? COLORS[type] : 'transparent',
             outline: filled ? '1px solid rgba(0,0,0,0.4)' : 'none',
@@ -456,15 +535,46 @@ const renderMiniPiece = (type) => {
   return (
     <Box
       style={{
-        display: 'inline-grid',
-        'grid-template-columns': `repeat(${MINI_GRID}, 12px)`,
-        'grid-template-rows': `repeat(${MINI_GRID}, 12px)`,
+        width: `${frameSize}px`,
+        height: `${frameSize}px`,
+        display: 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
       }}
     >
-      {cells}
+      <Box
+        style={{
+          display: 'grid',
+          'grid-template-columns': `repeat(${width}, ${MINI_CELL_PX}px)`,
+          'grid-template-rows': `repeat(${height}, ${MINI_CELL_PX}px)`,
+        }}
+      >
+        {cells}
+      </Box>
     </Box>
   );
 };
+
+// Wraps a mini piece so it sits centered in its Section/Stack.Item rather than pinned to the
+// left edge.
+const CenteredMiniPiece = (type) => (
+  <Box style={{ display: 'flex', 'justify-content': 'center' }}>{renderMiniPiece(type)}</Box>
+);
+
+// `hold`/`queue` only change on a piece lock or hold-swap, far less often than `current` (piece
+// position), so splitting these out and memoizing them skips rebuilding this JSX on every
+// gravity/DAS frame while playing.
+const HoldPanel = memo(({ hold }) => <Section title="Hold">{CenteredMiniPiece(hold)}</Section>);
+
+const NextPanel = memo(({ queue }) => (
+  <Section title="Next">
+    <Stack vertical>
+      {queue.map((type, index) => (
+        <Stack.Item key={index}>{CenteredMiniPiece(type)}</Stack.Item>
+      ))}
+    </Stack>
+  </Section>
+));
 
 // How long a just-cleared glow keeps its (fading-out) box-shadow styling before dropping back
 // to a plain cell. Must be >= the CSS transition duration below so the fade actually finishes.
@@ -501,6 +611,20 @@ const cellListsEqual = (a, b) => {
   return a.every((cell, i) => cell.x === b[i].x && cell.y === b[i].y && cell.type === b[i].type);
 };
 
+// Same idea as cellListsEqual, for the plain row-index arrays flashRows uses.
+const rowListsEqual = (a, b) => {
+  if (a === b) {
+    return true;
+  }
+  if (!a?.length && !b?.length) {
+    return true;
+  }
+  if (a?.length !== b?.length) {
+    return false;
+  }
+  return a.every((row, i) => row === b[i]);
+};
+
 // BoardGrid renders 200 cells on every gravity/DAS tick, so re-rendering on every parent
 // setState (even unrelated ones, like the status timer) was real reconciliation cost paid many
 // times a second. `current.matrix` only gets a new reference on an actual rotation, so
@@ -525,13 +649,37 @@ const boardGridPropsEqual = (prev, next) => {
   if (!cellListsEqual(prev.glow, next.glow)) {
     return false;
   }
+  if (!rowListsEqual(prev.flashRows, next.flashRows)) {
+    return false;
+  }
+  if (prev.particles !== next.particles) {
+    return false;
+  }
+  if (prev.danger !== next.danger) {
+    return false;
+  }
   if (prev.topBanner !== next.topBanner) {
+    return false;
+  }
+  if (prev.comboBanner !== next.comboBanner) {
     return false;
   }
   return Boolean(prev.overlay) === Boolean(next.overlay) && prev.overlay === next.overlay;
 };
 
-const BoardGrid = memo(({ board, current, ghost, overlay, topBanner, glow }) => {
+const BoardGrid = memo(
+  ({
+    board,
+    current,
+    ghost,
+    overlay,
+    topBanner,
+    comboBanner,
+    glow,
+    flashRows,
+    particles,
+    danger,
+  }) => {
   // Only actively-glowing (or just-faded) cells carry the box-shadow/transition styling.
   // Applying that to all 200 cells on every render was a real, measurable cost for no visible
   // benefit on the other 190+.
@@ -562,6 +710,7 @@ const BoardGrid = memo(({ board, current, ghost, overlay, topBanner, glow }) => 
 
   return (
     <Box
+      className={classes([danger && 'Tetris__Board--danger'])}
       style={{
         position: 'relative',
         display: 'inline-grid',
@@ -598,6 +747,31 @@ const BoardGrid = memo(({ board, current, ghost, overlay, topBanner, glow }) => 
           );
         }),
       )}
+    {flashRows?.map((y) => (
+      <Box
+        key={`flash-${y}`}
+        className="Tetris__Flash"
+        style={{
+          left: 0,
+          top: `${y * (CELL_PX + 1)}px`,
+          width: `${BOARD_W * (CELL_PX + 1) - 1}px`,
+          height: `${CELL_PX}px`,
+        }}
+      />
+    ))}
+    {particles?.map((p) => (
+      <Box
+        key={p.id}
+        className="Tetris__Particle"
+        style={{
+          left: `${p.x * (CELL_PX + 1) + CELL_PX / 2 - 3}px`,
+          top: `${p.y * (CELL_PX + 1) + CELL_PX / 2 - 3}px`,
+          'background-color': p.color,
+          '--dx': `${p.dx}px`,
+          '--dy': `${p.dy}px`,
+        }}
+      />
+    ))}
     {overlay && (
       <Box
         style={{
@@ -643,6 +817,35 @@ const BoardGrid = memo(({ board, current, ghost, overlay, topBanner, glow }) => 
         </Box>
       </Box>
     )}
+    {comboBanner != null && (
+      <Box
+        key={comboBanner}
+        className="Tetris__ComboBanner"
+        style={{
+          position: 'absolute',
+          top: '30px',
+          left: 0,
+          right: 0,
+          display: 'flex',
+          'justify-content': 'center',
+          'pointer-events': 'none',
+        }}
+      >
+        <Box
+          bold
+          style={{
+            'background-color': 'rgba(0,0,0,0.8)',
+            color: comboVisual(comboBanner).color,
+            padding: '2px 10px',
+            'border-radius': '4px',
+            'font-size': comboVisual(comboBanner).fontSize,
+            'white-space': 'nowrap',
+          }}
+        >
+          {comboBanner} Combo!
+        </Box>
+      </Box>
+    )}
     </Box>
   );
 }, boardGridPropsEqual);
@@ -656,7 +859,7 @@ const KEYBINDS = [
   ['C', 'Hold'],
 ];
 
-const KeybindsHelpButton = () => (
+const KeybindsHelpButton = memo(() => (
   <Button
     icon="circle-question"
     color="transparent"
@@ -674,7 +877,7 @@ const KeybindsHelpButton = () => (
       </Box>
     }
   />
-);
+));
 
 const ModeSelect = ({ mode, onSelect }) => (
   <Stack vertical>
@@ -695,7 +898,7 @@ const ModeSelect = ({ mode, onSelect }) => (
 // Appends " (holder)" to a best-record line when someone's actually set one.
 const holderSuffix = (holder) => (holder ? ` (${holder})` : '');
 
-const StatsBlock = ({
+const StatsBlock = memo(({
   mode,
   score,
   lines,
@@ -781,7 +984,7 @@ const StatsBlock = ({
       <b>Tickets:</b> {tickets}
     </Box>
   </>
-);
+));
 
 class TetrisGame extends Component {
   constructor(props) {
@@ -794,6 +997,9 @@ class TetrisGame extends Component {
     this.grounded = false;
     this.lockTimer = LOCK_DELAY_MS;
     this.lockResets = 0;
+    // Real-time (Date.now()) timestamp of when the current piece last transitioned from
+    // falling to resting, or null while it's actually falling. See MAX_GROUNDED_STALL_MS.
+    this.groundedAt = null;
     this.dasDirection = null;
     this.dasElapsed = 0;
     this.arrElapsed = 0;
@@ -808,8 +1014,11 @@ class TetrisGame extends Component {
     this.lastRotated = false;
     this.bannerToken = null;
     this.glowToken = null;
-    this.pendingCommit = null;
-    this.clearFlashElapsed = 0;
+    this.clearFlashToken = null;
+    // -1 means no active chain; see lockCurrent()'s combo/back-to-back tracking.
+    this.comboCount = -1;
+    this.b2bCount = -1;
+    this.pauseStartedAt = null;
 
     this.state = this.buildInitialState(false);
 
@@ -828,6 +1037,7 @@ class TetrisGame extends Component {
     this.rotateCW = this.rotateCW.bind(this);
     this.rotateCCW = this.rotateCCW.bind(this);
     this.holdPiece = this.holdPiece.bind(this);
+    this.togglePause = this.togglePause.bind(this);
     this.pushSync = this.pushSync.bind(this);
   }
 
@@ -844,7 +1054,11 @@ class TetrisGame extends Component {
       mode,
       statusMs,
       banner,
+      comboBanner,
       glow,
+      flashRows,
+      particles,
+      paused,
     } = this.state;
     return {
       board: encodeBoard(buildDisplayBoard(board, current)),
@@ -858,7 +1072,11 @@ class TetrisGame extends Component {
       mode,
       statusMs,
       banner,
+      comboBanner,
       glow,
+      flashRows,
+      particles,
+      paused,
     };
   }
 
@@ -882,27 +1100,30 @@ class TetrisGame extends Component {
       statusMs: 0,
       completed: false,
       banner: null,
+      comboBanner: null,
       glow: null,
+      flashRows: null,
+      particles: [],
+      paused: false,
     };
   }
 
-  // Shows a transient "T-Spin Double! +1200"-style banner pinned to the top of the board.
-  // Token-guarded so an older banner's timeout can't clear a newer one that landed within the
-  // same window.
-  showBanner(text) {
+  // Shows a transient "T-Spin Double! +1200"-style banner pinned to the top of the board, and
+  // optionally the separate escalating combo counter just below it. Token-guarded so an older
+  // banner's timeout can't clear a newer one that landed within the same window.
+  showBanner(text, comboCount = null) {
     const token = {};
     this.bannerToken = token;
-    this.setState({ banner: text });
+    this.setState({ banner: text, comboBanner: comboCount });
     window.setTimeout(() => {
       if (this.bannerToken === token) {
-        this.setState({ banner: null });
+        this.setState({ banner: null, comboBanner: null });
       }
     }, SPIN_BANNER_MS);
   }
 
-  // Highlights the given cells with a brief glow (a spin's own surviving cells, or the full
-  // rows of a big non-spin clear while they're still visible). Same token-guard idea as the
-  // banner.
+  // Highlights the given cells with a brief glow (a spin's own surviving cells). Same
+  // token-guard idea as the banner.
   showGlow(cells, duration = SPIN_GLOW_MS) {
     const token = {};
     this.glowToken = token;
@@ -912,6 +1133,48 @@ class TetrisGame extends Component {
         this.setState({ glow: null });
       }
     }, duration);
+  }
+
+  // Purely cosmetic: briefly lights up the given row indices, for any clear. The clear itself
+  // already committed by the time this is called, see lockCurrent(), so this never delays the
+  // next piece; it's just a flash layered on top of whatever the board already looks like. The
+  // hold-then-fade animation itself lives in Tetris__ClearFlash (Tetris.scss), so this only
+  // needs to unmount the flash once that animation has finished playing.
+  showClearFlash(rows) {
+    const token = {};
+    this.clearFlashToken = token;
+    this.setState({ flashRows: rows });
+    window.setTimeout(() => {
+      if (this.clearFlashToken === token) {
+        this.setState({ flashRows: null });
+      }
+    }, CLEAR_FLASH_MS);
+  }
+
+  // Bursts the given {x, y, type} cells outward as short-lived particles, colored by whatever
+  // piece was actually sitting there. `batchId` (rather than reusing a single shared token like
+  // the effects above) lets multiple bursts from back-to-back clears fade out independently
+  // instead of one clobbering another's timer.
+  showParticles(cells) {
+    if (!cells.length) {
+      return;
+    }
+    const batchId = `${Date.now()}-${Math.random()}`;
+    const spawned = cells.map((cell, i) => ({
+      id: `${batchId}-${i}`,
+      batchId,
+      x: cell.x,
+      y: cell.y,
+      color: COLORS[cell.type] ?? '#fff',
+      dx: Math.round((Math.random() - 0.5) * PARTICLE_SPREAD_PX),
+      dy: Math.round((Math.random() - 0.5) * PARTICLE_SPREAD_PX - PARTICLE_UPWARD_BIAS_PX),
+    }));
+    this.setState((prevState) => ({ particles: [...prevState.particles, ...spawned] }));
+    window.setTimeout(() => {
+      this.setState((prevState) => ({
+        particles: prevState.particles.filter((particle) => particle.batchId !== batchId),
+      }));
+    }, PARTICLE_LIFETIME_MS);
   }
 
   selectMode(modeKey) {
@@ -933,6 +1196,27 @@ class TetrisGame extends Component {
     });
     if (this.animationId) {
       window.cancelAnimationFrame(this.animationId);
+    }
+  }
+
+  // True whenever gravity/DAS/locking should be frozen: either the machine lost power, or the
+  // player hit the Pause button themselves.
+  isPaused(props = this.props, state = this.state) {
+    return !props.isOperational || state.paused;
+  }
+
+  // Freezing updateAnimation's gravity/DAS/lock block (see its isPaused() check) already stops
+  // the board from moving, but the sprint/garbage/blitz clocks read straight off
+  // Date.now() - gameStartTs, so without this they'd count the paused time as elapsed play
+  // time. Shifting gameStartTs forward by however long the pause lasted keeps them frozen too.
+  componentDidUpdate(prevProps, prevState) {
+    const wasPaused = this.isPaused(prevProps, prevState);
+    const nowPaused = this.isPaused();
+    if (!wasPaused && nowPaused) {
+      this.pauseStartedAt = Date.now();
+    } else if (wasPaused && !nowPaused && this.pauseStartedAt) {
+      this.gameStartTs += Date.now() - this.pauseStartedAt;
+      this.pauseStartedAt = null;
     }
   }
 
@@ -961,6 +1245,7 @@ class TetrisGame extends Component {
     this.grounded = false;
     this.lockTimer = LOCK_DELAY_MS;
     this.lockResets = 0;
+    this.groundedAt = null;
     this.dropAccumulator = 0;
     this.statusAccumulator = 0;
     this.reported = false;
@@ -976,8 +1261,10 @@ class TetrisGame extends Component {
     this.lastRotated = false;
     this.bannerToken = null;
     this.glowToken = null;
-    this.pendingCommit = null;
-    this.clearFlashElapsed = 0;
+    this.clearFlashToken = null;
+    this.comboCount = -1;
+    this.b2bCount = -1;
+    this.pauseStartedAt = null;
 
     this.setState(
       {
@@ -994,7 +1281,11 @@ class TetrisGame extends Component {
         statusMs: mode === 'blitz' ? BLITZ_DURATION_MS : 0,
         completed: false,
         banner: null,
+        comboBanner: null,
         glow: null,
+        flashRows: null,
+        particles: [],
+        paused: false,
       },
       () => {
         this.lastFrame = null;
@@ -1032,6 +1323,7 @@ class TetrisGame extends Component {
       this.grounded = false;
       this.lockTimer = LOCK_DELAY_MS;
       this.lockResets = 0;
+      this.groundedAt = null;
       this.lastRotated = false;
       return { current, queue, canHold: true };
     });
@@ -1057,6 +1349,26 @@ class TetrisGame extends Component {
     const { board: cleared, cleared: clearedCount, survivorRows } = clearLines(merged);
     const isBigClear = !isSpin && clearedCount >= BIG_CLEAR_THRESHOLD;
 
+    // Combo counter: consecutive clearing locks, with no non-clearing lock in between. Resets
+    // to -1 (no active chain) the moment a lock clears nothing.
+    this.comboCount = clearedCount > 0 ? this.comboCount + 1 : -1;
+    const comboActive = clearedCount > 0 && this.comboCount >= 1;
+
+    // Back-to-back: consecutive "difficult" clears (a Tetris, or any spin that clears at least
+    // one line) with only non-clearing locks or other difficult clears in between. Unlike
+    // combo, a Single/Double/Triple non-spin clear breaks the chain but a non-clearing lock
+    // doesn't, since b2b tracks the sequence of clears specifically, not of locks.
+    const isDifficultClear = clearedCount > 0 && (isSpin ? true : clearedCount >= 4);
+    let b2bActive = false;
+    if (clearedCount > 0) {
+      if (isDifficultClear) {
+        b2bActive = this.b2bCount >= 0;
+        this.b2bCount += 1;
+      } else {
+        this.b2bCount = -1;
+      }
+    }
+
     let lineScoreGain;
     let label = null;
     if (isSpin) {
@@ -1071,7 +1383,24 @@ class TetrisGame extends Component {
         label = `${CLEAR_NAMES[clearedCount]}! +${lineScoreGain}`;
       }
     }
-    const scoreGain = lineScoreGain + bonusScore;
+    const b2bBonus = b2bActive ? Math.floor(lineScoreGain * B2B_BONUS_MULTIPLIER) : 0;
+    if (b2bActive) {
+      label = `Back-to-Back ${label}`;
+    }
+
+    // All Clear: the lock emptied the whole board. Reachable outside Garbage Race too, since
+    // any mode's board can happen to run dry.
+    const isAllClear = clearedCount > 0 && cleared.every((row) => row.every((cell) => !cell));
+    const allClearBonus = isAllClear ? ALL_CLEAR_BONUS * level : 0;
+
+    const comboBonus = comboActive ? COMBO_SCORE_PER_LEVEL * this.comboCount * level : 0;
+    const scoreGain = lineScoreGain + b2bBonus + comboBonus + allClearBonus + bonusScore;
+
+    // Combo gets its own escalating-styled banner (see BoardGrid's comboBanner rendering)
+    // instead of being folded into this plain-text one.
+    const bannerParts = [label, isAllClear ? 'All Clear!' : null].filter(Boolean);
+    const bannerText = bannerParts.length ? bannerParts.join('  ') : null;
+    const comboToShow = comboActive ? this.comboCount : null;
 
     const totalLines = this.state.lines + clearedCount;
     const newLevel = Math.floor(totalLines / 10) + 1;
@@ -1116,8 +1445,30 @@ class TetrisGame extends Component {
       );
     };
 
+    if (bannerText || comboToShow != null) {
+      this.showBanner(bannerText, comboToShow);
+    }
+
+    if (clearedCount > 0) {
+      // Cosmetic only: the rows are already gone by the time this renders (commit() below runs
+      // in the same frame, so a fast player never waits on it), it just flashes those row
+      // positions (and bursts their cells into particles) briefly on top of whatever's there
+      // now. Every clear gets this, Single through Tetris and spins alike.
+      const flashRows = [];
+      const particleCells = [];
+      for (let y = 0; y < BOARD_H; y++) {
+        if (merged[y].every((cell) => cell)) {
+          flashRows.push(y);
+          for (let x = 0; x < BOARD_W; x++) {
+            particleCells.push({ x, y, type: merged[y][x] });
+          }
+        }
+      }
+      this.showClearFlash(flashRows);
+      this.showParticles(particleCells);
+    }
+
     if (isSpin) {
-      this.showBanner(label);
       // Piece cells that survived the clear, remapped to their post-clear row (a spin that also
       // clears lines shifts rows above it down), so the glow lands on the right cells.
       const glowCells = [];
@@ -1134,29 +1485,6 @@ class TetrisGame extends Component {
         }
       }
       this.showGlow(glowCells);
-      commit();
-      return;
-    }
-
-    if (isBigClear) {
-      // Flash the full rows in place (still part of `merged`) before clearing them, so the glow
-      // lands on what the player is watching disappear, not nothing.
-      this.showBanner(label);
-      const flashCells = [];
-      for (let y = 0; y < BOARD_H; y++) {
-        if (merged[y].every((cell) => cell)) {
-          for (let x = 0; x < BOARD_W; x++) {
-            flashCells.push({ x, y });
-          }
-        }
-      }
-      // Cleared exactly when commit() removes these rows; their coordinates mean nothing once
-      // the board shifts, so a lingering glow past that point would light up unrelated cells.
-      this.showGlow(flashCells, CLEAR_FLASH_MS);
-      this.setState({ board: merged, current: null });
-      this.clearFlashElapsed = 0;
-      this.pendingCommit = commit;
-      return;
     }
 
     commit();
@@ -1185,13 +1513,30 @@ class TetrisGame extends Component {
     return true;
   }
 
+  // Centralizes the grounded flag so every place that sets it also maintains groundedAt (the
+  // MAX_GROUNDED_STALL_MS clock) consistently, rather than each call site remembering to.
+  // `groundedAt` deliberately does NOT clear when isGrounded is false: a rotation kick (see
+  // JLSTZ_KICKS/I_KICKS) routinely shifts the piece by 1-2 cells and can momentarily break
+  // ground contact before it immediately re-grounds on the very next check. Clearing (and thus
+  // restarting) the MAX_GROUNDED_STALL_MS clock on every one of those blips is exactly what let
+  // a spin-in-place sequence dodge the cap forever, since it never really stopped touching the
+  // ground for more than a frame. `groundedAt` is only ever reset to null by a fresh piece
+  // spawning (see spawnNext()/startNewGame()/holdPiece()), so once set it marks this piece's
+  // very first ground contact for its whole lifetime, kicks and re-landings included.
+  setGrounded(isGrounded) {
+    if (isGrounded && this.groundedAt === null) {
+      this.groundedAt = Date.now();
+    }
+    this.grounded = isGrounded;
+  }
+
   // A move/rotate can slide the piece off its ledge into open space below, so gravity must
   // resume immediately instead of keeping the stale "grounded" flag, or the lock timer keeps
   // counting down and the piece locks floating in mid-air.
   updateGroundedState(board, matrix, x, y) {
     const stillGrounded = collides(board, matrix, x, y + 1);
     if (!stillGrounded) {
-      this.grounded = false;
+      this.setGrounded(false);
       return;
     }
     if (this.grounded) {
@@ -1200,7 +1545,7 @@ class TetrisGame extends Component {
         this.lockResets++;
       }
     } else {
-      this.grounded = true;
+      this.setGrounded(true);
       this.lockTimer = LOCK_DELAY_MS;
       this.lockResets = 0;
     }
@@ -1287,8 +1632,21 @@ class TetrisGame extends Component {
     this.grounded = false;
     this.lockTimer = LOCK_DELAY_MS;
     this.lockResets = 0;
+    this.groundedAt = null;
     this.lastRotated = false;
     this.setState({ current: swapped, hold: current.type, canHold: false });
+  }
+
+  // Manual pause is player-driven, unlike the isOperational half of isPaused() which the
+  // server forces. It's only ever toggled from a playing, powered game.
+  // pushSync() afterward is needed specifically because updateAnimation's own periodic sync is
+  // itself inside the paused-gated block, so spectators would otherwise never learn this
+  // toggled at all until the next unrelated sync.
+  togglePause() {
+    if (this.state.phase !== 'playing' || !this.props.isOperational) {
+      return;
+    }
+    this.setState((prevState) => ({ paused: !prevState.paused }), () => this.pushSync());
   }
 
   startMoveLeft() {
@@ -1343,7 +1701,7 @@ class TetrisGame extends Component {
   }
 
   handleKeyDown(keyEvent) {
-    if (this.state.phase !== 'playing') {
+    if (this.state.phase !== 'playing' || this.isPaused()) {
       return;
     }
     const { code } = keyEvent;
@@ -1386,18 +1744,7 @@ class TetrisGame extends Component {
     const delta = timestamp - last;
     this.lastFrame = timestamp;
 
-    // Outside the phase/current gate below since `current` is null during the flash window.
-    // Ticks off real frames, not wall-clock time, see lockCurrent()'s isBigClear branch.
-    if (this.pendingCommit) {
-      this.clearFlashElapsed += delta;
-      if (this.clearFlashElapsed >= CLEAR_FLASH_MS) {
-        const commit = this.pendingCommit;
-        this.pendingCommit = null;
-        commit();
-      }
-    }
-
-    if (this.state.phase === 'playing' && this.state.current) {
+    if (this.state.phase === 'playing' && this.state.current && !this.isPaused()) {
       if (this.state.mode === 'blitz' && Date.now() - this.gameStartTs >= BLITZ_DURATION_MS) {
         this.finishRun(true);
         return;
@@ -1440,10 +1787,10 @@ class TetrisGame extends Component {
         if (!collides(board, current.matrix, current.x, current.y + 1)) {
           current = { ...current, y: current.y + 1 };
           moved = true;
-          this.grounded = false;
+          this.setGrounded(false);
           this.lastRotated = false;
         } else {
-          this.grounded = true;
+          this.setGrounded(true);
         }
       }
 
@@ -1461,7 +1808,9 @@ class TetrisGame extends Component {
 
       if (this.grounded) {
         this.lockTimer -= delta;
-        if (this.lockTimer <= 0) {
+        const stalledTooLong =
+          this.groundedAt !== null && Date.now() - this.groundedAt >= MAX_GROUNDED_STALL_MS;
+        if (this.lockTimer <= 0 || stalledTooLong) {
           // Passes the position already computed above, instead of letting lockCurrent() fall
           // back to this.state.current, which can be one frame stale, same reasoning as
           // hardDrop()'s pieceOverride.
@@ -1503,7 +1852,11 @@ class TetrisGame extends Component {
       statusMs,
       completed,
       banner,
+      comboBanner,
       glow,
+      flashRows,
+      particles,
+      paused,
     } = this.state;
     const {
       highScore,
@@ -1516,6 +1869,7 @@ class TetrisGame extends Component {
       garbageBestHolder,
       tickets,
       isCabinet,
+      isOperational,
       onClaimTickets,
     } = this.props;
 
@@ -1523,6 +1877,8 @@ class TetrisGame extends Component {
     // cell, since building a whole separate 200-cell array on every gravity/DAS tick was
     // avoidable allocation pressure.
     const ghostCells = buildGhostCells(board, current);
+    const isPausedNow = this.isPaused();
+    const isDanger = isBoardInDanger(board);
 
     let resultText = null;
     if (phase === 'gameover') {
@@ -1548,6 +1904,9 @@ class TetrisGame extends Component {
         )}
         <Stack.Item>
           <Stack>
+            <Stack.Item width="90px">
+              <HoldPanel hold={hold} />
+            </Stack.Item>
             <Stack.Item>
               <Section title="Board">
                 <BoardGrid
@@ -1555,9 +1914,13 @@ class TetrisGame extends Component {
                   current={current}
                   ghost={ghostCells}
                   topBanner={banner}
+                  comboBanner={comboBanner}
                   glow={glow}
+                  flashRows={flashRows}
+                  particles={particles}
+                  danger={isDanger}
                   overlay={
-                    phase !== 'playing' && (
+                    phase !== 'playing' ? (
                       <Stack vertical>
                         {resultText && (
                           <Stack.Item>
@@ -1579,10 +1942,17 @@ class TetrisGame extends Component {
                             fluid
                             content="New Game"
                             color="blue"
+                            disabled={!isOperational}
                             onClick={this.startNewGame}
                           />
                         </Stack.Item>
                       </Stack>
+                    ) : (
+                      isPausedNow && (
+                        <Box bold textAlign="center">
+                          {isOperational ? 'Paused' : 'Machine unpowered'}
+                        </Box>
+                      )
                     )
                   }
                 />
@@ -1591,16 +1961,7 @@ class TetrisGame extends Component {
             <Stack.Item width="150px">
               <Stack vertical fill>
                 <Stack.Item>
-                  <Section title="Hold">{renderMiniPiece(hold)}</Section>
-                </Stack.Item>
-                <Stack.Item>
-                  <Section title="Next">
-                    <Stack vertical>
-                      {queue.map((type, index) => (
-                        <Stack.Item key={index}>{renderMiniPiece(type)}</Stack.Item>
-                      ))}
-                    </Stack>
-                  </Section>
+                  <NextPanel queue={queue} />
                 </Stack.Item>
                 <Stack.Item grow>
                   <Section title="Stats" fill>
@@ -1637,7 +1998,7 @@ class TetrisGame extends Component {
                   onMouseDown={this.startMoveLeft}
                   onMouseUp={this.stopMoveLeft}
                   onMouseLeave={this.stopMoveLeft}
-                  disabled={phase !== 'playing'}
+                  disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
                   icon="arrow-right"
@@ -1645,19 +2006,19 @@ class TetrisGame extends Component {
                   onMouseDown={this.startMoveRight}
                   onMouseUp={this.stopMoveRight}
                   onMouseLeave={this.stopMoveRight}
-                  disabled={phase !== 'playing'}
+                  disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
                   icon="rotate-left"
                   tooltip="Rotate CCW (Z)"
                   onClick={this.rotateCCW}
-                  disabled={phase !== 'playing'}
+                  disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
                   icon="rotate-right"
                   tooltip="Rotate CW (↑ / X)"
                   onClick={this.rotateCW}
-                  disabled={phase !== 'playing'}
+                  disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
                   icon="arrow-down"
@@ -1665,19 +2026,25 @@ class TetrisGame extends Component {
                   onMouseDown={this.startSoftDrop}
                   onMouseUp={this.stopSoftDrop}
                   onMouseLeave={this.stopSoftDrop}
-                  disabled={phase !== 'playing'}
+                  disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
                   icon="angle-double-down"
                   tooltip="Hard drop (Space)"
                   onClick={this.hardDrop}
-                  disabled={phase !== 'playing'}
+                  disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
                   icon="right-left"
                   tooltip="Hold (C)"
                   onClick={this.holdPiece}
-                  disabled={phase !== 'playing' || !this.state.canHold}
+                  disabled={phase !== 'playing' || isPausedNow || !this.state.canHold}
+                />
+                <Button
+                  icon={paused ? 'play' : 'pause'}
+                  tooltip={paused ? 'Resume' : 'Pause'}
+                  onClick={this.togglePause}
+                  disabled={phase !== 'playing' || !isOperational}
                 />
               </Stack.Item>
               <Stack.Item grow />
@@ -1687,7 +2054,7 @@ class TetrisGame extends Component {
                   content="New Game"
                   color="blue"
                   onClick={this.startNewGame}
-                  disabled={phase === 'playing'}
+                  disabled={phase === 'playing' || !isOperational}
                 />
                 {isCabinet && (
                   <Button
@@ -1726,6 +2093,7 @@ const TetrisSpectator = (props) => {
     garbageBestHolder,
     tickets,
     isCabinet,
+    isOperational,
     onNewGame,
     onClaimTickets,
   } = props;
@@ -1733,7 +2101,10 @@ const TetrisSpectator = (props) => {
   const board = snapshot?.board ? decodeBoard(snapshot.board) : makeEmptyBoard();
   const ghost = snapshot?.ghost ?? null;
   const banner = snapshot?.banner ?? null;
+  const comboBanner = snapshot?.comboBanner ?? null;
   const glow = snapshot?.glow ?? null;
+  const flashRows = snapshot?.flashRows ?? null;
+  const particles = snapshot?.particles ?? null;
   const hold = snapshot?.hold ?? null;
   const queue = snapshot?.queue || [];
   const score = snapshot?.score ?? lastScore ?? 0;
@@ -1743,12 +2114,23 @@ const TetrisSpectator = (props) => {
   const mode = snapshot?.mode ?? 'marathon';
   const statusMs = snapshot?.statusMs ?? 0;
   const finished = gameStatus === TETRIS_GAMEOVER;
-  const canTakeOver = gameStatus !== TETRIS_PLAYING || isAbandoned;
+  // `isAbandoned` comes straight from a DM `&&`/comparison expression, which yields BYOND's
+  // 0/1 rather than a JS boolean. Left un-coerced, an inactive (0) value survives `||` into
+  // canTakeOver as the number 0, and `{canTakeOver && <Button/>}` then renders a literal "0"
+  // in the UI instead of nothing.
+  const canTakeOver = gameStatus !== TETRIS_PLAYING || Boolean(isAbandoned);
+  // Mirrors TetrisGame's isPaused(): forced by lost power, or the player's own Pause button
+  // (relayed through the snapshot, since that toggle otherwise never reaches the server).
+  const isPausedNow = !isOperational || Boolean(snapshot?.paused);
+  const isDanger = isBoardInDanger(board);
 
   return (
     <Stack fill vertical>
       <Stack.Item>
         <Stack>
+          <Stack.Item width="90px">
+            <HoldPanel hold={hold} />
+          </Stack.Item>
           <Stack.Item>
             <Section
               title={playerName ? `Spectating ${truncateName(playerName)}` : 'Spectating'}
@@ -1757,14 +2139,21 @@ const TetrisSpectator = (props) => {
                 board={board}
                 ghost={ghost}
                 topBanner={banner}
+                comboBanner={comboBanner}
                 glow={glow}
+                flashRows={flashRows}
+                particles={particles}
+                danger={isDanger}
                 overlay={
-                  (finished || !snapshot) && (
+                  (finished || !snapshot || isPausedNow) && (
                     <>
                       {finished && (
                         <Box color="bad" bold mb={1}>
                           Game Over — {score} pts
                         </Box>
+                      )}
+                      {!finished && isPausedNow && (
+                        <Box bold>{isOperational ? 'Paused' : 'Machine unpowered'}</Box>
                       )}
                       {!snapshot && <Box color="label">Waiting for a game to start…</Box>}
                     </>
@@ -1776,16 +2165,7 @@ const TetrisSpectator = (props) => {
           <Stack.Item width="150px">
             <Stack vertical fill>
               <Stack.Item>
-                <Section title="Hold">{renderMiniPiece(hold)}</Section>
-              </Stack.Item>
-              <Stack.Item>
-                <Section title="Next">
-                  <Stack vertical>
-                    {queue.map((type, index) => (
-                      <Stack.Item key={index}>{renderMiniPiece(type)}</Stack.Item>
-                    ))}
-                  </Stack>
-                </Section>
+                <NextPanel queue={queue} />
               </Stack.Item>
               <Stack.Item grow>
                 <Section title="Stats" fill>
@@ -1827,6 +2207,7 @@ const TetrisSpectator = (props) => {
                   content={isAbandoned ? 'Reclaim' : 'Take Over'}
                   color="blue"
                   tooltip="Claim the controls, then press New Game to start"
+                  disabled={!isOperational}
                   onClick={onNewGame}
                 />
               )}
@@ -1866,6 +2247,7 @@ export const TetrisContent = (props, context) => {
     last_lines = 0,
     player_name,
     is_abandoned,
+    is_operational = true,
   } = data;
 
   // Nobody's claimed the machine yet (fresh IDLE state) means anyone gets the interactive
@@ -1885,6 +2267,7 @@ export const TetrisContent = (props, context) => {
       garbageBestHolder={garbage_best_holder}
       tickets={tickets}
       isCabinet={is_cabinet}
+      isOperational={is_operational}
       onNewGame={() => act('PRG_new_game')}
       onGameOver={(score, lines, mode, completed) =>
         act('PRG_game_over', { score, lines, mode, completed })
@@ -1910,6 +2293,7 @@ export const TetrisContent = (props, context) => {
       garbageBestHolder={garbage_best_holder}
       tickets={tickets}
       isCabinet={is_cabinet}
+      isOperational={is_operational}
       onNewGame={() => act('PRG_new_game')}
       onClaimTickets={() => act('PRG_tickets')}
     />
@@ -1918,7 +2302,7 @@ export const TetrisContent = (props, context) => {
 
 export const Tetris = (props, context) => {
   return (
-    <Window width={410} height={600}>
+    <Window width={530} height={600}>
       <Window.Content>
         <TetrisContent />
       </Window.Content>

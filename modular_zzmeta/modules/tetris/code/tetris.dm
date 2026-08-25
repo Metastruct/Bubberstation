@@ -32,11 +32,20 @@
 	. = ..()
 	board = new /datum/tetris_arcade()
 	board.host = src
+	RegisterSignal(src, COMSIG_MACHINERY_POWER_LOST, PROC_REF(on_power_change))
+	RegisterSignal(src, COMSIG_MACHINERY_POWER_RESTORED, PROC_REF(on_power_change))
 
 /obj/machinery/computer/arcade/tetris/Destroy(force)
 	board.host = null
 	QDEL_NULL(board)
 	. = ..()
+
+/// Pushes an immediate UI update on a power state change, so a client mid-game notices and
+/// pauses (see Tetris.jsx's isOperational handling) right away instead of on its next regular
+/// data poll.
+/obj/machinery/computer/arcade/tetris/proc/on_power_change()
+	SIGNAL_HANDLER
+	SStgui.update_uis(src)
 
 /obj/machinery/computer/arcade/tetris/ui_interact(mob/user, datum/tgui/ui)
 	. = ..()
@@ -190,7 +199,16 @@
 	else
 		host.visible_message(msg, local_msg)
 
+/// FALSE only for the cabinet form, and only once it's actually lost power (BROKEN/no power
+/// channel etc.). The NTOS program form has no such concept and is always powered.
+/datum/tetris_arcade/proc/is_powered()
+	if(!istype(host, /obj/machinery))
+		return TRUE
+	var/obj/machinery/machine_host = host
+	return machine_host.is_operational
+
 /datum/tetris_arcade/proc/fill_ui_data(list/data, mob/user)
+	data["is_operational"] = is_powered()
 	data["game_status"] = game_status
 	data["high_score"] = high_score
 	data["high_score_holder"] = high_score_holder
@@ -214,6 +232,9 @@
 	return data
 
 /datum/tetris_arcade/proc/start_new_game(mob/user)
+	if(!is_powered())
+		return FALSE
+
 	// Claim the "player" seat regardless of cooldown, so a client already running its own
 	// game (started just under the cooldown) doesn't flip to spectator view on its next poll.
 	player_ckey = user?.ckey
@@ -234,6 +255,8 @@
 /// accompanying sound effect. Only the current player's client is trusted to push one; sfx is
 /// matched against a fixed allowlist rather than ever touching a client-supplied file path.
 /datum/tetris_arcade/proc/update_snapshot(list/new_snapshot, sfx, mob/user)
+	if(!is_powered())
+		return FALSE
 	if(game_status != TETRIS_PLAYING)
 		return FALSE
 	if(!user || isnull(player_ckey) || user.ckey != player_ckey)

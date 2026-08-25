@@ -4,7 +4,7 @@ import { TetrisContent } from './Tetris';
 
 export const NtosTetris = (props, context) => {
   return (
-    <NtosWindow width={410} height={635}>
+    <NtosWindow width={530} height={635}>
       <NtosWindow.Content>
         <TetrisContent />
       </NtosWindow.Content>
