@@ -72,6 +72,9 @@
 	SIGNAL_HANDLER
 	if(shifting)
 		// META EDIT - ADDITION - START - PIXEL_SHIFT_TILE_CROSS
+		var/mob/living/owner_mob = source
+		if(!(owner_mob.mobility_flags & MOBILITY_MOVE)) // knocked down/sleeping/etc, let the normal move-blocking handle it instead of pixel shifting in place
+			return
 		if(pixel_shift(source, direct, new_loc)) // already at the edge, let the real move through
 			crossing_tile = TRUE
 			pre_cross_dir = source.dir
