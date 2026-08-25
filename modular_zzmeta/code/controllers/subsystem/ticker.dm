@@ -38,3 +38,22 @@
 	SSsounds.cache_sounds(loading_music_tracks) // pre-warm lengths so the first playloadingmusic() track isn't delayed by an uncached rustg lookup
 
 	return SS_INIT_SUCCESS
+
+// Core only refreshes the "Server rebooting in:" HUD while current_state is GAME_STATE_FINISHED, so a reboot_timer
+// started mid-round (eg. the "Reboot World" admin verb) never gets shown to players. Cover that case here instead
+// of touching core's fire() switch.
+/datum/controller/subsystem/ticker/fire()
+	. = ..()
+	if(current_state == GAME_STATE_FINISHED)
+		return
+	if(!isnull(reboot_timer))
+		if(isnull(reboot_hud))
+			reboot_hud = new()
+		for(var/client/C in GLOB.clients)
+			if(!(reboot_hud in C.screen))
+				C.screen += reboot_hud
+		reboot_hud.maptext = MAPTEXT_PIXELLARI("<center>Server rebooting in:\n\ [DisplayTimeText(timeleft(reboot_timer), 1)]</center>")
+	else if(!isnull(reboot_hud) && reboot_hud.maptext)
+		reboot_hud.maptext = ""
+		for(var/client/C in GLOB.clients)
+			C.screen -= reboot_hud
