@@ -232,8 +232,12 @@ GLOBAL_LIST_INIT(message_modes_stat_limits, list(
 
 	// SKYRAT EDIT ADDITION START: autopunctuation
 	//ensure EOL punctuation exists and that word-bounded 'i' are capitalized before we do anything else
-	if(client?.autopunctuation) //BUBBER EDIT ADDITION: AUTOPUNCTUATION PREFERENCE CHECK
-		message = autopunct_bare(message)
+	// META EDIT - CHANGE - START - AUTOCAPITALIZATION_PREFERENCE
+	// ORIGINAL: if(client?.autopunctuation) //BUBBER EDIT ADDITION: AUTOPUNCTUATION PREFERENCE CHECK
+	// ORIGINAL: 	message = autopunct_bare(message)
+	if(client?.autopunctuation || client?.autocapitalization)
+		message = autopunct_bare(message, client?.autopunctuation, client?.autocapitalization)
+	// META EDIT - CHANGE - END
 	// SKYRAT EDIT ADDITION END
 	var/identifier = "invalid"
 	var/tts_message_to_use = tts_message || message
@@ -520,9 +524,12 @@ GLOBAL_LIST_INIT(message_modes_stat_limits, list(
 	if(!tts_message)
 		tts_message = message
 
-	if(capitalize_message)
+	// META EDIT - CHANGE - START - AUTOCAPITALIZATION_PREFERENCE
+	// ORIGINAL: if(capitalize_message)
+	if(capitalize_message && (!client || client.autocapitalization))
 		message = capitalize(message)
 		tts_message = capitalize(tts_message)
+	// META EDIT - CHANGE - END
 
 	return list("message" = message, "tts_message" = tts_message, "tts_filter" = tts_filter)
 

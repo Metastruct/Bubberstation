@@ -787,8 +787,8 @@
 		return FALSE
 
 	// META EDIT ADDITION START - CUSTOM_EMOTE_AUTOPUNCTUATION
-	if(user.client?.autopunctuation)
-		our_message = autopunct_bare(our_message)
+	if(user.client?.autopunctuation || user.client?.autocapitalization)
+		our_message = autopunct_bare(our_message, user.client?.autopunctuation, user.client?.autocapitalization)
 	// META EDIT ADDITION END - CUSTOM_EMOTE_AUTOPUNCTUATION
 
 	if(!params)
