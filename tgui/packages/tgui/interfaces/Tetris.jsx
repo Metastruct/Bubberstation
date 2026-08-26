@@ -1076,15 +1076,13 @@ class TetrisGame extends Component {
     };
   }
 
-  // Monotonic counter, checked server-side (update_snapshot() in tetris.dm) so a sync reordered
-  // by a bad connection can't land after a newer one and flip the board back to stale content.
-  // Also resets syncAccumulator, so an event-driven push (a lock/clear) postpones the next
-  // periodic one rather than stacking with it. Each push is a real Topic() call, rate-limited
-  // server-wide, so keeping the total count down matters well beyond just this feature.
-  pushSync(sfx) {
+  // Monotonic counter, checked server-side, so a reordered sync can't flip the board back to
+  // stale content. `snapshotOverride` lets lockCurrent() send immediately from its own local
+  // values instead of waiting on setState's callback.
+  pushSync(sfx, snapshotOverride) {
     this.syncAccumulator = 0;
     this.syncSeq += 1;
-    this.props.onSync?.(this.buildSnapshot(), sfx, this.syncSeq);
+    this.props.onSync?.(snapshotOverride ?? this.buildSnapshot(), sfx, this.syncSeq);
   }
 
   buildInitialState(playing) {
@@ -1174,6 +1172,7 @@ class TetrisGame extends Component {
         particles: prevState.particles.filter((particle) => particle.batchId !== batchId),
       }));
     }, PARTICLE_LIFETIME_MS);
+    return spawned;
   }
 
   selectMode(modeKey) {
@@ -1424,38 +1423,12 @@ class TetrisGame extends Component {
           ? totalGarbageCleared >= GARBAGE_TARGET_LINES
           : false;
 
-    const commit = () => {
-      this.setState(
-        {
-          board: cleared,
-          score: this.state.score + scoreGain,
-          lines: totalLines,
-          garbageCleared: totalGarbageCleared,
-          level: newLevel,
-          current: null,
-        },
-        () => {
-          this.pushSync(sfx);
-          if (objectiveComplete) {
-            this.finishRun(true);
-          } else {
-            this.spawnNext();
-          }
-        },
-      );
-    };
-
-    if (bannerText || comboToShow != null) {
-      this.showBanner(bannerText, comboToShow);
-    }
-
+    // Every clear gets a row flash + particle burst, Single through Tetris and spins alike.
+    let flashRows = null;
+    let particleCells = null;
     if (clearedCount > 0) {
-      // Cosmetic only: the rows are already gone by the time this renders (commit() below runs
-      // in the same frame, so a fast player never waits on it), it just flashes those row
-      // positions (and bursts their cells into particles) briefly on top of whatever's there
-      // now. Every clear gets this, Single through Tetris and spins alike.
-      const flashRows = [];
-      const particleCells = [];
+      flashRows = [];
+      particleCells = [];
       for (let y = 0; y < BOARD_H; y++) {
         if (merged[y].every((cell) => cell)) {
           flashRows.push(y);
@@ -1464,14 +1437,12 @@ class TetrisGame extends Component {
           }
         }
       }
-      this.showClearFlash(flashRows);
-      this.showParticles(particleCells);
     }
 
+    // Spin cells that survived the clear, remapped to their post-clear row.
+    let glowCells = null;
     if (isSpin) {
-      // Piece cells that survived the clear, remapped to their post-clear row (a spin that also
-      // clears lines shifts rows above it down), so the glow lands on the right cells.
-      const glowCells = [];
+      glowCells = [];
       for (let py = 0; py < current.matrix.length; py++) {
         for (let px = 0; px < current.matrix[py].length; px++) {
           if (!current.matrix[py][px]) {
@@ -1484,10 +1455,58 @@ class TetrisGame extends Component {
           }
         }
       }
-      this.showGlow(glowCells);
     }
 
-    commit();
+    const spawnedParticles = particleCells ? this.showParticles(particleCells) : null;
+    if (flashRows) {
+      this.showClearFlash(flashRows);
+    }
+    if (glowCells) {
+      this.showGlow(glowCells);
+    }
+    if (bannerText || comboToShow != null) {
+      this.showBanner(bannerText, comboToShow);
+    }
+
+    // Sent from these local values instead of this.state, so it goes out now rather than
+    // waiting on setState's callback below (see pushSync()).
+    this.pushSync(sfx, {
+      board: encodeBoard(cleared),
+      ghost: null,
+      hold: this.state.hold,
+      queue: this.state.queue,
+      score: this.state.score + scoreGain,
+      lines: totalLines,
+      garbageCleared: totalGarbageCleared,
+      level: newLevel,
+      mode,
+      statusMs: this.state.statusMs,
+      banner: bannerText,
+      comboBanner: comboToShow,
+      glow: glowCells,
+      flashRows,
+      particles: spawnedParticles,
+      paused: this.state.paused,
+      danger: isBoardInDanger(cleared),
+    });
+
+    this.setState(
+      {
+        board: cleared,
+        score: this.state.score + scoreGain,
+        lines: totalLines,
+        garbageCleared: totalGarbageCleared,
+        level: newLevel,
+        current: null,
+      },
+      () => {
+        if (objectiveComplete) {
+          this.finishRun(true);
+        } else {
+          this.spawnNext();
+        }
+      },
+    );
   }
 
   tryMove(dx, dy) {
