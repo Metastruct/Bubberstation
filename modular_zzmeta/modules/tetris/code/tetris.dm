@@ -16,6 +16,10 @@
 /// locks, so this has plenty of headroom before misfiring on a genuinely active game.
 #define TETRIS_ABANDON_THRESHOLD (8 SECONDS)
 
+/// Past this (but short of TETRIS_ABANDON_THRESHOLD), spectators get a "might be laggy" hint
+/// instead of a silently frozen board.
+#define TETRIS_STALE_THRESHOLD (1.5 SECONDS)
+
 /* TETRIS MACHINE */
 /// The machine itself. The board/piece/gravity logic runs client-side in tgui (like the fishing
 /// minigame); the server only tracks tickets, a high score, and sanity-checks the final report.
@@ -40,9 +44,8 @@
 	QDEL_NULL(board)
 	. = ..()
 
-/// Pushes an immediate UI update on a power state change, so a client mid-game notices and
-/// pauses (see Tetris.jsx's isOperational handling) right away instead of on its next regular
-/// data poll.
+/// Pushes an immediate UI update on power change, so a mid-game client pauses (see Tetris.jsx's
+/// isOperational) right away instead of on its next regular poll.
 /obj/machinery/computer/arcade/tetris/proc/on_power_change()
 	SIGNAL_HANDLER
 	SStgui.update_uis(src)
@@ -176,10 +179,8 @@
 	/// REALTIMEOFDAY of the last accepted sync, used to detect an abandoned game. See
 	/// TETRIS_ABANDON_THRESHOLD.
 	var/last_sync_time = 0
-	/// Sequence number of the last accepted sync. The client increments this on every push (see
-	/// pushSync() in Tetris.jsx); a bad connection can reorder act() calls in flight, so without
-	/// this a late-arriving stale packet can overwrite a newer snapshot spectators already saw,
-	/// making the board visibly flip backward for a moment before the real state catches up.
+	/// Sequence number of the last accepted sync (see pushSync() in Tetris.jsx). Rejects a
+	/// reordered/delayed packet that would otherwise flip the board back to stale content.
 	var/last_sync_seq = 0
 
 	/// ckey of whoever most recently pressed New Game. Whoever this doesn't match sees the
@@ -234,6 +235,7 @@
 	data["player_name"] = player_name
 	data["snapshot"] = snapshot
 	data["is_abandoned"] = (game_status == TETRIS_PLAYING) && (REALTIMEOFDAY - last_sync_time > TETRIS_ABANDON_THRESHOLD)
+	data["is_stale"] = (game_status == TETRIS_PLAYING) && (REALTIMEOFDAY - last_sync_time > TETRIS_STALE_THRESHOLD)
 	return data
 
 /datum/tetris_arcade/proc/start_new_game(mob/user)
@@ -267,13 +269,18 @@
 		return FALSE
 	if(!user || isnull(player_ckey) || user.ckey != player_ckey)
 		return FALSE
-	// A reordered/delayed duplicate delivered after a newer sync already landed. Not an error,
-	// just discard it rather than stepping the board backward.
-	if(seq <= last_sync_seq)
-		return FALSE
-	snapshot = new_snapshot
-	last_sync_seq = seq
 	last_sync_time = REALTIMEOFDAY
+
+	// A reordered/delayed sync that already lost to a newer one: don't let its board data step
+	// the display backward, but still relay its sound/effects below, since a real clear/lock/
+	// spin happened and deserves feedback either way.
+	if(seq > last_sync_seq)
+		snapshot = new_snapshot
+		last_sync_seq = seq
+	else if(snapshot && new_snapshot)
+		for(var/effect_key in list("banner", "comboBanner", "glow", "flashRows", "particles"))
+			snapshot[effect_key] = new_snapshot[effect_key]
+
 	switch(sfx)
 		if("lock")
 			play_snd('sound/machines/click.ogg')
@@ -370,3 +377,4 @@
 
 #undef TETRIS_MIN_DS_PER_LINE
 #undef TETRIS_ABANDON_THRESHOLD
+#undef TETRIS_STALE_THRESHOLD

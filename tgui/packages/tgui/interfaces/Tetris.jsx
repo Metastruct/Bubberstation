@@ -31,15 +31,13 @@ const SOFT_DROP_MS = 40;
 const MAX_CATCHUP_TICKS = 4;
 const LOCK_DELAY_MS = 500;
 const MAX_LOCK_RESETS = 15;
-// Hard ceiling on how long one piece can sit grounded without locking, regardless of resets
-// remaining: MAX_LOCK_RESETS alone still lets a player rotate a wedged piece in place for
-// MAX_LOCK_RESETS * LOCK_DELAY_MS (7.5s) on every single piece, indefinitely, since resets are
-// per-piece and start fresh on the next one. This caps it outright instead.
+// Hard ceiling on grounded time, regardless of resets left. MAX_LOCK_RESETS alone still lets a
+// player stall every single piece up to 7.5s, since its budget refills on the next piece.
 const MAX_GROUNDED_STALL_MS = 5000;
-// How often the player's client pushes a board snapshot for spectators. Matches
-// config/comms.txt's TICKLAG (0.5s), since the server can't relay updates faster than one per
-// world tick anyway.
-const SYNC_MS = 250;
+// How often the player's client pushes a board snapshot for spectators, when nothing else
+// (a lock/clear) already pushed one recently. Each push is a Topic() call, and BYOND kicks a
+// client for exceeding ~200 of those in a game minute; the old 250ms alone was already 240/min.
+const SYNC_MS = 500;
 
 // Must match TETRIS_IDLE/TETRIS_PLAYING/TETRIS_GAMEOVER in
 // modular_zzmeta/modules/tetris/code/tetris.dm.
@@ -323,9 +321,8 @@ const countGarbageRows = (board) => {
   return count;
 };
 
-// Whether the stack has reached DANGER_ROWS from the top, for the board's warning pulse. Only
-// the locked board, not the falling piece, since the piece is always up there at spawn and
-// that's not what "in danger" means.
+// Whether the locked stack (not the falling piece, which always starts near the top) has
+// crept within DANGER_ROWS of the top, for the board's warning pulse.
 const isBoardInDanger = (board) =>
   board.slice(0, DANGER_ROWS).some((row) => row.some((cell) => cell));
 
@@ -476,12 +473,9 @@ const decodeBoard = (encoded) => {
   return rows;
 };
 
-// Piece boxes vary in size (2x2 O, 3x3 JLSTZT, 4x4 I - see SHAPES), but the Hold/Next previews
-// should all look the same footprint, so every piece renders inside a fixed 4x4-cell frame
-// here. A 3-wide piece can't be split evenly across 4 grid columns (there's no integer offset
-// that centers it), so rather than placing it in the raw 4x4 grid, this trims each shape down
-// to its own occupied bounding box first and centers *that* in the frame via flexbox, which
-// centers any width/height combination correctly.
+// Piece boxes vary in size (see SHAPES), but Hold/Next should all share one footprint. A 3-wide
+// piece can't center evenly across 4 grid columns, so each shape is trimmed to its own occupied
+// bounding box first and centered via flexbox instead of placed directly in the raw 4x4 grid.
 const MINI_GRID = 4;
 const MINI_CELL_PX = 20;
 
@@ -1082,10 +1076,13 @@ class TetrisGame extends Component {
     };
   }
 
-  // Monotonic per-push counter, checked server-side (see update_snapshot() in tetris.dm) so a
-  // sync delayed and reordered by a bad connection can't land after a newer one and briefly
-  // flip the board back to stale content for every spectator.
+  // Monotonic counter, checked server-side (update_snapshot() in tetris.dm) so a sync reordered
+  // by a bad connection can't land after a newer one and flip the board back to stale content.
+  // Also resets syncAccumulator, so an event-driven push (a lock/clear) postpones the next
+  // periodic one rather than stacking with it. Each push is a real Topic() call, rate-limited
+  // server-wide, so keeping the total count down matters well beyond just this feature.
   pushSync(sfx) {
+    this.syncAccumulator = 0;
     this.syncSeq += 1;
     this.props.onSync?.(this.buildSnapshot(), sfx, this.syncSeq);
   }
@@ -1141,11 +1138,9 @@ class TetrisGame extends Component {
     }, duration);
   }
 
-  // Purely cosmetic: briefly lights up the given row indices, for any clear. The clear itself
-  // already committed by the time this is called, see lockCurrent(), so this never delays the
-  // next piece; it's just a flash layered on top of whatever the board already looks like. The
-  // hold-then-fade animation itself lives in Tetris__ClearFlash (Tetris.scss), so this only
-  // needs to unmount the flash once that animation has finished playing.
+  // Purely cosmetic: flashes the given rows on top of the board, already updated by the time
+  // this runs (see lockCurrent()). The hold-then-fade itself is Tetris__ClearFlash in
+  // Tetris.scss; this just unmounts the flash once that animation finishes.
   showClearFlash(rows) {
     const token = {};
     this.clearFlashToken = token;
@@ -1157,10 +1152,8 @@ class TetrisGame extends Component {
     }, CLEAR_FLASH_MS);
   }
 
-  // Bursts the given {x, y, type} cells outward as short-lived particles, colored by whatever
-  // piece was actually sitting there. `batchId` (rather than reusing a single shared token like
-  // the effects above) lets multiple bursts from back-to-back clears fade out independently
-  // instead of one clobbering another's timer.
+  // Bursts the given {x, y, type} cells outward as particles colored by whatever piece was
+  // there. Each batch gets its own id so back-to-back bursts fade independently.
   showParticles(cells) {
     if (!cells.length) {
       return;
@@ -1520,16 +1513,10 @@ class TetrisGame extends Component {
     return true;
   }
 
-  // Centralizes the grounded flag so every place that sets it also maintains groundedAt (the
-  // MAX_GROUNDED_STALL_MS clock) consistently, rather than each call site remembering to.
-  // `groundedAt` deliberately does NOT clear when isGrounded is false: a rotation kick (see
-  // JLSTZ_KICKS/I_KICKS) routinely shifts the piece by 1-2 cells and can momentarily break
-  // ground contact before it immediately re-grounds on the very next check. Clearing (and thus
-  // restarting) the MAX_GROUNDED_STALL_MS clock on every one of those blips is exactly what let
-  // a spin-in-place sequence dodge the cap forever, since it never really stopped touching the
-  // ground for more than a frame. `groundedAt` is only ever reset to null by a fresh piece
-  // spawning (see spawnNext()/startNewGame()/holdPiece()), so once set it marks this piece's
-  // very first ground contact for its whole lifetime, kicks and re-landings included.
+  // Centralizes the grounded flag so every setter also maintains groundedAt. Deliberately never
+  // clears groundedAt on ungrounding: a rotation kick briefly breaks contact before immediately
+  // re-grounding, and restarting the MAX_GROUNDED_STALL_MS clock on every one of those blips is
+  // exactly what let spin-in-place dodge the cap. Only a fresh piece spawning resets it to null.
   setGrounded(isGrounded) {
     if (isGrounded && this.groundedAt === null) {
       this.groundedAt = Date.now();
@@ -1644,11 +1631,8 @@ class TetrisGame extends Component {
     this.setState({ current: swapped, hold: current.type, canHold: false });
   }
 
-  // Manual pause is player-driven, unlike the isOperational half of isPaused() which the
-  // server forces. It's only ever toggled from a playing, powered game.
-  // pushSync() afterward is needed specifically because updateAnimation's own periodic sync is
-  // itself inside the paused-gated block, so spectators would otherwise never learn this
-  // toggled at all until the next unrelated sync.
+  // pushSync() afterward is required: updateAnimation's own periodic sync lives inside the
+  // paused-gated block, so spectators would never learn this toggled otherwise.
   togglePause() {
     if (this.state.phase !== 'playing' || !this.props.isOperational) {
       return;
@@ -1827,7 +1811,6 @@ class TetrisGame extends Component {
 
       this.syncAccumulator += delta;
       if (this.syncAccumulator >= SYNC_MS) {
-        this.syncAccumulator = 0;
         this.pushSync();
       }
 
@@ -2087,6 +2070,7 @@ const TetrisSpectator = (props) => {
     snapshot,
     gameStatus,
     isAbandoned,
+    isStale,
     lastScore,
     lastLines,
     playerName,
@@ -2205,7 +2189,9 @@ const TetrisSpectator = (props) => {
             <Stack.Item color="label">
               {isAbandoned
                 ? 'Spectating — the player left without finishing, this game looks abandoned.'
-                : 'Spectating — someone else has the controls.'}
+                : isStale
+                  ? 'Spectating — updates are lagging, likely a slow connection on their end.'
+                  : 'Spectating — someone else has the controls.'}
             </Stack.Item>
             <Stack.Item grow />
             <Stack.Item>
@@ -2254,6 +2240,7 @@ export const TetrisContent = (props, context) => {
     last_lines = 0,
     player_name,
     is_abandoned,
+    is_stale,
     is_operational = true,
   } = data;
 
@@ -2287,6 +2274,7 @@ export const TetrisContent = (props, context) => {
       snapshot={snapshot}
       gameStatus={game_status}
       isAbandoned={is_abandoned}
+      isStale={is_stale}
       lastScore={last_score}
       lastLines={last_lines}
       playerName={player_name}
