@@ -290,6 +290,9 @@
 			play_snd('sound/machines/terminal/terminal_success.ogg')
 		if("spin")
 			play_snd('modular_skyrat/modules/subsystems/sounds/soft_ping.ogg')
+	// Without this, spectators only see a new snapshot on SStgui's own background tick
+	// (~900ms), on top of however long the player's own sync was already delayed by.
+	SStgui.update_uis(host)
 	return TRUE
 
 /// Called once when the client's local game ends. The board is entirely client-side, so this
