@@ -1019,6 +1019,7 @@ class TetrisGame extends Component {
     this.comboCount = -1;
     this.b2bCount = -1;
     this.pauseStartedAt = null;
+    this.syncSeq = 0;
 
     this.state = this.buildInitialState(false);
 
@@ -1081,8 +1082,12 @@ class TetrisGame extends Component {
     };
   }
 
+  // Monotonic per-push counter, checked server-side (see update_snapshot() in tetris.dm) so a
+  // sync delayed and reordered by a bad connection can't land after a newer one and briefly
+  // flip the board back to stale content for every spectator.
   pushSync(sfx) {
-    this.props.onSync?.(this.buildSnapshot(), sfx);
+    this.syncSeq += 1;
+    this.props.onSync?.(this.buildSnapshot(), sfx, this.syncSeq);
   }
 
   buildInitialState(playing) {
@@ -1266,6 +1271,7 @@ class TetrisGame extends Component {
     this.comboCount = -1;
     this.b2bCount = -1;
     this.pauseStartedAt = null;
+    this.syncSeq = 0;
 
     this.setState(
       {
@@ -2273,7 +2279,7 @@ export const TetrisContent = (props, context) => {
       onGameOver={(score, lines, mode, completed) =>
         act('PRG_game_over', { score, lines, mode, completed })
       }
-      onSync={(snap, sfx) => act('PRG_sync', { snapshot: snap, sfx })}
+      onSync={(snap, sfx, seq) => act('PRG_sync', { snapshot: snap, sfx, seq })}
       onClaimTickets={() => act('PRG_tickets')}
     />
   ) : (

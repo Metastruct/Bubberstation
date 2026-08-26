@@ -78,7 +78,7 @@
 			return board.report_game_over(text2num(params["score"]), text2num(params["lines"]), params["mode"], params["completed"], user)
 
 		if("PRG_sync")
-			return board.update_snapshot(params["snapshot"], params["sfx"], user)
+			return board.update_snapshot(params["snapshot"], params["sfx"], text2num(params["seq"]), user)
 
 		if("PRG_tickets")
 			board.play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
@@ -140,7 +140,7 @@
 			return board.report_game_over(text2num(params["score"]), text2num(params["lines"]), params["mode"], params["completed"], user)
 
 		if("PRG_sync")
-			return board.update_snapshot(params["snapshot"], params["sfx"], user)
+			return board.update_snapshot(params["snapshot"], params["sfx"], text2num(params["seq"]), user)
 
 /datum/tetris_arcade
 	var/obj/host
@@ -176,6 +176,11 @@
 	/// REALTIMEOFDAY of the last accepted sync, used to detect an abandoned game. See
 	/// TETRIS_ABANDON_THRESHOLD.
 	var/last_sync_time = 0
+	/// Sequence number of the last accepted sync. The client increments this on every push (see
+	/// pushSync() in Tetris.jsx); a bad connection can reorder act() calls in flight, so without
+	/// this a late-arriving stale packet can overwrite a newer snapshot spectators already saw,
+	/// making the board visibly flip backward for a moment before the real state catches up.
+	var/last_sync_seq = 0
 
 	/// ckey of whoever most recently pressed New Game. Whoever this doesn't match sees the
 	/// game as a read-only spectator instead of getting controls.
@@ -247,6 +252,7 @@
 	game_status = TETRIS_PLAYING
 	starting_time = REALTIMEOFDAY
 	last_sync_time = REALTIMEOFDAY
+	last_sync_seq = 0
 	snapshot = null
 	play_snd('modular_zubbers/sound/arcade/minesweeper_boardpress.ogg')
 	return TRUE
@@ -254,14 +260,19 @@
 /// Stores the latest client-side board snapshot for other viewers to render, and plays any
 /// accompanying sound effect. Only the current player's client is trusted to push one; sfx is
 /// matched against a fixed allowlist rather than ever touching a client-supplied file path.
-/datum/tetris_arcade/proc/update_snapshot(list/new_snapshot, sfx, mob/user)
+/datum/tetris_arcade/proc/update_snapshot(list/new_snapshot, sfx, seq, mob/user)
 	if(!is_powered())
 		return FALSE
 	if(game_status != TETRIS_PLAYING)
 		return FALSE
 	if(!user || isnull(player_ckey) || user.ckey != player_ckey)
 		return FALSE
+	// A reordered/delayed duplicate delivered after a newer sync already landed. Not an error,
+	// just discard it rather than stepping the board backward.
+	if(seq <= last_sync_seq)
+		return FALSE
 	snapshot = new_snapshot
+	last_sync_seq = seq
 	last_sync_time = REALTIMEOFDAY
 	switch(sfx)
 		if("lock")
