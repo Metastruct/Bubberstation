@@ -1077,6 +1077,7 @@ class TetrisGame extends Component {
       flashRows,
       particles,
       paused,
+      danger: isBoardInDanger(board),
     };
   }
 
@@ -2122,7 +2123,7 @@ const TetrisSpectator = (props) => {
   // Mirrors TetrisGame's isPaused(): forced by lost power, or the player's own Pause button
   // (relayed through the snapshot, since that toggle otherwise never reaches the server).
   const isPausedNow = !isOperational || Boolean(snapshot?.paused);
-  const isDanger = isBoardInDanger(board);
+  const isDanger = Boolean(snapshot?.danger);
 
   return (
     <Stack fill vertical>
