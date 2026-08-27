@@ -193,6 +193,11 @@
 #undef BEYBLADE_CONFUSION_LIMIT
 
 
+// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+/// Offset source key for the pixel offset applied while jump-emote-spamming.
+#define JUMP_LANDING_DRIFT_OFFSET "jump_landing_drift"
+// META EDIT - ADDITION - END
+
 /datum/emote/jump
 	key = "jump"
 	key_third_person = "jumps"
@@ -200,11 +205,18 @@
 	// Allows ghosts to jump
 	mob_type_ignore_stat_typecache = list(/mob/dead/observer)
 	affected_by_pitch = FALSE
+	// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+	/// Per-mob jump-spam tracking: mob -> list(streak count, world.time of last jump)
+	var/list/jump_spam_state = list()
+	// META EDIT - ADDITION - END
 
 /datum/emote/jump/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
 
 	jump_animation(user)
+	// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+	apply_jump_landing_drift(user)
+	// META EDIT - ADDITION - END
 
 	if(!isliving(user))
 		return
@@ -216,6 +228,32 @@
 	animate(user, transform = user.transform.Translate(0, 4), time = 0.1 SECONDS, flags = ANIMATION_PARALLEL)
 	animate(transform = original_transform, time = 0.1 SECONDS)
 
+// META EDIT - ADDITION - START - JUMP_LANDING_DRIFT
+#define JUMP_DRIFT_REPEAT_WINDOW (2 SECONDS)
+#define JUMP_DRIFT_STREAK_THRESHOLD 6
+/// Nudges the mob 1-2px off-center via the offset-stacking system, but only once they've jumped several times in a row, so spamming jump in place doesn't keep landing on the exact same spot. The next jump after the streak lapses snaps back to center.
+/datum/emote/jump/proc/apply_jump_landing_drift(mob/user)
+	if(!isliving(user))
+		return
+	var/mob/living/living_user = user
+	var/list/state = jump_spam_state[living_user]
+	var/is_repeat = state && (world.time - state[2] <= JUMP_DRIFT_REPEAT_WINDOW)
+
+	if(!is_repeat)
+		jump_spam_state[living_user] = list(1, world.time)
+		living_user.remove_offsets(JUMP_LANDING_DRIFT_OFFSET)
+		return
+
+	var/streak = state[1] + 1
+	jump_spam_state[living_user] = list(streak, world.time)
+	if(streak < JUMP_DRIFT_STREAK_THRESHOLD)
+		return
+
+	living_user.add_offsets(JUMP_LANDING_DRIFT_OFFSET, x_add = pick(-2, -1, 1, 2), y_add = pick(-2, -1, 1, 2))
+#undef JUMP_DRIFT_REPEAT_WINDOW
+#undef JUMP_DRIFT_STREAK_THRESHOLD
+// META EDIT - ADDITION - END
+
 /datum/emote/jump/get_sound(mob/user)
 	return 'sound/items/weapons/thudswoosh.ogg'
 
@@ -224,3 +262,5 @@
 	if(isliving(user))
 		return ..()
 	return FALSE
+
+#undef JUMP_LANDING_DRIFT_OFFSET // META EDIT - ADDITION
