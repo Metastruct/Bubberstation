@@ -5,6 +5,7 @@ import { acquireHotKey, releaseHotKey } from 'tgui-core/hotkeys';
 import {
   KEY_C,
   KEY_DOWN,
+  KEY_F,
   KEY_LEFT,
   KEY_RIGHT,
   KEY_SPACE,
@@ -19,6 +20,10 @@ import { Window } from '../layouts';
 
 const BOARD_W = 10;
 const BOARD_H = 20;
+// Hidden rows above the visible playfield (a "vanish zone"), giving a tall stack room to build
+// before a fresh piece can't spawn. Part of TOTAL_H but never rendered; see BoardGrid's clip.
+const BUFFER_ROWS = 2;
+const TOTAL_H = BOARD_H + BUFFER_ROWS;
 const CELL_PX = 22;
 
 const DAS_MS = 170;
@@ -160,6 +165,41 @@ const O_KICKS = {
 
 const KICK_TABLES = { T: JLSTZ_KICKS, S: JLSTZ_KICKS, Z: JLSTZ_KICKS, J: JLSTZ_KICKS, L: JLSTZ_KICKS, I: I_KICKS, O: O_KICKS };
 
+// No published spec for 180 kicks, so one flat list applied from any rotationIndex: in place,
+// then drop a row (the classic L/J-spin tuck), then rise, then side steps, then diagonals.
+const JLSTZ_180_KICKS = [
+  [0, 0],
+  [0, 1],
+  [0, -1],
+  [1, 0],
+  [-1, 0],
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+];
+
+const I_180_KICKS = [
+  [0, 0],
+  [0, 1],
+  [0, -1],
+  [1, 0],
+  [-1, 0],
+];
+
+// O never visually changes when it rotates, so there's nothing to kick.
+const O_180_KICKS = [[0, 0]];
+
+const KICK_TABLES_180 = {
+  T: JLSTZ_180_KICKS,
+  S: JLSTZ_180_KICKS,
+  Z: JLSTZ_180_KICKS,
+  J: JLSTZ_180_KICKS,
+  L: JLSTZ_180_KICKS,
+  I: I_180_KICKS,
+  O: O_180_KICKS,
+};
+
 const rotateMatrix = (matrix, dir) => {
   const size = matrix.length;
   const rotated = [];
@@ -178,8 +218,11 @@ const rotateMatrix = (matrix, dir) => {
   return rotated;
 };
 
+// Reversing both row and column order maps every cell to its opposite-corner position.
+const rotateMatrix180 = (matrix) => matrix.map((row) => row.slice().reverse()).reverse();
+
 const makeEmptyBoard = () =>
-  Array.from({ length: BOARD_H }, () => new Array(BOARD_W).fill(null));
+  Array.from({ length: TOTAL_H }, () => new Array(BOARD_W).fill(null));
 
 // Garbage Race starting board: the bottom GARBAGE_ROWS rows are filled solid except for one
 // random gap column each (the standard Tetris "garbage line" shape), so every row needs its
@@ -187,7 +230,7 @@ const makeEmptyBoard = () =>
 const makeGarbageBoard = () => {
   const board = makeEmptyBoard();
   for (let i = 0; i < GARBAGE_ROWS; i++) {
-    const y = BOARD_H - 1 - i;
+    const y = TOTAL_H - 1 - i;
     const hole = Math.floor(Math.random() * BOARD_W);
     for (let x = 0; x < BOARD_W; x++) {
       if (x !== hole) {
@@ -217,7 +260,7 @@ const collides = (board, matrix, px, py) => {
       }
       const bx = px + x;
       const by = py + y;
-      if (bx < 0 || bx >= BOARD_W || by >= BOARD_H) {
+      if (bx < 0 || bx >= BOARD_W || by >= TOTAL_H) {
         return true;
       }
       if (by < 0) {
@@ -259,7 +302,7 @@ const buildGhostCells = (board, current) => {
       }
       const by = ghostY + y;
       const bx = current.x + x;
-      if (by >= 0 && by < BOARD_H && bx >= 0 && bx < BOARD_W) {
+      if (by >= 0 && by < TOTAL_H && bx >= 0 && bx < BOARD_W) {
         cells.push({ x: bx, y: by, type: current.type });
       }
     }
@@ -276,7 +319,7 @@ const mergePiece = (board, matrix, px, py, type) => {
       }
       const by = py + y;
       const bx = px + x;
-      if (by >= 0 && by < BOARD_H && bx >= 0 && bx < BOARD_W) {
+      if (by >= 0 && by < TOTAL_H && bx >= 0 && bx < BOARD_W) {
         next[by][bx] = type;
       }
     }
@@ -296,8 +339,8 @@ const clearLines = (board) => {
     }
     return keep;
   });
-  const cleared = BOARD_H - remaining.length;
-  while (remaining.length < BOARD_H) {
+  const cleared = TOTAL_H - remaining.length;
+  while (remaining.length < TOTAL_H) {
     remaining.unshift(new Array(BOARD_W).fill(null));
   }
   const survivorRows = new Map();
@@ -321,10 +364,12 @@ const countGarbageRows = (board) => {
   return count;
 };
 
-// Whether the locked stack (not the falling piece, which always starts near the top) has
-// crept within DANGER_ROWS of the top, for the board's warning pulse.
+// Whether the locked stack has crept within DANGER_ROWS of the top of the *visible* board, for
+// the warning pulse. Skips the hidden vanish-zone rows first; the stack isn't visible there.
 const isBoardInDanger = (board) =>
-  board.slice(0, DANGER_ROWS).some((row) => row.some((cell) => cell));
+  board
+    .slice(BUFFER_ROWS, BUFFER_ROWS + DANGER_ROWS)
+    .some((row) => row.some((cell) => cell));
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
@@ -395,7 +440,7 @@ const countOccupiedCorners = (board, x, y) => {
   ];
   let count = 0;
   for (const [cx, cy] of corners) {
-    if (cx < 0 || cx >= BOARD_W || cy >= BOARD_H) {
+    if (cx < 0 || cx >= BOARD_W || cy >= TOTAL_H) {
       count++;
       continue;
     }
@@ -702,14 +747,28 @@ const BoardGrid = memo(
     : null;
   const ghostMap = ghost?.length ? new Map(ghost.map((c) => [`${c.x}-${c.y}`, c.type])) : null;
 
+  // The board is TOTAL_H rows tall (BUFFER_ROWS hidden on top), but only the bottom BOARD_H
+  // should show. Bottom-anchoring the full grid inside a BOARD_H-tall overflow:hidden wrapper
+  // clips the buffer rows instead of needing a row-sliced render path.
   return (
+    <Box
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'inline-block',
+        width: `${BOARD_W * (CELL_PX + 1) - 1}px`,
+        height: `${BOARD_H * (CELL_PX + 1) - 1}px`,
+      }}
+    >
     <Box
       className={classes([danger && 'Tetris__Board--danger'])}
       style={{
-        position: 'relative',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
         display: 'inline-grid',
         'grid-template-columns': `repeat(${BOARD_W}, ${CELL_PX}px)`,
-        'grid-template-rows': `repeat(${BOARD_H}, ${CELL_PX}px)`,
+        'grid-template-rows': `repeat(${TOTAL_H}, ${CELL_PX}px)`,
         gap: '1px',
         'background-color': 'rgba(0,0,0,0.3)',
       }}
@@ -788,7 +847,7 @@ const BoardGrid = memo(
       <Box
         style={{
           position: 'absolute',
-          top: '4px',
+          top: `${BUFFER_ROWS * (CELL_PX + 1) + 4}px`,
           left: 0,
           right: 0,
           display: 'flex',
@@ -817,7 +876,7 @@ const BoardGrid = memo(
         className="Tetris__ComboBanner"
         style={{
           position: 'absolute',
-          top: '30px',
+          top: `${BUFFER_ROWS * (CELL_PX + 1) + 30}px`,
           left: 0,
           right: 0,
           display: 'flex',
@@ -841,6 +900,7 @@ const BoardGrid = memo(
       </Box>
     )}
     </Box>
+    </Box>
   );
 }, boardGridPropsEqual);
 
@@ -850,6 +910,7 @@ const KEYBINDS = [
   ['Space', 'Hard drop'],
   ['↑ / X', 'Rotate CW'],
   ['Z', 'Rotate CCW'],
+  ['F', 'Flip 180°'],
   ['C', 'Hold'],
 ];
 
@@ -1031,8 +1092,11 @@ class TetrisGame extends Component {
     this.hardDrop = this.hardDrop.bind(this);
     this.rotateCW = this.rotateCW.bind(this);
     this.rotateCCW = this.rotateCCW.bind(this);
+    this.rotate180 = this.rotate180.bind(this);
     this.holdPiece = this.holdPiece.bind(this);
     this.togglePause = this.togglePause.bind(this);
+    this.retryGame = this.retryGame.bind(this);
+    this.abandonToMainMenu = this.abandonToMainMenu.bind(this);
     this.pushSync = this.pushSync.bind(this);
   }
 
@@ -1183,13 +1247,13 @@ class TetrisGame extends Component {
   }
 
   componentDidMount() {
-    [KEY_C, KEY_X, KEY_Z].forEach((code) => {
+    [KEY_C, KEY_X, KEY_Z, KEY_F].forEach((code) => {
       acquireHotKey(code);
     });
   }
 
   componentWillUnmount() {
-    [KEY_C, KEY_X, KEY_Z].forEach((code) => {
+    [KEY_C, KEY_X, KEY_Z, KEY_F].forEach((code) => {
       releaseHotKey(code);
     });
     if (this.animationId) {
@@ -1429,7 +1493,7 @@ class TetrisGame extends Component {
     if (clearedCount > 0) {
       flashRows = [];
       particleCells = [];
-      for (let y = 0; y < BOARD_H; y++) {
+      for (let y = 0; y < TOTAL_H; y++) {
         if (merged[y].every((cell) => cell)) {
           flashRows.push(y);
           for (let x = 0; x < BOARD_W; x++) {
@@ -1564,6 +1628,7 @@ class TetrisGame extends Component {
     }
   }
 
+  // dir is 1 (CW), -1 (CCW), or 2 (180 flip).
   rotate(dir) {
     const { board, current } = this.state;
     if (!current) {
@@ -1571,9 +1636,13 @@ class TetrisGame extends Component {
     }
     const fromState = current.rotationIndex;
     const toState = (fromState + dir + 4) % 4;
-    const rotated = rotateMatrix(current.matrix, dir);
-    const table = KICK_TABLES[current.type] || JLSTZ_KICKS;
-    const kicks = table[`${fromState}>${toState}`] || [[0, 0]];
+    const rotated = dir === 2 ? rotateMatrix180(current.matrix) : rotateMatrix(current.matrix, dir);
+    // The 180 tables are flat (see KICK_TABLES_180's comment); the 90 tables are still
+    // per-transition.
+    const kicks =
+      dir === 2
+        ? KICK_TABLES_180[current.type] || JLSTZ_180_KICKS
+        : (KICK_TABLES[current.type] || JLSTZ_KICKS)[`${fromState}>${toState}`] || [[0, 0]];
     for (const [dx, dy] of kicks) {
       const nx = current.x + dx;
       const ny = current.y + dy;
@@ -1605,6 +1674,10 @@ class TetrisGame extends Component {
 
   rotateCCW() {
     this.rotate(-1);
+  }
+
+  rotate180() {
+    this.rotate(2);
   }
 
   // Locks synchronously off a locally-computed piece instead of setState-and-callback. A
@@ -1657,6 +1730,31 @@ class TetrisGame extends Component {
       return;
     }
     this.setState((prevState) => ({ paused: !prevState.paused }), () => this.pushSync());
+  }
+
+  // Bails out of the current run without reporting a score, unlike finishRun(). Backs the
+  // pause screen's Retry/Main Menu buttons.
+  abandonRun() {
+    if (this.animationId) {
+      window.cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+  }
+
+  retryGame() {
+    if (this.state.phase !== 'playing') {
+      return;
+    }
+    this.abandonRun();
+    this.startNewGame();
+  }
+
+  abandonToMainMenu() {
+    if (this.state.phase !== 'playing') {
+      return;
+    }
+    this.abandonRun();
+    this.setState({ phase: 'idle', paused: false });
   }
 
   startMoveLeft() {
@@ -1732,6 +1830,8 @@ class TetrisGame extends Component {
       this.rotateCW();
     } else if (code === KEY_Z) {
       this.rotateCCW();
+    } else if (code === KEY_F) {
+      this.rotate180();
     } else if (code === KEY_C) {
       this.holdPiece();
     }
@@ -1958,9 +2058,31 @@ class TetrisGame extends Component {
                       </Stack>
                     ) : (
                       isPausedNow && (
-                        <Box bold textAlign="center">
-                          {isOperational ? 'Paused' : 'Machine unpowered'}
-                        </Box>
+                        <Stack vertical>
+                          <Stack.Item>
+                            <Box bold textAlign="center">
+                              {isOperational ? 'Paused' : 'Machine unpowered'}
+                            </Box>
+                          </Stack.Item>
+                          <Stack.Item>
+                            <Button.Confirm
+                              fluid
+                              icon="rotate-right"
+                              content="Retry"
+                              disabled={!isOperational}
+                              onClick={this.retryGame}
+                            />
+                          </Stack.Item>
+                          <Stack.Item>
+                            <Button.Confirm
+                              fluid
+                              icon="house"
+                              content="Main Menu"
+                              color="bad"
+                              onClick={this.abandonToMainMenu}
+                            />
+                          </Stack.Item>
+                        </Stack>
                       )
                     )
                   }
@@ -2027,6 +2149,12 @@ class TetrisGame extends Component {
                   icon="rotate-right"
                   tooltip="Rotate CW (↑ / X)"
                   onClick={this.rotateCW}
+                  disabled={phase !== 'playing' || isPausedNow}
+                />
+                <Button
+                  icon="arrows-rotate"
+                  tooltip="Flip 180° (F)"
+                  onClick={this.rotate180}
                   disabled={phase !== 'playing' || isPausedNow}
                 />
                 <Button
