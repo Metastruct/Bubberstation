@@ -57,7 +57,11 @@
 	RegisterSignal(parent, COMSIG_KB_LIVING_PIXEL_SHIFT_UP, PROC_REF(pixel_shift_up))
 	RegisterSignal(parent, COMSIG_KB_LIVING_PIXEL_TILT_DOWN, PROC_REF(pixel_tilt_down))
 	RegisterSignal(parent, COMSIG_KB_LIVING_PIXEL_TILT_UP, PROC_REF(pixel_tilt_up))
-	RegisterSignals(parent, list(COMSIG_LIVING_RESET_PULL_OFFSETS, COMSIG_LIVING_SET_PULL_OFFSET, COMSIG_MOVABLE_MOVED), PROC_REF(unpixel_shift))
+	// META EDIT - CHANGE - START - PIXEL_SHIFT_KEEP_ON_GRAB
+	// Grab start/upgrade/release used to also fire unpixel_shift() on whoever gets grabbed, instantly
+	// snapping back any shift they'd already applied to themselves. Movement alone still resets it.
+	RegisterSignal(parent, COMSIG_MOVABLE_MOVED, PROC_REF(unpixel_shift))
+	// META EDIT - CHANGE - END
 	RegisterSignal(parent, COMSIG_MOB_CLIENT_PRE_LIVING_MOVE, PROC_REF(pre_move_check))
 	RegisterSignal(parent, COMSIG_LIVING_CAN_ALLOW_THROUGH, PROC_REF(check_passable))
 	// META EDIT - ADDITION - START - PIXEL_SHIFT_BUCKLE_TRANSLATE
@@ -73,8 +77,7 @@
 		COMSIG_KB_LIVING_PIXEL_SHIFT_DOWN,
 		COMSIG_KB_LIVING_PIXEL_SHIFT_UP,
 		COMSIG_MOB_CLIENT_PRE_LIVING_MOVE,
-		COMSIG_LIVING_RESET_PULL_OFFSETS,
-		COMSIG_LIVING_SET_PULL_OFFSET,
+		// META EDIT - REMOVAL - PIXEL_SHIFT_KEEP_ON_GRAB: COMSIG_LIVING_RESET_PULL_OFFSETS, COMSIG_LIVING_SET_PULL_OFFSET no longer registered, see RegisterWithParent
 		COMSIG_MOVABLE_MOVED,
 		COMSIG_LIVING_CAN_ALLOW_THROUGH,
 		// META EDIT - ADDITION - START - PIXEL_SHIFT_BUCKLE_TRANSLATE
@@ -143,7 +146,18 @@
 		for(var/mob/living/buckled_mob as anything in owner.buckled_mobs)
 			buckled_mob.remove_offsets(PIXEL_SHIFT_BUCKLE_OFFSET)
 		// META EDIT - ADDITION - END
-	qdel(src)
+		// META EDIT - ADDITION - START - PIXEL_SHIFT_PULLED_MOB
+		is_shifted = FALSE
+		how_tilted = 0
+		shift_x = 0
+		shift_y = 0
+		// META EDIT - ADDITION - END
+	// META EDIT - CHANGE - START - PIXEL_SHIFT_PULLED_MOB
+	// Keep the component (and its nudge on pulled_shift_target) alive across our own movement;
+	// the nudge is only supposed to clear when the pulled mob itself moves, see on_pulled_target_moved.
+	if(!pulled_shift_target)
+		qdel(src)
+	// META EDIT - CHANGE - END
 
 // META EDIT - ADDITION - START - PIXEL_SHIFT_BUCKLE_TRANSLATE
 /// Mirrors our current shift onto everyone buckled to us, so a rider (piggyback) or someone we're fireman carrying moves with our pixel shift instead of visually detaching from us.
