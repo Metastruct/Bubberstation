@@ -47,6 +47,10 @@
 
 	//the time a key was pressed isn't actually used anywhere (as of 2019-9-10) but this allows easier access usage/checking
 	keys_held[_key] = world.time
+	// META EDIT - ADDITION - START - INSTANT_OPEN_MODIFIER_GUARD
+	if(_key == "Alt" || _key == "Ctrl" || _key == "Shift")
+		set_instant_open_macros(FALSE)
+	// META EDIT - ADDITION - END - INSTANT_OPEN_MODIFIER_GUARD
 	var/movement = movement_keys[_key]
 	if(movement)
 		calculate_move_dir()
@@ -96,6 +100,10 @@
 
 	keys_held -= _key
 
+	// META EDIT - ADDITION - START - INSTANT_OPEN_MODIFIER_GUARD
+	if((_key == "Alt" || _key == "Ctrl" || _key == "Shift") && !keys_held["Alt"] && !keys_held["Ctrl"] && !keys_held["Shift"])
+		set_instant_open_macros(TRUE)
+	// META EDIT - ADDITION - END - INSTANT_OPEN_MODIFIER_GUARD
 	var/movement = movement_keys[_key]
 	if(movement)
 		calculate_move_dir()

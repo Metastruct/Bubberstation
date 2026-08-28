@@ -26,14 +26,32 @@
  * rebound an ability to the same key as Say), the fast path is skipped for that key
  * so it keeps going through keyDown(), otherwise the other keybinding bound to that
  * key would stop firing.
+ *
+ * These macros bind the bare physical key (e.g. "L"), and BYOND has no notion of a
+ * combined "Ctrl+L" key event, only separate "Ctrl" and "L" events with modifier state
+ * tracked by hand in keyDown() (code/modules/keybindings/bindings_client.dm). A static
+ * winset command can't consult that state at fire-time, so holding Ctrl/Alt/Shift would
+ * pop the modal right along with the plain key unless something disables these macros
+ * while a modifier is held. That's what instant_open_macros_active and
+ * set_instant_open_macros() below are for: keyDown()/keyUp() call it on every
+ * Ctrl/Alt/Shift transition to release the macros (falling through to the normal,
+ * modifier-aware keyDown() routing) or re-arm them once no modifier is held.
  */
+/client/var/instant_open_macros_active = FALSE
+
 /client/update_special_keybinds(datum/preferences/direct_prefs)
 	. = ..()
-	var/datum/preferences/D = prefs || direct_prefs
+	set_instant_open_macros(!(keys_held["Ctrl"] || keys_held["Alt"] || keys_held["Shift"]), prefs || direct_prefs)
+
+/client/proc/set_instant_open_macros(enable, datum/preferences/D)
+	if(enable == instant_open_macros_active)
+		return
+	D ||= prefs
 	if(!D?.key_bindings)
 		return
 	if(!D.read_preference(/datum/preference/toggle/tgui_input))
 		return // Native input() box, no popup to pre-empt, leave keyDown() routing alone.
+	instant_open_macros_active = enable
 	var/static/list/instant_open_channels = list(SAY_CHANNEL, RADIO_CHANNEL, OOC_CHANNEL, ME_CHANNEL, PRAY_CHANNEL, LOOC_CHANNEL, WHIS_CHANNEL)
 	for(var/channel in instant_open_channels)
 		var/list/bound_keys = D.key_bindings[channel]
@@ -42,5 +60,8 @@
 		for(var/key in bound_keys)
 			if(length(D.key_bindings_by_key[key]) > 1)
 				continue // Shared with another keybind, keep the normal routing so that one still fires.
-			var/open_command = tgui_say_create_open_command(channel)
-			winset(src, "default-[REF(key)]", "parent=default;name=[key];command=[open_command]")
+			if(enable)
+				var/open_command = tgui_say_create_open_command(channel)
+				winset(src, "default-[REF(key)]", "parent=default;name=[key];command=[open_command]")
+			else
+				winset(src, "default-[REF(key)]", "parent=null") // Falls through to the "Any" catch-all macro, i.e. normal keyDown() routing.
