@@ -1,4 +1,4 @@
-/obj/item/trash/can
+/obj/item/trash/can/food
 	hitsound = 'modular_zzmeta/sound/items/can_hit.ogg'
 	item_flags = SKIP_FANTASY_ON_SPAWN
 
