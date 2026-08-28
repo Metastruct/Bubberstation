@@ -492,7 +492,7 @@ const buildDisplayBoard = (board, current) => {
         }
         const by = current.y + y;
         const bx = current.x + x;
-        if (by >= 0 && by < BOARD_H && bx >= 0 && bx < BOARD_W) {
+        if (by >= 0 && by < TOTAL_H && bx >= 0 && bx < BOARD_W) {
           displayBoard[by][bx] = current.type;
         }
       }
@@ -512,7 +512,7 @@ const encodeBoard = (board) => board.map((row) => row.map(encodeCell).join('')).
 
 const decodeBoard = (encoded) => {
   const rows = [];
-  for (let y = 0; y < BOARD_H; y++) {
+  for (let y = 0; y < TOTAL_H; y++) {
     rows.push(encoded.slice(y * BOARD_W, (y + 1) * BOARD_W).split('').map(decodeCell));
   }
   return rows;
