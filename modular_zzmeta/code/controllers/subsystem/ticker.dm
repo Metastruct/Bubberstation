@@ -57,3 +57,8 @@
 		reboot_hud.maptext = ""
 		for(var/client/C in GLOB.clients)
 			C.screen -= reboot_hud
+
+// Recap commits landed this round right before the reboot that will actually apply them.
+/datum/controller/subsystem/ticker/reboot_callback(reason, end_string)
+	announce_pending_commits()
+	return ..()
