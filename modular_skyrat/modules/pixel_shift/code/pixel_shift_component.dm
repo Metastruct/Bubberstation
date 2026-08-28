@@ -37,6 +37,8 @@
 	var/pulled_shift_x = 0
 	/// Amount of shift we've applied to pulled_shift_target on the Y axis
 	var/pulled_shift_y = 0
+	/// Allows atoms entering pulled_shift_target's turf to pass through freely from given directions, same as passthroughable but for the mob we're nudging
+	var/pulled_passthroughable = NONE
 	// META EDIT - ADDITION - END
 
 /datum/component/pixel_shift/Initialize(...)
@@ -58,8 +60,12 @@
 	RegisterSignal(parent, COMSIG_KB_LIVING_PIXEL_TILT_DOWN, PROC_REF(pixel_tilt_down))
 	RegisterSignal(parent, COMSIG_KB_LIVING_PIXEL_TILT_UP, PROC_REF(pixel_tilt_up))
 	// META EDIT - CHANGE - START - PIXEL_SHIFT_KEEP_ON_GRAB
-	// Grab start/upgrade/release used to also fire unpixel_shift() on whoever gets grabbed, instantly
-	// snapping back any shift they'd already applied to themselves. Movement alone still resets it.
+	// Grab start/upgrade/release used to also fire the full unpixel_shift() on whoever gets grabbed,
+	// snapping their shift/tilt back to zero. Keep the visual transform instead, but still force the
+	// passthrough privilege to re-validate on any grab-relationship change (mirroring how movement
+	// re-validates it). Otherwise a stale self-shift can be kept alive forever by getting grabbed and
+	// never moving again, letting others walk through a doorway that shouldn't still be passable.
+	RegisterSignals(parent, list(COMSIG_LIVING_RESET_PULL_OFFSETS, COMSIG_LIVING_SET_PULL_OFFSET), PROC_REF(clear_own_passthrough))
 	RegisterSignal(parent, COMSIG_MOVABLE_MOVED, PROC_REF(unpixel_shift))
 	// META EDIT - CHANGE - END
 	RegisterSignal(parent, COMSIG_MOB_CLIENT_PRE_LIVING_MOVE, PROC_REF(pre_move_check))
@@ -77,7 +83,8 @@
 		COMSIG_KB_LIVING_PIXEL_SHIFT_DOWN,
 		COMSIG_KB_LIVING_PIXEL_SHIFT_UP,
 		COMSIG_MOB_CLIENT_PRE_LIVING_MOVE,
-		// META EDIT - REMOVAL - PIXEL_SHIFT_KEEP_ON_GRAB: COMSIG_LIVING_RESET_PULL_OFFSETS, COMSIG_LIVING_SET_PULL_OFFSET no longer registered, see RegisterWithParent
+		COMSIG_LIVING_RESET_PULL_OFFSETS,
+		COMSIG_LIVING_SET_PULL_OFFSET,
 		COMSIG_MOVABLE_MOVED,
 		COMSIG_LIVING_CAN_ALLOW_THROUGH,
 		// META EDIT - ADDITION - START - PIXEL_SHIFT_BUCKLE_TRANSLATE
@@ -120,8 +127,22 @@
 /// Checks if the parent is considered passthroughable from a direction. Projectiles will ignore the check and hit.
 /datum/component/pixel_shift/proc/check_passable(mob/source, atom/movable/mover, border_dir)
 	SIGNAL_HANDLER
-	if(!isprojectile(mover) && !mover.throwing && passthroughable & border_dir)
+	if(isprojectile(mover) || mover.throwing)
+		return
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_PULLED_MOB
+	// This same handler is also registered on pulled_shift_target (see pixel_shift()), so a mob we're
+	// nudging around gets the identical border-crossing check a self-shifted mob gets, instead of none at all.
+	var/relevant_passthroughable = (source == pulled_shift_target) ? pulled_passthroughable : passthroughable
+	// META EDIT - ADDITION - END
+	if(relevant_passthroughable & border_dir)
 		return COMPONENT_LIVING_PASSABLE
+
+// META EDIT - ADDITION - START - PIXEL_SHIFT_KEEP_ON_GRAB
+/// Revokes our own passthrough privilege on any grab-relationship change, without touching the visual shift/tilt. See RegisterWithParent for why.
+/datum/component/pixel_shift/proc/clear_own_passthrough()
+	SIGNAL_HANDLER
+	passthroughable = NONE
+// META EDIT - ADDITION - END
 
 /// Activates Pixel Shift on Keybind down. Only Pixel Shift movement will be allowed.
 /datum/component/pixel_shift/proc/pixel_shift_down()
@@ -183,16 +204,29 @@
 /datum/component/pixel_shift/proc/reset_pulled_shift()
 	if(!pulled_shift_target)
 		return
-	UnregisterSignal(pulled_shift_target, COMSIG_MOVABLE_MOVED)
+	UnregisterSignal(pulled_shift_target, list(COMSIG_MOVABLE_MOVED, COMSIG_LIVING_CAN_ALLOW_THROUGH))
 	pulled_shift_target.remove_offsets(PIXEL_SHIFT_PULLED_OFFSET)
 	pulled_shift_target = null
 	pulled_shift_x = 0
 	pulled_shift_y = 0
+	pulled_passthroughable = NONE
 
 /// Snaps a pulled mob's nudge back off once they take a real step under their own power, so they don't look permanently off-tile.
 /datum/component/pixel_shift/proc/on_pulled_target_moved()
 	SIGNAL_HANDLER
 	reset_pulled_shift()
+
+/// Returns which directions become passthroughable for the given shift amounts. Shared by our own shift and pulled_shift_target's, so both get identical treatment.
+/datum/component/pixel_shift/proc/get_passthrough_flags(x, y)
+	. = NONE
+	if(y > passthrough_threshold)
+		. |= EAST | SOUTH | WEST
+	else if(y < -passthrough_threshold)
+		. |= NORTH | EAST | WEST
+	if(x > passthrough_threshold)
+		. |= NORTH | SOUTH | WEST
+	else if(x < -passthrough_threshold)
+		. |= NORTH | EAST | SOUTH
 // META EDIT - ADDITION - END
 
 /// In-turf pixel movement which can allow things to pass through if the threshold is met.
@@ -224,6 +258,7 @@
 					reset_pulled_shift()
 					pulled_shift_target = pulled_mob
 					RegisterSignal(pulled_mob, COMSIG_MOVABLE_MOVED, PROC_REF(on_pulled_target_moved))
+					RegisterSignal(pulled_mob, COMSIG_LIVING_CAN_ALLOW_THROUGH, PROC_REF(check_passable))
 				switch(direct)
 					if(NORTH)
 						if(pulled_shift_y <= maximum_pixel_shift)
@@ -279,14 +314,16 @@
 
 	// Yes, I know this sets it to true for everything if more than one is matched.
 	// Movement doesn't check diagonals, and instead just checks EAST or WEST, depending on where you are for those.
-	if(shift_y > passthrough_threshold)
-		passthroughable |= EAST | SOUTH | WEST
-	else if(shift_y < -passthrough_threshold)
-		passthroughable |= NORTH | EAST | WEST
-	if(shift_x > passthrough_threshold)
-		passthroughable |= NORTH | SOUTH | WEST
-	else if(shift_x < -passthrough_threshold)
-		passthroughable |= NORTH | EAST | SOUTH
+	// META EDIT - CHANGE - START - PIXEL_SHIFT_PULLED_MOB
+	// Pulled out into get_passthrough_flags() so pulled_shift_target below can reuse the same math.
+	passthroughable |= get_passthrough_flags(shift_x, shift_y)
+	// META EDIT - CHANGE - END
+	// META EDIT - ADDITION - START - PIXEL_SHIFT_PULLED_MOB
+	// Same passthrough treatment for whoever we're nudging, so grabbing+shifting someone doesn't skip
+	// the check a self-shifted mob gets.
+	if(pulled_shift_target)
+		pulled_passthroughable = get_passthrough_flags(pulled_shift_x, pulled_shift_y)
+	// META EDIT - ADDITION - END
 
 #undef SHIFTING_ITEMS
 #undef SHIFTING_PARENT
