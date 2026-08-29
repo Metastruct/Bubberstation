@@ -10529,6 +10529,7 @@
 #include "modular_zzmeta\code\modules\client\preferences\tgui.dm"
 #include "modular_zzmeta\code\modules\client\preferences\middleware\blooper.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\_underwear.dm"
+#include "modular_zzmeta\code\modules\clothing\underwear\examine.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\outfit_underwear.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\strip_menu.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\generated\underwear_items.dm"
