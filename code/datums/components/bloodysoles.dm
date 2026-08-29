@@ -316,9 +316,14 @@
 		wielder.update_worn_shoes()
 		return
 
-	bloody_feet.color = wielder.get_blood_dna_color()
-	wielder.overlays_standing[SHOES_LAYER] = bloody_feet
+	// META EDIT - CHANGE - START - bloody_feet_stuck_overlay_fix
+	// bloody_feet is static and shared across all humans; recoloring it in place
+	// breaks other holders' cut_overlay() match, leaving their blood stuck on
+	var/mutable_appearance/colored_blood = new /mutable_appearance(bloody_feet)
+	colored_blood.color = wielder.get_blood_dna_color()
+	wielder.overlays_standing[SHOES_LAYER] = colored_blood
 	wielder.apply_overlay(SHOES_LAYER)
+	// META EDIT - CHANGE - END - bloody_feet_stuck_overlay_fix
 
 /datum/component/bloodysoles/feet/add_parent_to_footprint(obj/effect/decal/cleanable/blood/footprints/footprint)
 	if(!ishuman(wielder))
