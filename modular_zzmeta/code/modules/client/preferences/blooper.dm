@@ -1,3 +1,6 @@
+/// How much lower (in pitch %) whispering defaults to versus the character's normal voice, until manually changed.
+#define WHISPER_BLOOPER_DEFAULT_PITCH_DROP 15
+
 /**
  * Reads a PREFERENCE_CHARACTER preference's value for the slot currently being loaded, bypassing value_cache.
  *
@@ -70,9 +73,7 @@
 	return read_uncached_preference(/datum/preference/numeric/blooper_speed, preferences)
 
 /datum/preference/numeric/whisper_blooper_speed/is_accessible(datum/preferences/preferences)
-	if(!..() || !length(SSblooper.blooper_list))
-		return FALSE
-	return preferences.read_preference(/datum/preference/choiced/whisper_blooper) != "none"
+	return ..() && length(SSblooper.blooper_list)
 
 /datum/preference/numeric/whisper_blooper_pitch
 	category = PREFERENCE_CATEGORY_CHARACTER_BASICS
@@ -87,14 +88,12 @@
 /datum/preference/numeric/whisper_blooper_pitch/create_default_value()
 	return 50
 
-/// Defaults to whatever the character's normal Voice Pitch is currently set to.
+/// Defaults to a bit lower than whatever the character's normal Voice Pitch is currently set to.
 /datum/preference/numeric/whisper_blooper_pitch/create_informed_default_value(datum/preferences/preferences)
-	return read_uncached_preference(/datum/preference/numeric/blooper_pitch, preferences)
+	return read_uncached_preference(/datum/preference/numeric/blooper_pitch, preferences) - WHISPER_BLOOPER_DEFAULT_PITCH_DROP
 
 /datum/preference/numeric/whisper_blooper_pitch/is_accessible(datum/preferences/preferences)
-	if(!..() || !length(SSblooper.blooper_list))
-		return FALSE
-	return preferences.read_preference(/datum/preference/choiced/whisper_blooper) != "none"
+	return ..() && length(SSblooper.blooper_list)
 
 /datum/preference/numeric/whisper_blooper_pitch_range
 	category = PREFERENCE_CATEGORY_CHARACTER_BASICS
@@ -114,6 +113,6 @@
 	return read_uncached_preference(/datum/preference/numeric/blooper_pitch_range, preferences)
 
 /datum/preference/numeric/whisper_blooper_pitch_range/is_accessible(datum/preferences/preferences)
-	if(!..() || !length(SSblooper.blooper_list))
-		return FALSE
-	return preferences.read_preference(/datum/preference/choiced/whisper_blooper) != "none"
+	return ..() && length(SSblooper.blooper_list)
+
+#undef WHISPER_BLOOPER_DEFAULT_PITCH_DROP
