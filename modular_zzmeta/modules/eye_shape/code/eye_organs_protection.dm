@@ -54,3 +54,6 @@
 
 /obj/item/organ/eyes/low_light_adapted
 	overrides_sprite_datum_organ_type = TRUE
+
+/obj/item/organ/eyes/pod
+	overrides_sprite_datum_organ_type = TRUE

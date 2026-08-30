@@ -64,3 +64,7 @@
 /datum/sprite_accessory/eyes/skrell
 	name = "Skrell"
 	organ_type = /obj/item/organ/eyes/skrell
+
+/datum/sprite_accessory/eyes/insect
+	name = "Insect"
+	organ_type = /obj/item/organ/eyes/insect
