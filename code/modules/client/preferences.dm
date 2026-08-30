@@ -155,6 +155,11 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		character_preview_view = create_character_preview_view(user)
+		// META EDIT - ADDITION - START - CHARACTER_PROFILES_STATIC_SHADOW_FIX
+		// character_profiles is dynamic data (ui_data), not static. The client store merges
+		// static over dynamic, so without this the first frame has no data for it at all.
+		tainted_character_profiles = TRUE
+		// META EDIT - ADDITION - END
 		ui = new(user, src, "PreferencesMenu")
 		ui.set_autoupdate(FALSE)
 		ui.open()
@@ -201,7 +206,11 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
 	// SKYRAT EDIT ADDITION END
 
-	data["character_profiles"] = create_character_profiles()
+	// META EDIT - REMOVAL - START - CHARACTER_PROFILES_STATIC_SHADOW_FIX
+	// ORIGINAL: data["character_profiles"] = create_character_profiles()
+	// Duplicated in ui_data() below (dynamic). Client store merges static over dynamic, so
+	// having it here too permanently shadowed every later dynamic update.
+	// META EDIT - REMOVAL - END
 
 	data["character_preview_view"] = character_preview_view.assigned_map
 	data["overflow_role"] = SSjob.get_job_type(SSjob.overflow_role).title

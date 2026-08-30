@@ -49,7 +49,7 @@ function CharacterProfiles(props: ProfileProps) {
             }}
             fluid
           >
-            {profile ?? 'New Character'}
+            {profile ?? '- New Character -'}
           </Button>
         </Stack.Item>
       ))}
@@ -59,10 +59,16 @@ function CharacterProfiles(props: ProfileProps) {
     <Stack align="center" justify="left">
       <Stack.Item width="285px">
         <SideDropdown
-          selected={profiles[activeSlot]}
+          // META EDIT - CHANGE - START - EMPTY_SLOT_SELECTED_TEXT_FIX
+          // ORIGINAL: selected={profiles[activeSlot]}
+          selected={profiles[activeSlot] ?? '- New Character -'}
+          // META EDIT - CHANGE - END
           options={profiles.map((profile, slot) => ({
             value: slot,
-            displayText: profile ?? 'New Character',
+            // META EDIT - CHANGE - START - EMPTY_SLOT_SELECTED_TEXT_FIX
+            // ORIGINAL: displayText: profile ?? 'New Character',
+            displayText: profile ?? '- New Character -',
+            // META EDIT - CHANGE - END
           }))}
           onSelected={(slot) => {
             onClick(slot);
@@ -135,7 +141,10 @@ export function CharacterPreferenceWindow(props) {
                   slot: slot + 1,
                 });
               }}
-              profiles={data.character_profiles}
+              // META EDIT - CHANGE - START - CHARACTER_PROFILES_UNDEFINED_FIX
+              // ORIGINAL: profiles={data.character_profiles}
+              profiles={data.character_profiles ?? []}
+              // META EDIT - CHANGE - END
             />
           </Stack.Item>
           {/* BUBBER EDIT ADDITION BEGIN */}

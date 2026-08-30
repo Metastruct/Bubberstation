@@ -445,9 +445,11 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 /datum/preferences/proc/switch_to_slot(new_slot)
 	if(new_slot == default_slot) // sanity check, nothing to do here.
 		return
+	// META EDIT - ADDITION - START - SLOT_SWITCH_STALE_PROFILES_FIX
+	tainted_character_profiles = TRUE // character_profiles is keyed off default_slot, so any switch changes it, not just the randomize-new-slot path below
+	// META EDIT - ADDITION - END
 	// SAFETY: `load_character` performs sanitization on the slot number
 	if (!load_character(new_slot))
-		tainted_character_profiles = TRUE
 		randomise_appearance_prefs()
 		save_character(TRUE) // BUBBER EDIT
 
