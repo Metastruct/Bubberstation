@@ -1343,6 +1343,18 @@
 	var/image/limb = image(used_icon, used_state, -BODYPARTS_LAYER, dir = image_dir)
 	var/image/aux = null
 
+	// META EDIT - ADDITION - START - HEAD_SHAPE_POSITION_FIX
+	// Serpentid's head is unusually positioned relative to a standard head. Normally invisible
+	// since the rest of their body is offset to match, but the Head Shape preference can put
+	// their head on an otherwise-normal body (chest limb_id won't match), where the mismatch
+	// becomes visible. Only fires for that mismatch; a real Serpentid's own head (chest limb_id
+	// matches) is untouched.
+	if(body_zone == BODY_ZONE_HEAD && owner && limb_id == SPECIES_GAS)
+		var/obj/item/bodypart/chest/owner_chest = owner.get_bodypart(BODY_ZONE_CHEST)
+		if(owner_chest && owner_chest.limb_id != limb_id)
+			limb.pixel_z -= 8
+	// META EDIT - ADDITION - END
+
 	// BUBBER EDIT ADDITION - per-limb alpha. While worn the chosen alpha is used verbatim (0 = invisible),
 	// while dropped it is floored so the limb stays visible and pickup-able on the ground.
 	var/used_alpha = dropped ? max(limb_alpha, LIMB_DROPPED_MIN_ALPHA) : limb_alpha

@@ -1,11 +1,23 @@
 // THIS IS A META UI FILE
-import type { Feature, FeatureChoicedServerData, FeatureValueProps } from '../base';
+import {
+  CheckboxInput,
+  type Feature,
+  type FeatureChoicedServerData,
+  type FeatureToggle,
+  type FeatureValueProps,
+} from '../base';
 import { FeatureDropdownInput } from '../dropdowns';
 
-export const feature_head_shape: Feature<string> = {
+export const head_shape_toggle: FeatureToggle = {
   name: 'Head Shape',
+  description: 'Requires "Allow Mismatched Parts".',
+  component: CheckboxInput,
+};
+
+export const feature_head_shape: Feature<string> = {
+  name: 'Head Shape Selection',
   description:
-    'Requires "Allow Mismatched Parts". Purely cosmetic reskin, hair and facial hair still render normally.',
+    'Purely cosmetic reskin. "Headless" hides the head entirely. Existing colors and hair still apply normally.',
   component: (
     props: FeatureValueProps<string, string, FeatureChoicedServerData>,
   ) => {

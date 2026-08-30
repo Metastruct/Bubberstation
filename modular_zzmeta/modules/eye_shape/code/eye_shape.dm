@@ -1,14 +1,17 @@
 /// Eye Shape
 
+/datum/preference/toggle/mutant_toggle/eye_shape
+	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
+	savefile_key = "eye_shape_toggle"
+	relevant_mutant_bodypart = "eye_shape"
+
 /datum/preference/choiced/mutant_choice/eye_shape
 	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
 	savefile_key = "feature_eye_shape"
 	main_feature_name = "Eye Shape"
 	relevant_mutant_bodypart = "eye_shape"
+	type_to_check = /datum/preference/toggle/mutant_toggle/eye_shape
 	default_accessory_type = /datum/sprite_accessory/eyes/none
-
-/datum/preference/choiced/mutant_choice/eye_shape/is_part_enabled(datum/preferences/preferences)
-	return TRUE
 
 /datum/sprite_accessory/eyes
 	key = "eye_shape"
@@ -37,3 +40,19 @@
 /datum/sprite_accessory/eyes/moth
 	name = "Moth"
 	organ_type = /obj/item/organ/eyes/moth/cosmetic
+
+/datum/sprite_accessory/eyes/teshari
+	name = "Teshari"
+	organ_type = /obj/item/organ/eyes/teshari
+
+/datum/sprite_accessory/eyes/vox
+	name = "Vox"
+	organ_type = /obj/item/organ/eyes/vox
+
+/datum/sprite_accessory/eyes/vox_primalis
+	name = "Vox Primalis"
+	organ_type = /obj/item/organ/eyes/vox_primalis
+
+/datum/sprite_accessory/eyes/akula
+	name = "Akula"
+	organ_type = /obj/item/organ/eyes/akula
