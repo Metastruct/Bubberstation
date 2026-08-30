@@ -1,10 +1,8 @@
 /// Adds examine text for worn underwear items, matching the same "hidden while covered" rule
 /// used by the strip menu and inventory HUD (see covered_by_clothing() in strip_menu.dm and
 /// update_locked_slots() in human_underwear_hud.dm): visible only with no uniform or suit on.
-/mob/living/carbon/human/examine_more(mob/user)
+/mob/living/carbon/human/get_clothing_examine_info(mob/living/user)
 	. = ..()
-	if(HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE) && !isobserver(user))
-		return
 	if(w_uniform || wear_suit)
 		return
 
