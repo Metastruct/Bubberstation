@@ -59,15 +59,15 @@ function CharacterProfiles(props: ProfileProps) {
     <Stack align="center" justify="left">
       <Stack.Item width="285px">
         <SideDropdown
-          // META EDIT - CHANGE - START - EMPTY_SLOT_SELECTED_TEXT_FIX
-          // ORIGINAL: selected={profiles[activeSlot]}
-          selected={profiles[activeSlot] ?? '- New Character -'}
+          // META EDIT - CHANGE - START - SLOT_NUMBER_DISPLAY
+          // ORIGINAL: selected={profiles[activeSlot] ?? '- New Character -'}
+          selected={`${activeSlot + 1}. ${profiles[activeSlot] ?? '- New Character -'}`}
           // META EDIT - CHANGE - END
           options={profiles.map((profile, slot) => ({
             value: slot,
-            // META EDIT - CHANGE - START - EMPTY_SLOT_SELECTED_TEXT_FIX
-            // ORIGINAL: displayText: profile ?? 'New Character',
-            displayText: profile ?? '- New Character -',
+            // META EDIT - CHANGE - START - SLOT_NUMBER_DISPLAY
+            // ORIGINAL: displayText: profile ?? '- New Character -',
+            displayText: `${slot + 1}. ${profile ?? '- New Character -'}`,
             // META EDIT - CHANGE - END
           }))}
           onSelected={(slot) => {
