@@ -4,7 +4,7 @@
 /// etc.) need overrides_sprite_datum_organ_type = TRUE so their real eyes always
 /// win over a cosmetic pick, the same way Teshari ears protect their 4-ear setup.
 /// Species whose eyes are purely cosmetic already (teshari, vox, vox_primalis,
-/// akula) are intentionally left out here; there's nothing to protect.
+/// akula, skrell) are intentionally left out here; there's nothing to protect.
 
 /obj/item/organ/eyes/golem
 	overrides_sprite_datum_organ_type = TRUE
@@ -32,9 +32,6 @@
 	overrides_sprite_datum_organ_type = TRUE
 
 /obj/item/organ/eyes/synth
-	overrides_sprite_datum_organ_type = TRUE
-
-/obj/item/organ/eyes/skrell
 	overrides_sprite_datum_organ_type = TRUE
 
 /obj/item/organ/eyes/serpentid

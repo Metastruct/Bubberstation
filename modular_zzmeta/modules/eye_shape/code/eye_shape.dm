@@ -56,3 +56,11 @@
 /datum/sprite_accessory/eyes/akula
 	name = "Akula"
 	organ_type = /obj/item/organ/eyes/akula
+
+/datum/sprite_accessory/eyes/shadekin
+	name = "Shadekin"
+	organ_type = /obj/item/organ/eyes/shadekin/cosmetic
+
+/datum/sprite_accessory/eyes/skrell
+	name = "Skrell"
+	organ_type = /obj/item/organ/eyes/skrell

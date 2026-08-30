@@ -4,3 +4,7 @@
 
 /obj/item/organ/eyes/moth/cosmetic
 	flash_protect = FLASH_PROTECTION_NONE
+
+/obj/item/organ/eyes/shadekin/cosmetic
+	flash_protect = FLASH_PROTECTION_NONE
+	lighting_cutoff = null
