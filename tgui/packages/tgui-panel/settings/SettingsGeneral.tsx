@@ -156,7 +156,7 @@ export function SettingsGeneral(props) {
             }
           />
         </LabeledList.Item>
-        {/* META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS */}
+        {/* META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR */}
         <LabeledList.Item label="Say color mix">
           <Slider
             width="100%"
@@ -185,6 +185,22 @@ export function SettingsGeneral(props) {
             onChange={(e, value) =>
               updateSettings({
                 chatNameColorMixRadio: value,
+              })
+            }
+          />
+        </LabeledList.Item>
+        <LabeledList.Item label="LOOC color mix">
+          <Slider
+            width="100%"
+            step={1}
+            minValue={0}
+            maxValue={100}
+            value={settings.chatNameColorMixLooc}
+            unit="%"
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({
+                chatNameColorMixLooc: value,
               })
             }
           />

@@ -8,9 +8,10 @@ const viewSchema = z.object({
 
 export const settingsSchema = z.object({
   adminMusicVolume: z.number(),
-  // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
+  // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR
   chatNameColorMixSay: z.number(),
   chatNameColorMixRadio: z.number(),
+  chatNameColorMixLooc: z.number(),
   // META EDIT - ADDITION - END
   fontFamily: z.string(),
   fontSize: z.number(),

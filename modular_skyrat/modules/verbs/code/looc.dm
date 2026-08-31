@@ -68,6 +68,13 @@
 		if(ai.client && !(ai in heard) && (ai.eyeobj in heard))
 			heard += ai
 
+	// META EDIT - ADDITION - START - LOOC_NAME_COLOR
+	// Colors the speaker's name with their chat color, same as compose_message() does for say/radio (see modular_zzmeta/modules/chat_colors).
+	// LOOC has no channel to blend against, so this always mixes toward the default text color, per its own "LOOC color mix" slider.
+	var/looc_name_color = mob.get_chat_name_color()
+	var/looc_name_attrs = looc_name_color ? " class='chat-color-name-looc' style='--chat-color-name-value:[looc_name_color];'" : ""
+	// META EDIT - ADDITION - END
+
 	var/list/admin_seen = list()
 	for(var/mob/hearing in heard)
 		if(!hearing.client)
@@ -92,19 +99,19 @@
 		if (is_holder)
 			continue //admins are handled afterwards
 
-		// META EDIT - CHANGE - START - LOOC_LINKIFY
-		// ORIGINAL: <span class='message'>[msg] (no linkify class, LOOC links weren't clickable)
+		// META EDIT - CHANGE - START - LOOC_LINKIFY, LOOC_NAME_COLOR
+		// ORIGINAL: <span class='message'>[msg] (no linkify class, LOOC links weren't clickable, name not colored)
 		if(holder && isdead(src.mob)) // Admins ghosted display ckey
-			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.ckey]:</EM> <span class='message linkify'>[msg]")))
+			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM[looc_name_attrs]>[src.ckey]:</EM> <span class='message linkify'>[msg]")))
 		else
-			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.mob.name]:</EM> <span class='message linkify'>[msg]")))
+			to_chat(hearing_client, span_looc(span_prefix("LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM[looc_name_attrs]>[src.mob.name]:</EM> <span class='message linkify'>[msg]")))
 		// META EDIT - CHANGE - END
 
 	for(var/client/cli_client as anything in GLOB.admins)
-		// META EDIT - CHANGE - START - LOOC_LINKIFY
-		// ORIGINAL: <span class='message'>[msg]</span> (no linkify class, LOOC links weren't clickable)
+		// META EDIT - CHANGE - START - LOOC_LINKIFY, LOOC_NAME_COLOR
+		// ORIGINAL: <span class='message'>[msg]</span> (no linkify class, LOOC links weren't clickable, name not colored)
 		if (admin_seen[cli_client])
-			to_chat(cli_client, span_looc("[ADMIN_FLW(usr)] <span class='prefix'>LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.key]/[src.mob.name]:</EM> <span class='message linkify'>[msg]</span>"))
+			to_chat(cli_client, span_looc("[ADMIN_FLW(usr)] <span class='prefix'>LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM[looc_name_attrs]>[src.key]/[src.mob.name]:</EM> <span class='message linkify'>[msg]</span>"))
 		else if (cli_client.prefs.read_preference(/datum/preference/toggle/admin/see_looc))
-			to_chat(cli_client, span_rlooc("[ADMIN_FLW(usr)] <span class='prefix'>(R)LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM>[src.key]/[src.mob.name]:</EM> <span class='message linkify'>[msg]</span>"))
+			to_chat(cli_client, span_rlooc("[ADMIN_FLW(usr)] <span class='prefix'>(R)LOOC[wall_pierce ? " (WALL PIERCE)" : ""]:</span> <EM[looc_name_attrs]>[src.key]/[src.mob.name]:</EM> <span class='message linkify'>[msg]</span>"))
 		// META EDIT - CHANGE - END

@@ -66,3 +66,15 @@
   );
 }
 // META EDIT - ADDITION - END
+
+// META EDIT - ADDITION - START - LOOC_NAME_COLOR
+// Same blend as .chat-color-name-say, but LOOC gets its own "LOOC color mix" slider/variable since
+// players may want it set differently from in-character say (LOOC name coloring is OOC, not IC speech).
+.chat-color-name-looc {
+  color: color-mix(
+    in srgb,
+    var(--chat-color-name-value, currentColor) var(--chat-name-color-mix-looc, 50%),
+    currentColor
+  );
+}
+// META EDIT - ADDITION - END
