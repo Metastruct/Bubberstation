@@ -26,7 +26,20 @@ GLOBAL_VAR_INIT(temporary_flavor_text_indicator, generate_temporary_flavor_text_
 	// Turn empty input into no flavor text
 	var/result = msg || null
 	temporary_flavor_text = result
+	// META EDIT - ADDITION - START - TEMP_FLAVOR_CLEAR_ON_MOVE
+	UnregisterSignal(src, COMSIG_MOVABLE_MOVED)
+	if(result && tgui_alert(src, "Automatically clear this flavor text after you move one tile?", "Temporary Flavor Text", list("Yes", "No")) == "Yes")
+		RegisterSignal(src, COMSIG_MOVABLE_MOVED, PROC_REF(clear_temporary_flavor_on_move))
+	// META EDIT - ADDITION - END - TEMP_FLAVOR_CLEAR_ON_MOVE
 	update_appearance(UPDATE_ICON|UPDATE_OVERLAYS)
+
+/// META EDIT - ADDITION - TEMP_FLAVOR_CLEAR_ON_MOVE
+/mob/living/proc/clear_temporary_flavor_on_move(atom/movable/mover, atom/old_loc, direction, forced, list/old_locs, momentum_change)
+	SIGNAL_HANDLER
+	UnregisterSignal(src, COMSIG_MOVABLE_MOVED)
+	temporary_flavor_text = null
+	update_appearance(UPDATE_ICON|UPDATE_OVERLAYS)
+	to_chat(src, span_notice("Your temporary flavor text fades away as you move."))
 
 /mob/living/update_overlays()
 	. = ..()
