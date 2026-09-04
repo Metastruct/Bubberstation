@@ -267,7 +267,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/prone = target.body_position == LYING_DOWN ? (user.body_position == LYING_DOWN ? "_bothprone" : "_prone") : ""
 	var/is_self = (target == user)
 	var/list/feedback = list()
-	var/list/matched_tier = list()
+	var/list/matched_tier = list("")
 	feedback["specialized"] = !isnull(get_zone_data(zone, combat_mode, prone, is_self, matched_tier))
 	feedback["self_variant"] = (matched_tier[1] == "self")
 	feedback["combat_variant"] = (matched_tier[1] == "combat")

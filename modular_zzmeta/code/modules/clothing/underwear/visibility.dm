@@ -1,7 +1,9 @@
 /// Whether this clothing design leaves the groin visible (skirts, dresses) rather
 /// than concealing it.
 /proc/is_groin_exposing_uniform(obj/item/clothing/under/uniform)
-	return istype(uniform, /obj/item/clothing/under/dress) || istype(uniform, /obj/item/clothing/under/color/jumpskirt)
+	if(istype(uniform, /obj/item/clothing/under/dress))
+		return TRUE
+	return !!findtext("[uniform.type]", "skirt")
 
 /// Whether the chest underwear categories (bra, undershirt) should stay hidden.
 /proc/is_chest_covered(atom/source)

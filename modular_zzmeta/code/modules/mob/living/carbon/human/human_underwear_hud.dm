@@ -103,21 +103,21 @@
 	var/mob/living/carbon/human/human_mob = mymob
 	if(!istype(human_mob))
 		return
-	var/list/slot_covered = list(
-		ITEM_SLOT_UNDERWEAR = is_groin_covered(human_mob),
-		ITEM_SLOT_BRA = is_chest_covered(human_mob),
-		ITEM_SLOT_UNDERSHIRT = is_chest_covered(human_mob),
-		ITEM_SLOT_SOCKS = is_feet_covered(human_mob),
-	)
-	for(var/slot_id in slot_covered)
-		var/atom/movable/screen/inventory/inv = screen_objects[HUD_KEY_ITEM_SLOT(slot_id)]
-		if(!inv)
-			continue
-		if(slot_covered[slot_id])
-			screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY] -= inv
-			mymob.client?.screen -= inv
-		else
-			if(!(inv in screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY]))
-				screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY] += inv
-			if(inventory_shown)
-				mymob.client?.screen += inv
+	set_toggleable_inventory_slot_covered(ITEM_SLOT_UNDERWEAR, is_groin_covered(human_mob))
+	set_toggleable_inventory_slot_covered(ITEM_SLOT_BRA, is_chest_covered(human_mob))
+	set_toggleable_inventory_slot_covered(ITEM_SLOT_UNDERSHIRT, is_chest_covered(human_mob))
+	set_toggleable_inventory_slot_covered(ITEM_SLOT_SOCKS, is_feet_covered(human_mob))
+
+/// Handles one slot at a time rather than looping over a list keyed by ITEM_SLOT_*.
+/datum/hud/human/proc/set_toggleable_inventory_slot_covered(slot_id, covered)
+	var/atom/movable/screen/inventory/inv = screen_objects[HUD_KEY_ITEM_SLOT(slot_id)]
+	if(!inv)
+		return
+	if(covered)
+		screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY] -= inv
+		mymob.client?.screen -= inv
+	else
+		if(!(inv in screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY]))
+			screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY] += inv
+		if(inventory_shown)
+			mymob.client?.screen += inv
