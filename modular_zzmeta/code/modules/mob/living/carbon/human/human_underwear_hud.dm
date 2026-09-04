@@ -95,18 +95,25 @@
 #undef ui_undershirt
 #undef ui_socks
 
-/// Only shows these 4 slots when there's no uniform/suit covering them. Alpha alone isn't enough: the toggle button re-adds the whole group to client.screen on open regardless of alpha, so covered slots need pulling out of the group (and client.screen, if already open) instead.
+/// Only shows each of these 4 slots when nothing covers it (see visibility.dm for the per-category rules).
+/// Alpha alone isn't enough: the toggle button re-adds the whole group to client.screen on open
+/// regardless of alpha, so covered slots need pulling out of the group (and client.screen, if already open) instead.
 /datum/hud/human/update_locked_slots()
 	. = ..()
 	var/mob/living/carbon/human/human_mob = mymob
 	if(!istype(human_mob))
 		return
-	var/covered = (human_mob.w_uniform || human_mob.wear_suit)
-	for(var/slot_id in list(ITEM_SLOT_UNDERWEAR, ITEM_SLOT_BRA, ITEM_SLOT_UNDERSHIRT, ITEM_SLOT_SOCKS))
+	var/list/slot_covered = list(
+		ITEM_SLOT_UNDERWEAR = is_groin_covered(human_mob),
+		ITEM_SLOT_BRA = is_chest_covered(human_mob),
+		ITEM_SLOT_UNDERSHIRT = is_chest_covered(human_mob),
+		ITEM_SLOT_SOCKS = is_feet_covered(human_mob),
+	)
+	for(var/slot_id in slot_covered)
 		var/atom/movable/screen/inventory/inv = screen_objects[HUD_KEY_ITEM_SLOT(slot_id)]
 		if(!inv)
 			continue
-		if(covered)
+		if(slot_covered[slot_id])
 			screen_groups[HUD_GROUP_TOGGLEABLE_INVENTORY] -= inv
 			mymob.client?.screen -= inv
 		else

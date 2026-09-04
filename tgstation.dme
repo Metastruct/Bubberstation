@@ -10532,6 +10532,7 @@
 #include "modular_zzmeta\code\modules\clothing\underwear\examine.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\outfit_underwear.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\strip_menu.dm"
+#include "modular_zzmeta\code\modules\clothing\underwear\visibility.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\generated\underwear_items.dm"
 #include "modular_zzmeta\code\modules\emotes\species_crys.dm"
 #include "modular_zzmeta\code\modules\loadout\categories\inhands.dm"
