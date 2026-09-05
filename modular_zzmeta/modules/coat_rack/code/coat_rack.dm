@@ -17,6 +17,12 @@
 	// Hats look too big when dropped, so lets just scale them down
 	var/static/hat_overlay_scale = 0.5
 
+GLOBAL_VAR_INIT(coat_rack_recipe_registered, register_coat_rack_recipe())
+
+/proc/register_coat_rack_recipe()
+	GLOB.wood_recipes += new /datum/stack_recipe("coat rack", /obj/structure/coat_rack, 2, time = 1.5 SECONDS, crafting_flags = CRAFT_CHECK_DENSITY | CRAFT_ONE_PER_TURF | CRAFT_ON_SOLID_GROUND, category = CAT_FURNITURE)
+	return TRUE
+
 /obj/structure/coat_rack/Initialize(mapload)
 	. = ..()
 	body_slots = list("N" = null, "E" = null, "S" = null, "W" = null)
