@@ -35,6 +35,7 @@ import signal
 import socket
 import struct
 import subprocess
+import sys
 import time
 import urllib.parse
 import urllib.request
@@ -42,6 +43,9 @@ import urllib.request
 import websockets
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Image
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import dreamchecker_diff  # noqa: E402 - shared parser/baseline logic with modular_zzmeta/tools/check.sh
 
 HOST = os.environ.get("DM_DEBUG_HOST", "127.0.0.1")
 PORT = os.environ.get("DM_DEBUG_PORT")
@@ -965,7 +969,16 @@ def _format_check_result(r: dict) -> str:
     line = f"[{status}] {r['name']} ({r['duration']:.1f}s)"
     if "diagnostic_count" in r:
         line += f" - {r['diagnostic_count']} diagnostic(s)" if r["diagnostic_count"] is not None else " - count unparseable"
-    if r["ok"] is not True:
+    if "exit_code" in r and r["exit_code"] is not None and "new_diagnostics" in r:
+        line += f", raw exit code {r['exit_code']} (this is what CI's pipefail gate sees - always nonzero here due to preexisting diagnostics, not a useful signal on its own)"
+    if "new_diagnostics" in r:
+        if r["new_diagnostics"]:
+            line += f"\n{len(r['new_diagnostics'])} NEW diagnostic(s) not in baseline:\n" + "\n".join(r["new_diagnostics"])
+        else:
+            line += "\nNo new diagnostics vs baseline."
+        if r.get("fixed_count"):
+            line += f"\n({r['fixed_count']} baseline diagnostic(s) no longer present - run with dreamchecker_update_baseline=True to adopt.)"
+    elif r["ok"] is not True:
         tail = r["output"][-3000:]
         line += f"\n{tail}"
     return line
@@ -973,7 +986,7 @@ def _format_check_result(r: dict) -> str:
 
 @mcp.tool()
 @_logged_tool
-def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = False, run_tgui_lint: bool = False) -> str:
+def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = False, run_tgui_lint: bool = False, dreamchecker_update_baseline: bool = False) -> str:
     """Run the locally-runnable subset of .github/workflows/run_linters.yml
     (see the checklist this was built from) and report a pass/fail summary -
     a clean `tools/build/build.sh dm` compile alone does NOT catch everything
@@ -1001,19 +1014,36 @@ def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = 
     `run_dreamchecker=True` (default) additionally runs dreamchecker - a
     static-type checker stricter than the DM compiler itself, catching
     things like a weakly-typed asset-datum return where the compiler accepts
-    a proc call but dreamchecker flags "requires static type". Not a
-    pass/fail gate here: dreamchecker's own exit code is NOT trustworthy
-    (confirmed live - it returns 0 even for a rejected/unknown argument), so
-    this instead confirms the run was real by checking for its own "Parsing
-    tgstation.dme..." progress line, and separately reports the "Found N
-    diagnostics" count. That count is NOT necessarily caused by your
-    change - this codebase can carry pre-existing diagnostics on a clean
-    checkout with no relevant changes at all (confirmed live: 147 on an
-    unmodified tree at the time this tool was built). Skip re-litigating
-    every diagnostic; check whether any reported file:line falls inside
-    something you actually touched this session before treating it as a
-    real regression. If `dreamchecker` isn't on PATH, this is reported as
-    skipped (not a failure) with the install command
+    a proc call but dreamchecker flags "requires static type". CI runs this
+    same binary as `~/dreamchecker 2>&1 | bash tools/ci/annotate_dm.sh`
+    under GitHub Actions' default `bash -eo pipefail` shell, so CI's step
+    fails whenever dreamchecker's raw process exit code is nonzero - no
+    baseline comparison on CI's side. That raw exit code is reported here
+    too (confirmed live: it is 1 on a fully clean, untouched checkout right
+    now, because of a preexisting proc-level sleep-safety error in
+    code/modules/wiremod/core/component.dm unrelated to any given change),
+    so treating it as pass/fail here would report FAIL on every run
+    forever. Instead this diffs dreamchecker's parsed diagnostics against a
+    committed baseline file (modular_zzmeta/tools/dreamchecker_baseline.txt,
+    shared with modular_zzmeta/tools/check.sh - the same checklist as a
+    plain shell script for running by hand after a manual edit, no MCP
+    session needed) and reports ONLY the diagnostics that are NEW relative
+    to that baseline - this is the actual "would this fail CI for a reason
+    I introduced" signal. `ok` is True only when there are zero new
+    diagnostics; if no baseline file exists yet, `ok` is None (SKIP) and
+    the full raw output is shown - run once with
+    `dreamchecker_update_baseline=True` on a clean tree to create it (or
+    `modular_zzmeta/tools/check.sh --update-baseline`). Also reports if any
+    baseline diagnostics disappeared (a fix landed) without auto-adopting
+    them - rerun with `dreamchecker_update_baseline=True` to accept that as
+    the new baseline once you're confident it's real. The diagnostic-block
+    parser (`dreamchecker_diff.parse_diagnostics`) matches dreamchecker's
+    two block shapes (a location-line-prefixed diagnostic, and a bare
+    proc-level error followed by "- file:line:col:" context lines);
+    anything else is dropped, same as CI's own annotator effectively
+    ignores it as an inline comment even though it still counts toward the
+    raw diagnostic count and exit code. If `dreamchecker` isn't on PATH,
+    this is reported as skipped (not a failure) with the install command
     (`bash tools/ci/install_spaceman_dmm.sh dreamchecker`, then symlink onto
     PATH - see the project's own linter-checklist notes for why a bare
     missing-binary case can otherwise look identical to a false "clean"
@@ -1069,21 +1099,42 @@ def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = 
             })
         else:
             start = time.monotonic()
+            exit_code = None
             try:
                 result = subprocess.run(
                     ["dreamchecker"], cwd=REPO_ROOT,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300,
                 )
                 output = result.stdout.decode(errors="replace")
+                exit_code = result.returncode
             except subprocess.TimeoutExpired as e:
                 output = (e.output or b"").decode(errors="replace") + "\n[TIMED OUT after 300s]"
             ran_for_real = "Parsing tgstation.dme" in output
             match = re.search(r"Found (\d+) diagnostics?", output)
-            checks.append({
-                "name": "dreamchecker", "ok": ran_for_real,
+            diagnostics = dreamchecker_diff.parse_diagnostics(output)
+
+            if dreamchecker_update_baseline:
+                dreamchecker_diff.save_baseline(diagnostics)
+                baseline = set(diagnostics)
+            else:
+                baseline = dreamchecker_diff.load_baseline()
+
+            if baseline is None:
+                ok = None
+            else:
+                new_diagnostics = sorted(d for d in diagnostics if d not in baseline)
+                fixed_count = len(baseline - set(diagnostics))
+                ok = ran_for_real and not new_diagnostics
+
+            check = {
+                "name": "dreamchecker", "ok": ok, "exit_code": exit_code,
                 "diagnostic_count": int(match.group(1)) if match else None,
                 "duration": time.monotonic() - start, "output": output,
-            })
+            }
+            if baseline is not None:
+                check["new_diagnostics"] = new_diagnostics
+                check["fixed_count"] = fixed_count
+            checks.append(check)
 
     lines = [_format_check_result(r) for r in checks]
     total_time = sum(r["duration"] for r in checks)
