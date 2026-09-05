@@ -10554,6 +10554,7 @@
 #include "modular_zzmeta\modules\claude_debug\code\claude_debug.dm"
 #include "modular_zzmeta\modules\cleanbot_liquids\code\liquid_turf_wash.dm"
 #include "modular_zzmeta\modules\close_eyes\code\close_eyes.dm"
+#include "modular_zzmeta\modules\coat_rack\code\coat_rack.dm"
 #include "modular_zzmeta\modules\commit_announcer\code\commit_topic.dm"
 #include "modular_zzmeta\modules\interaction_menu\code\_interaction_defines.dm"
 #include "modular_zzmeta\modules\interaction_menu\code\click.dm"
