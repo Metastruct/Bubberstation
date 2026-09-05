@@ -149,7 +149,15 @@ GLOBAL_VAR_INIT(coat_rack_recipe_registered, register_coat_rack_recipe())
 			return colors
 	if(istext(hung.color)) // item colour
 		return list(hung.color)
+	var/sampled_color = sample_icon_color(hung.icon, hung.icon_state)
+	if(sampled_color)
+		return list(sampled_color)
 	return null
+
+/obj/structure/coat_rack/proc/sample_icon_color(icon_path, icon_state_name)
+	var/icon/sample = icon(icon_path, icon_state_name)
+	sample.Scale(1, 1)
+	return sample.GetPixel(1, 1)
 
 /obj/structure/coat_rack/update_overlays()
 	. = ..()
