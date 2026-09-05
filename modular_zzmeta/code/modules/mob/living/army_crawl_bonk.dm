@@ -16,7 +16,6 @@
 
 /// Stop letting a prone mob (army crawling, or a cortical borer hiding) stand back up into whatever dense obstruction it crawled under. Bonk its head instead and stay put.
 /datum/component/prone_mob/stop_army_crawl(mob/living/source)
-	SIGNAL_HANDLER
 	source = parent
 	if(source.is_stuck_under_furniture())
 		source.visible_message(
