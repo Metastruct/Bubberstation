@@ -66,7 +66,12 @@
 /obj/item/organ/eyes/teshari
 	name = "teshari eyes"
 	eye_icon = 'modular_skyrat/modules/organs/icons/teshari_eyes.dmi'
+	// META EDIT - CHANGE - START - TESHARI_BLINK_FIX
+	/* ORIGINAL:
 	blink_animation = FALSE
+	*/
+	blink_animation = TRUE
+	// META EDIT - CHANGE - END - TESHARI_BLINK_FIX
 
 /datum/species/teshari/prepare_human_for_preview(mob/living/carbon/human/tesh)
 	var/base_color = "#c0965f"
