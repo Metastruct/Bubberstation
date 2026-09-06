@@ -82,6 +82,12 @@
 	for(var/body_zone in list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG, BODY_ZONE_CHEST, BODY_ZONE_HEAD))
 		if(body_zone in visited_body_zones)
 			continue
+		// META EDIT - ADDITION - START - HEAD_SHAPE_SKIP_RESET
+		// The Head Shape preference (a separate, non-augment system) already applied its own
+		// look to the head bodypart earlier this pass. Don't wipe it back to species-default here.
+		if(body_zone == BODY_ZONE_HEAD && preferences.read_preference(/datum/preference/toggle/mutant_toggle/head_shape))
+			continue
+		// META EDIT - ADDITION - END - HEAD_SHAPE_SKIP_RESET
 
 		var/obj/item/bodypart/target_bodypart = target.get_bodypart(body_zone)
 
