@@ -10535,6 +10535,7 @@
 #include "modular_zzmeta\code\modules\clothing\underwear\visibility.dm"
 #include "modular_zzmeta\code\modules\clothing\underwear\generated\underwear_items.dm"
 #include "modular_zzmeta\code\modules\emotes\species_crys.dm"
+#include "modular_zzmeta\code\modules\loadout\outfit_loadout.dm"
 #include "modular_zzmeta\code\modules\loadout\categories\inhands.dm"
 #include "modular_zzmeta\code\modules\loadout\categories\toys.dm"
 #include "modular_zzmeta\code\modules\mob\living\army_crawl_bonk.dm"

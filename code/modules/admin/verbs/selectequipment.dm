@@ -105,6 +105,26 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/ta
 	if(!dummy_key)
 		init_dummy()
 
+	// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
+	// "Loadout" and "Underwear" have no static items of their own, so pre-equip the preview dummy
+	// with the target's real saved loadout/underwear before flattening it.
+	// selected_outfit is an uninitialized typepath here (previewing a normal, non-custom outfit
+	// never instantiates it), so check with ispath() rather than istype() (which requires an
+	// actual object instance and would silently never match a bare path).
+	var/is_loadout_preview = ispath(selected_outfit, /datum/outfit/loadout) || istype(selected_outfit, /datum/outfit/loadout)
+	var/is_underwear_preview = ispath(selected_outfit, /datum/outfit/underwear) || istype(selected_outfit, /datum/outfit/underwear)
+	if(is_loadout_preview || is_underwear_preview)
+		var/mob/living/carbon/human/dummy/preview_dummy = GLOB.human_dummy_list[dummy_key]
+		var/datum/preferences/target_prefs = target_mob.client?.prefs
+		if(!target_prefs && target_mob.ckey)
+			target_prefs = GLOB.preferences_datums[target_mob.ckey]
+		if(preview_dummy && target_prefs)
+			if(is_loadout_preview)
+				preview_dummy.equip_outfit_and_loadout(/datum/outfit, target_prefs)
+			else
+				preview_dummy.apply_underwear_prefs(target_prefs)
+	// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
+
 	var/icon/dummysprite = get_flat_human_icon(null,
 		dummy_key = dummy_key,
 		outfit_override = selected_outfit,
@@ -130,7 +150,11 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/ta
 	if(!cached_outfits)
 		cached_outfits = list()
 		cached_outfits += list(outfit_entry("General", /datum/outfit, "Naked", priority=TRUE))
-		cached_outfits += make_outfit_entries("General", subtypesof(/datum/outfit) - typesof(/datum/outfit/job) - typesof(/datum/outfit/plasmaman))
+		// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
+		cached_outfits += list(outfit_entry("General", /datum/outfit/loadout, "Loadout", priority=TRUE))
+		cached_outfits += list(outfit_entry("General", /datum/outfit/underwear, "Underwear", priority=TRUE))
+		// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
+		cached_outfits += make_outfit_entries("General", subtypesof(/datum/outfit) - typesof(/datum/outfit/job) - typesof(/datum/outfit/plasmaman) - list(/datum/outfit/loadout, /datum/outfit/underwear)) // META EDIT - CHANGE - SELECT_EQUIPMENT_RESTORE_PREFS
 		cached_outfits += make_outfit_entries("Jobs", typesof(/datum/outfit/job))
 		cached_outfits += make_outfit_entries("Plasmamen Outfits", typesof(/datum/outfit/plasmaman))
 
@@ -220,8 +244,23 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/ta
 	var/obj/item/organ/brain/human_brain = human_target.get_organ_slot(BRAIN)
 	human_brain.destroy_all_skillchips() // get rid of skillchips to prevent runtimes
 
-	if(dresscode != "Naked")
+	// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
+	// "Loadout" and "Underwear" are special bare outfits that restore the target's own saved
+	// character preferences instead of just being an empty outfit like "Naked".
+	if(istype(dresscode, /datum/outfit/loadout) || istype(dresscode, /datum/outfit/underwear))
+		var/datum/preferences/target_prefs = human_target.client?.prefs
+		if(!target_prefs && human_target.ckey)
+			target_prefs = GLOB.preferences_datums[human_target.ckey]
+
+		if(!target_prefs)
+			tgui_alert(usr, "Could not find saved character preferences for this mob.")
+		else if(istype(dresscode, /datum/outfit/loadout))
+			human_target.equip_outfit_and_loadout(/datum/outfit, target_prefs)
+		else
+			human_target.apply_underwear_prefs(target_prefs)
+	else if(dresscode != "Naked")
 		human_target.equipOutfit(dresscode)
+	// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
 
 	human_target.regenerate_icons()
 
