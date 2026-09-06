@@ -1,11 +1,10 @@
-/// Base type for real, equippable underwear items. Concrete garment styles are generated
+/// Base type for underwear items. Concrete garment styles are generated
 /// from the legacy /datum/sprite_accessory/clothing/* data, see generated/underwear_items.dm.
 /obj/item/clothing/underwear
 	name = "underwear"
 	// modular_skyrat reopens the underwear accessories with this icon file, so it's every generated item's real resolved default.
 	icon = 'modular_skyrat/master_files/icons/mob/clothing/underwear.dmi'
 	worn_icon = 'modular_skyrat/master_files/icons/mob/clothing/underwear.dmi'
-	// No dedicated inhand art yet, reuses the shared greyscale_gloves placeholder (see gloves/combat.dm) instead of the worn state's body-shaped overlay.
 	lefthand_file = 'icons/mob/inhands/clothing/gloves_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/clothing/gloves_righthand.dmi'
 	inhand_icon_state = "greyscale_gloves"
@@ -27,9 +26,7 @@
 		return FALSE
 	return ..()
 
-/// Clicking the item while holding it lets you recolor it (the dresser used to offer this as a
-/// separate menu option before underwear was a real item; now it's on the item itself, same as
-/// e.g. wigs). No-op for use_static items, since their art is already fully colored.
+/// Clicking the underwear while holding it lets you recolor it.
 /obj/item/clothing/underwear/attack_self(mob/user)
 	. = ..()
 	if(use_static)
@@ -194,3 +191,17 @@
 	set_bra("Nude")
 	set_undershirt("Nude")
 	set_socks("Nude")
+
+/// Applies underwear/bra/undershirt/socks style + color preferences from the given prefs datum onto this human, without touching anything else (body, loadout, other clothing).
+/mob/living/carbon/human/proc/apply_underwear_prefs(datum/preferences/preference_source)
+	if(!preference_source)
+		return
+	// Colors are read onto the mob first since set_*() build their new garment's color from these vars.
+	underwear_color = preference_source.read_preference(/datum/preference/color/underwear_color)
+	bra_color = preference_source.read_preference(/datum/preference/color/bra_color)
+	undershirt_color = preference_source.read_preference(/datum/preference/color/undershirt_color)
+	socks_color = preference_source.read_preference(/datum/preference/color/socks_color)
+	set_underwear(preference_source.read_preference(/datum/preference/choiced/underwear))
+	set_bra(preference_source.read_preference(/datum/preference/choiced/bra))
+	set_undershirt(preference_source.read_preference(/datum/preference/choiced/undershirt))
+	set_socks(preference_source.read_preference(/datum/preference/choiced/socks))

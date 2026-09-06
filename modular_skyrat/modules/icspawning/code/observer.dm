@@ -99,8 +99,12 @@
 
 	// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
 	// "Naked" strips underwear too, since safe_transfer_prefs_to() above already re-applied it.
+	// "Underwear" explicitly restores it from the spawning observer's own saved preferences,
+	// rather than relying on safe_transfer_prefs_to() (which only ran for "Selected Character").
 	if(outfit_option == /datum/outfit)
 		new_player.remove_all_underwear_items()
+	else if(outfit_option == /datum/outfit/underwear)
+		new_player.apply_underwear_prefs(target.client?.prefs)
 	// META EDIT - ADDITION - END
 
 	if(target.mind)
