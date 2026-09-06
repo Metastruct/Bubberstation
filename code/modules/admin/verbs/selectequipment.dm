@@ -149,11 +149,11 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/ta
 	var/list/data = list()
 	if(!cached_outfits)
 		cached_outfits = list()
-		cached_outfits += list(outfit_entry("General", /datum/outfit, "Naked", priority=TRUE))
 		// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
 		cached_outfits += list(outfit_entry("General", /datum/outfit/loadout, "Loadout", priority=TRUE))
 		cached_outfits += list(outfit_entry("General", /datum/outfit/underwear, "Underwear", priority=TRUE))
 		// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
+		cached_outfits += list(outfit_entry("General", /datum/outfit, "Naked", priority=TRUE))
 		cached_outfits += make_outfit_entries("General", subtypesof(/datum/outfit) - typesof(/datum/outfit/job) - typesof(/datum/outfit/plasmaman) - list(/datum/outfit/loadout, /datum/outfit/underwear)) // META EDIT - CHANGE - SELECT_EQUIPMENT_RESTORE_PREFS
 		cached_outfits += make_outfit_entries("Jobs", typesof(/datum/outfit/job))
 		cached_outfits += make_outfit_entries("Plasmamen Outfits", typesof(/datum/outfit/plasmaman))
