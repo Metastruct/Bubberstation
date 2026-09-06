@@ -2,6 +2,7 @@
 
 /client/var/commandbar_thinking = FALSE
 /client/var/commandbar_typing = FALSE
+/client/var/typing_indicator_is_emote = FALSE // META EDIT - ADDITION - EMOTE_GESTURE_BUBBLE
 
 /client/proc/initialize_commandbar_spy()
 	src << output('html/typing_indicator.html', "commandbar_spy")
@@ -19,17 +20,21 @@
 			stop_thinking()
 		return
 
+	// META EDIT - ADDITION - START - EMOTE_GESTURE_BUBBLE
+	var/is_emote = (LOWER_TEXT(href_list["verb"]) == "me")
+	// META EDIT - ADDITION - END - EMOTE_GESTURE_BUBBLE
+
 	if (!commandbar_thinking)
 		commandbar_thinking = TRUE
-		start_thinking()
+		start_thinking(is_emote) // META EDIT - CHANGE - ORIGINAL: start_thinking()
 
 	if (!commandbar_typing)
 		commandbar_typing = TRUE
-		start_typing()
+		start_typing(is_emote) // META EDIT - CHANGE - ORIGINAL: start_typing()
 
 
 /** Sets the mob as "thinking" - with indicator and the TRAIT_THINKING_IN_CHARACTER trait */
-/client/proc/start_thinking()
+/client/proc/start_thinking(emote = FALSE) // META EDIT - CHANGE - ORIGINAL: /client/proc/start_thinking()
 	if(!typing_indicators)
 		return FALSE
 	/// Special exemptions
@@ -38,7 +43,8 @@
 		return FALSE
 	END */
 	ADD_TRAIT(mob, TRAIT_THINKING_IN_CHARACTER, CURRENTLY_TYPING_TRAIT)
-	mob.create_thinking_indicator()
+	typing_indicator_is_emote = emote // META EDIT - ADDITION - EMOTE_GESTURE_BUBBLE
+	mob.create_thinking_indicator(emote) // META EDIT - CHANGE - ORIGINAL: mob.create_thinking_indicator()
 
 /** Removes typing/thinking indicators and flags the mob as not thinking */
 /client/proc/stop_thinking()
@@ -48,12 +54,13 @@
  * Handles the user typing. After a brief period of inactivity,
  * signals the client mob to revert to the "thinking" icon.
  */
-/client/proc/start_typing()
+/client/proc/start_typing(emote = FALSE) // META EDIT - CHANGE - ORIGINAL: /client/proc/start_typing()
 	var/mob/client_mob = mob
 	client_mob.remove_thinking_indicator()
 	if(!typing_indicators || !HAS_TRAIT(client_mob, TRAIT_THINKING_IN_CHARACTER))
 		return FALSE
-	client_mob.create_typing_indicator()
+	typing_indicator_is_emote = emote // META EDIT - ADDITION - EMOTE_GESTURE_BUBBLE
+	client_mob.create_typing_indicator(emote) // META EDIT - CHANGE - ORIGINAL: client_mob.create_typing_indicator()
 	addtimer(CALLBACK(src, PROC_REF(stop_typing)), 5 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
 
 /**
@@ -67,6 +74,6 @@
 	client_mob.remove_typing_indicator()
 	if(!typing_indicators || !HAS_TRAIT(client_mob, TRAIT_THINKING_IN_CHARACTER))
 		return FALSE
-	client_mob.create_thinking_indicator()
+	client_mob.create_thinking_indicator(typing_indicator_is_emote) // META EDIT - CHANGE - ORIGINAL: client_mob.create_thinking_indicator()
 
 #undef IC_VERBS

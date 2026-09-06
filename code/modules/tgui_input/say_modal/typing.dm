@@ -1,5 +1,5 @@
 /** Creates a thinking indicator over the mob. */
-/mob/proc/create_thinking_indicator()
+/mob/proc/create_thinking_indicator(emote_bubble = FALSE) // META EDIT - CHANGE - ORIGINAL: /mob/proc/create_thinking_indicator()
 	return
 
 /** Removes the thinking indicator over the mob. */
@@ -7,7 +7,7 @@
 	return
 
 /** Creates a typing indicator over the mob. */
-/mob/proc/create_typing_indicator()
+/mob/proc/create_typing_indicator(emote_bubble = FALSE) // META EDIT - CHANGE - ORIGINAL: /mob/proc/create_typing_indicator()
 	return
 
 /** Removes the typing indicator over the mob. */
@@ -40,7 +40,7 @@
 /datum/tgui_say/proc/start_thinking()
 	if(!window_open)
 		return FALSE
-	return client.start_thinking()
+	return client.start_thinking(channel_is_emote) // META EDIT - CHANGE - ORIGINAL: return client.start_thinking()
 
 /** Removes typing/thinking indicators and flags the mob as not thinking */
 /datum/tgui_say/proc/stop_thinking()
@@ -53,7 +53,7 @@
 /datum/tgui_say/proc/start_typing()
 	if(!window_open)
 		return FALSE
-	return client.start_typing()
+	return client.start_typing(channel_is_emote) // META EDIT - CHANGE - ORIGINAL: return client.start_typing()
 
 /**
  * Remove the typing indicator after a brief period of inactivity or during say events.
@@ -65,10 +65,15 @@
 	client.stop_typing()
 
 /// Overrides for overlay creation
-/mob/living/create_thinking_indicator()
+/mob/living/create_thinking_indicator(emote_bubble = FALSE) // META EDIT - CHANGE - ORIGINAL: /mob/living/create_thinking_indicator()
 	if(active_thinking_indicator || active_typing_indicator || stat != CONSCIOUS || !HAS_TRAIT(src, TRAIT_THINKING_IN_CHARACTER))
 		return FALSE
+	// META EDIT - CHANGE - START - EMOTE_GESTURE_BUBBLE
+	/* ORIGINAL:
 	active_thinking_indicator = mutable_appearance('icons/mob/effects/talk.dmi', "[bubble_icon]3", TYPING_LAYER)
+	*/
+	active_thinking_indicator = mutable_appearance('icons/mob/effects/talk.dmi', emote_bubble ? "signlang3" : "[bubble_icon]3", TYPING_LAYER)
+	// META EDIT - CHANGE - END - EMOTE_GESTURE_BUBBLE
 	add_overlay(active_thinking_indicator)
 	play_fov_effect(src, 6, "talk", ignore_self = TRUE)
 
@@ -78,10 +83,15 @@
 	cut_overlay(active_thinking_indicator)
 	active_thinking_indicator = null
 
-/mob/living/create_typing_indicator()
+/mob/living/create_typing_indicator(emote_bubble = FALSE) // META EDIT - CHANGE - ORIGINAL: /mob/living/create_typing_indicator()
 	if(active_typing_indicator || active_thinking_indicator || stat != CONSCIOUS || !HAS_TRAIT(src, TRAIT_THINKING_IN_CHARACTER))
 		return FALSE
+	// META EDIT - CHANGE - START - EMOTE_GESTURE_BUBBLE
+	/* ORIGINAL:
 	active_typing_indicator = mutable_appearance('icons/mob/effects/talk.dmi', "[bubble_icon]0", TYPING_LAYER)
+	*/
+	active_typing_indicator = mutable_appearance('icons/mob/effects/talk.dmi', emote_bubble ? "signlang0" : "[bubble_icon]0", TYPING_LAYER)
+	// META EDIT - CHANGE - END - EMOTE_GESTURE_BUBBLE
 	add_overlay(active_typing_indicator)
 	play_fov_effect(src, 6, "talk", ignore_self = TRUE)
 
