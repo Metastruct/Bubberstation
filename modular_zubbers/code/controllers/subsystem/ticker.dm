@@ -3,6 +3,12 @@
 	/// TRUE if login_music was picked from the fallback (sound/music/lobby_music) rather than an admin-configured config/title_music/sounds track.
 	var/title_music_is_default = TRUE
 
+	// QOTR stuff
+	var/quote_of_the_round_record_start
+	var/quote_of_the_round_text
+	var/quote_of_the_round_attribution
+	var/quote_of_the_round_ckey
+
 /datum/controller/subsystem/ticker/Initialize()
 	. = ..()
 
@@ -15,21 +21,13 @@
 		title_music_is_default = FALSE
 		break
 
-	return SS_INIT_SUCCESS
-
-	// QOTR stuff
-	var/quote_of_the_round_record_start
-	var/quote_of_the_round_text
-	var/quote_of_the_round_attribution
-	var/quote_of_the_round_ckey
-
-/datum/controller/subsystem/ticker/Initialize()
-	. = ..()
 	quote_of_the_round_record_start = rand(CONFIG_GET(number/quote_of_the_round_time_random_start), CONFIG_GET(number/quote_of_the_round_time_random_end))
 	message_admins(
 		span_notice("Notice: The quote of the round will be chosen in [DisplayTimeText(quote_of_the_round_record_start,1)].")
 	)
 	log_runtime("The quote of the round will be chosen in [DisplayTimeText(quote_of_the_round_record_start,1)].")
+
+	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/ticker/declare_completion(was_forced = END_ROUND_AS_NORMAL)
 	handle_antag_tickets()

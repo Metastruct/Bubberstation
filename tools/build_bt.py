@@ -63,8 +63,16 @@ def parse_defines(repo_root: Path) -> dict:
 
     pending: list[tuple[str, str]] = []
     seen_names: set[str] = set(defines)
-    defines_dir = repo_root / 'code'
-    for fpath in sorted(defines_dir.rglob('*.dm')):
+    # META EDIT - CHANGE - START - ZZMETA_BT_DIRS
+    # ORIGINAL: defines_dir = repo_root / 'code'; for fpath in sorted(defines_dir.rglob('*.dm')):
+    dm_files = sorted(
+        f
+        for d in (repo_root / 'code', repo_root / 'modular_skyrat', repo_root / 'modular_zubbers', repo_root / 'modular_zzmeta')
+        if d.is_dir()
+        for f in d.rglob('*.dm')
+    )
+    for fpath in dm_files:
+    # META EDIT - CHANGE - END - ZZMETA_BT_DIRS
         for line in fpath.read_text(encoding='utf-8', errors='ignore').splitlines():
             line = line.strip()
             if not line.startswith('#define '):
@@ -267,8 +275,9 @@ def main() -> int:
         repo_root / 'code',
         # BUBBER EDIT BEGIN
         repo_root / 'modular_skyrat',
-        repo_root / 'modular_zubbers'
+        repo_root / 'modular_zubbers',
         # BUBBER EDIT END
+        repo_root / 'modular_zzmeta',  # META EDIT
     ]
 
     for code_dir in code_dirs:

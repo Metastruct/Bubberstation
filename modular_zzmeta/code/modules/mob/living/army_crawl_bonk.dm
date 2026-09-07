@@ -26,7 +26,7 @@
 		source.apply_damage(ARMY_CRAWL_BONK_DAMAGE, BRUTE, BODY_ZONE_HEAD)
 		return
 	parent.remove_traits(list(TRAIT_PRONE, TRAIT_FLOORED, TRAIT_NO_THROWING, TRAIT_HANDS_BLOCKED, TRAIT_IGNORE_ELEVATION), type)
-	passtable_off(parent, type)
+	REMOVE_TRAIT(parent, TRAIT_PASSTABLE, type)
 	source.layer = MOB_LAYER
 	qdel(src)
 
