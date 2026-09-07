@@ -18,7 +18,10 @@
 	var/duration = 0
 	if(istext(input))
 		var/shell_scrubbed_input = shell_url_scrub(input)
-		var/list/output = world.shelleo("[ytdl] --geo-bypass --format \"bestaudio\[ext=mp3]/best\[ext=mp4]\[height <= 360]/bestaudio\[ext=m4a]/bestaudio\[ext=aac]\" --dump-single-json --no-playlist -- \"[shell_scrubbed_input]\"")
+		// META EDIT - CHANGE - START - PLAYSOUND_ALLOW_ALL_SOURCES
+		// ORIGINAL: var/list/output = world.shelleo("[ytdl] --geo-bypass --format \"bestaudio\[ext=mp3]/best\[ext=mp4]\[height <= 360]/bestaudio\[ext=m4a]/bestaudio\[ext=aac]\" --dump-single-json --no-playlist -- \"[shell_scrubbed_input]\"")
+		var/list/output = world.shelleo("[ytdl] --geo-bypass --format \"bestaudio/best\[height <= 360\]/best\" --dump-single-json --no-playlist -- \"[shell_scrubbed_input]\"")
+		// META EDIT - CHANGE - END - PLAYSOUND_ALLOW_ALL_SOURCES
 		var/errorlevel = output[SHELLEO_ERRORLEVEL]
 		var/stdout = output[SHELLEO_STDOUT]
 		var/stderr = output[SHELLEO_STDERR]
