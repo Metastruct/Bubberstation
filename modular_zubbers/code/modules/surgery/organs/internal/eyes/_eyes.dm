@@ -5,7 +5,12 @@
 	eye_icon_state = "shadekin_eyes"
 	icon_state = "eyes_moth"	//i'm too lazy to give them their own sprite
 	flash_protect = FLASH_PROTECTION_SENSITIVE
+	// META EDIT - CHANGE - START - SHADEKIN_BLINK_FIX
+	/* ORIGINAL:
 	blink_animation = FALSE
+	*/
+	blink_animation = TRUE
+	// META EDIT - CHANGE - END - SHADEKIN_BLINK_FIX
 	iris_overlay = null
 	lighting_cutoff = LIGHTING_CUTOFF_MEDIUM
 
@@ -14,7 +19,12 @@
 	desc = "These eyes seem adept at seeing in low light environments, not that the vulpkanin missing them can see anything right now."
 
 	flash_protect = FLASH_PROTECTION_SENSITIVE
+	// META EDIT - CHANGE - START - VULPKANIN_BLINK_FIX
+	/* ORIGINAL:
 	blink_animation = FALSE
+	*/
+	blink_animation = TRUE
+	// META EDIT - CHANGE - END - VULPKANIN_BLINK_FIX
 	iris_overlay = null
 	lighting_cutoff = LIGHTING_CUTOFF_LOW
 

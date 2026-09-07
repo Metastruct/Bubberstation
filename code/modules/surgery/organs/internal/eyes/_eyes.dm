@@ -75,9 +75,16 @@
 
 /obj/item/organ/eyes/Initialize(mapload)
 	. = ..()
+	// META EDIT - CHANGE - START - SPECIES_EYE_ICON_BLINK
+	/* ORIGINAL:
 	if (blink_animation)
 		eyelid_left = new(src, "[eye_icon_state]_l")
 		eyelid_right = new(src, "[eye_icon_state]_r")
+	*/
+	if (blink_animation)
+		eyelid_left = new(src, "[eye_icon_state]_l", eye_icon)
+		eyelid_right = new(src, "[eye_icon_state]_r", eye_icon)
+	// META EDIT - CHANGE - END - SPECIES_EYE_ICON_BLINK
 
 /obj/item/organ/eyes/Destroy()
 	QDEL_NULL(eyelid_left)
@@ -605,9 +612,18 @@
 	layer = -EYES_LAYER
 	vis_flags = VIS_INHERIT_DIR | VIS_INHERIT_PLANE | VIS_INHERIT_ID
 
+// META EDIT - CHANGE - START - SPECIES_EYE_ICON_BLINK
+/* ORIGINAL:
 /obj/effect/abstract/eyelid_effect/Initialize(mapload, new_state)
 	. = ..()
 	icon_state = new_state
+*/
+/obj/effect/abstract/eyelid_effect/Initialize(mapload, new_state, new_icon)
+	. = ..()
+	icon_state = new_state
+	if (new_icon)
+		icon = new_icon
+// META EDIT - CHANGE - END - SPECIES_EYE_ICON_BLINK
 
 #undef BASE_BLINKING_DELAY
 #undef RAND_BLINKING_DELAY
