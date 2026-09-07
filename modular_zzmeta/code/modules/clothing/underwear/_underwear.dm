@@ -26,18 +26,18 @@
 		return FALSE
 	return ..()
 
-/// Clicking the underwear while holding it lets you recolor it.
-/obj/item/clothing/underwear/attack_self(mob/user)
-	. = ..()
+/// Alt-Clicking the underwear lets you recolor it.
+/obj/item/clothing/underwear/click_alt(mob/user)
 	if(use_static)
 		balloon_alert(user, "can't be recolored!")
-		return
+		return CLICK_ACTION_BLOCKING
 	var/new_color = tgui_color_picker(user, "", "Choose Color", color)
 	if(!new_color || !user.can_perform_action(src) || new_color == color)
-		return
+		return CLICK_ACTION_BLOCKING
 	color = new_color
 	refresh_worn_appearance()
 	balloon_alert(user, "color changed")
+	return CLICK_ACTION_SUCCESS
 
 /// If currently equipped, re-renders the worn overlay so a color change shows up immediately.
 /obj/item/clothing/underwear/proc/refresh_worn_appearance()
