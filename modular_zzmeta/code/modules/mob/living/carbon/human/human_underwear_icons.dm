@@ -30,7 +30,7 @@
 			underwear_icon_state += "_d"
 			female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 		if(dna.species.sexes && physique == FEMALE && worn_item.gender == MALE)
-			underwear_overlay = mutable_appearance(wear_female_version(underwear_icon_state, worn_item.icon, female_sprite_flags), layer = -BODY_LAYER)
+			underwear_overlay = mutable_appearance(wear_female_version(underwear_icon_state, worn_item.icon, worn_item.icon, female_sprite_flags), layer = -BODY_LAYER)
 		else
 			underwear_overlay = mutable_appearance(worn_item.icon, underwear_icon_state, -BODY_LAYER)
 		if(!worn_item.use_static)
@@ -64,7 +64,7 @@
 		var/obj/item/clothing/underwear/undershirt/worn_item = w_undershirt
 		var/mutable_appearance/undershirt_overlay
 		if(dna.species.sexes && physique == FEMALE)
-			undershirt_overlay = mutable_appearance(wear_female_version(worn_item.icon_state, worn_item.icon), layer = -BODY_LAYER)
+			undershirt_overlay = mutable_appearance(wear_female_version(worn_item.icon_state, worn_item.icon, worn_item.icon), layer = -BODY_LAYER)
 		else
 			undershirt_overlay = mutable_appearance(worn_item.icon, worn_item.icon_state, -BODY_LAYER)
 		if(!worn_item.use_static)

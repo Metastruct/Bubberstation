@@ -83,7 +83,7 @@
 		if (DMESSENGER)
 			return /obj/item/storage/backpack/messenger/med
 
-/datum/preference/choiced/backpack/apply_to_human(mob/living/carbon/human/target, value)
+/datum/preference/choiced/backpack/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.backpack = value
 
 /// Jumpsuit preference
@@ -111,7 +111,7 @@
 		if (PREF_SKIRT)
 			return /obj/item/clothing/under/color/jumpskirt/grey
 
-/datum/preference/choiced/jumpsuit/apply_to_human(mob/living/carbon/human/target, value)
+/datum/preference/choiced/jumpsuit/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.jumpsuit_style = value
 
 /// Socks preference
@@ -140,7 +140,7 @@
 	return generate_underwear_icon(SSaccessories.socks_list[value], lower_half)
 
 // META EDIT - CHANGE - START - UNDERWEAR_ITEMS
-/datum/preference/choiced/socks/apply_to_human(mob/living/carbon/human/target, value)
+/datum/preference/choiced/socks/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.set_socks(value)
 // META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
@@ -193,7 +193,7 @@
 	return icon_with_undershirt
 
 // META EDIT - CHANGE - START - UNDERWEAR_ITEMS
-/datum/preference/choiced/undershirt/apply_to_human(mob/living/carbon/human/target, value)
+/datum/preference/choiced/undershirt/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.set_undershirt(value)
 // META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 
@@ -224,7 +224,7 @@
 	return generate_underwear_icon(SSaccessories.underwear_list[value], lower_half, COLOR_ALMOST_BLACK, icon_offset = 5) // SKYRAT EDIT CHANGE : ICON_OFFSET // SKYRAT EDIT CHANGE - ORIGINAL: return generate_underwear_icon(SSaccessories.underwear_list[value], lower_half, COLOR_ALMOST_BLACK)
 
 // META EDIT - CHANGE - START - UNDERWEAR_ITEMS
-/datum/preference/choiced/underwear/apply_to_human(mob/living/carbon/human/target, value)
+/datum/preference/choiced/underwear/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.set_underwear(value)
 // META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 

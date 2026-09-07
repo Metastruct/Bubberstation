@@ -97,6 +97,7 @@
 		CRASH("No channel provided to an open TGUI-Say")
 	window_open = TRUE
 	channel_is_emote = (payload["channel"] == ME_CHANNEL) // META EDIT - ADDITION - EMOTE_GESTURE_BUBBLE
+	saved_text = ""
 	if(payload["channel"] != OOC_CHANNEL && payload["channel"] != ADMIN_CHANNEL && payload["channel"] != PRAY_CHANNEL && payload["channel"] != LOOC_CHANNEL) // SKYRAT EDIT CHANGE (Add LOOC_CHANNEL)
 		start_thinking()
 	if(!client.typing_indicators)

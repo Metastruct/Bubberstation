@@ -1,4 +1,5 @@
-ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/target in world)
+ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", /mob)
+	VERB_ARG_TYPED(target, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_WORLD, /mob)
 	var/datum/select_equipment/ui = new(user, target)
 	ui.ui_interact(user.mob)
 
@@ -28,6 +29,10 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/ta
 	var/datum/outfit/selected_outfit = /datum/outfit
 	//serializable string for the UI to keep track of which outfit is selected
 	var/selected_identifier = "/datum/outfit"
+	/// Cached flat icon of the dummy wearing selected_outfit, so ui_data() doesn't redraw the sprite on every refresh when it doesn't need to
+	var/icon/cached_dummy_icon
+	/// The selected_identifier cached_dummy_icon was last rendered for.
+	var/cached_for_identifier
 
 /datum/select_equipment/New(_user, mob/target)
 	user = CLIENT_FROM_VAR(_user)
@@ -105,32 +110,36 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", mob/ta
 	if(!dummy_key)
 		init_dummy()
 
-	// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
-	// "Loadout" and "Underwear" have no static items of their own, so pre-equip the preview dummy
-	// with the target's real saved loadout/underwear before flattening it.
-	// selected_outfit is an uninitialized typepath here (previewing a normal, non-custom outfit
-	// never instantiates it), so check with ispath() rather than istype() (which requires an
-	// actual object instance and would silently never match a bare path).
-	var/is_loadout_preview = ispath(selected_outfit, /datum/outfit/loadout) || istype(selected_outfit, /datum/outfit/loadout)
-	var/is_underwear_preview = ispath(selected_outfit, /datum/outfit/underwear) || istype(selected_outfit, /datum/outfit/underwear)
-	if(is_loadout_preview || is_underwear_preview)
-		var/mob/living/carbon/human/dummy/preview_dummy = GLOB.human_dummy_list[dummy_key]
-		var/datum/preferences/target_prefs = target_mob.client?.prefs
-		if(!target_prefs && target_mob.ckey)
-			target_prefs = GLOB.preferences_datums[target_mob.ckey]
-		if(preview_dummy && target_prefs)
-			if(is_loadout_preview)
-				preview_dummy.equip_outfit_and_loadout(/datum/outfit, target_prefs)
-			else
-				preview_dummy.apply_underwear_prefs(target_prefs)
-	// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
+	if(isnull(cached_dummy_icon) || cached_for_identifier != selected_identifier)
+		// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
+		// "Loadout" and "Underwear" have no static items of their own, so pre-equip the preview dummy
+		// with the target's real saved loadout/underwear before flattening it.
+		// selected_outfit is an uninitialized typepath here (previewing a normal, non-custom outfit
+		// never instantiates it), so check with ispath() rather than istype() (which requires an
+		// actual object instance and would silently never match a bare path).
+		var/is_loadout_preview = ispath(selected_outfit, /datum/outfit/loadout) || istype(selected_outfit, /datum/outfit/loadout)
+		var/is_underwear_preview = ispath(selected_outfit, /datum/outfit/underwear) || istype(selected_outfit, /datum/outfit/underwear)
+		if(is_loadout_preview || is_underwear_preview)
+			var/mob/living/carbon/human/dummy/preview_dummy = GLOB.human_dummy_list[dummy_key]
+			var/datum/preferences/target_prefs = target_mob.client?.prefs
+			if(!target_prefs && target_mob.ckey)
+				target_prefs = GLOB.preferences_datums[target_mob.ckey]
+			if(preview_dummy && target_prefs)
+				if(is_loadout_preview)
+					preview_dummy.equip_outfit_and_loadout(/datum/outfit, target_prefs)
+				else
+					preview_dummy.apply_underwear_prefs(target_prefs)
+		// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
 
-	var/icon/dummysprite = get_flat_human_icon(null,
-		dummy_key = dummy_key,
-		outfit_override = selected_outfit,
-		no_anim = TRUE,
-	)
-	data["icon64"] = icon2base64(dummysprite)
+		cached_dummy_icon = get_flat_human_icon(null,
+			dummy_key = dummy_key,
+			showDirs = list(SOUTH),
+			outfit_override = selected_outfit,
+			no_anim = TRUE,
+		)
+		cached_for_identifier = selected_identifier
+
+	data["icon64"] = icon2base64(cached_dummy_icon)
 	data["name"] = target_mob
 
 	var/datum/preferences/prefs = user?.client?.prefs

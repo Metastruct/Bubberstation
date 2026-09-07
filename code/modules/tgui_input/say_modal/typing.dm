@@ -66,7 +66,7 @@
 
 /// Overrides for overlay creation
 /mob/living/create_thinking_indicator(emote_bubble = FALSE) // META EDIT - CHANGE - ORIGINAL: /mob/living/create_thinking_indicator()
-	if(active_thinking_indicator || active_typing_indicator || stat != CONSCIOUS || !HAS_TRAIT(src, TRAIT_THINKING_IN_CHARACTER))
+	if(active_thinking_indicator || active_typing_indicator || IS_UNCONSCIOUS_OR_CRIT(src) || !HAS_TRAIT(src, TRAIT_THINKING_IN_CHARACTER))
 		return FALSE
 	// META EDIT - CHANGE - START - EMOTE_GESTURE_BUBBLE
 	/* ORIGINAL:
@@ -84,7 +84,7 @@
 	active_thinking_indicator = null
 
 /mob/living/create_typing_indicator(emote_bubble = FALSE) // META EDIT - CHANGE - ORIGINAL: /mob/living/create_typing_indicator()
-	if(active_typing_indicator || active_thinking_indicator || stat != CONSCIOUS || !HAS_TRAIT(src, TRAIT_THINKING_IN_CHARACTER))
+	if(active_typing_indicator || active_thinking_indicator || IS_UNCONSCIOUS_OR_CRIT(src) || !HAS_TRAIT(src, TRAIT_THINKING_IN_CHARACTER))
 		return FALSE
 	// META EDIT - CHANGE - START - EMOTE_GESTURE_BUBBLE
 	/* ORIGINAL:
@@ -105,4 +105,3 @@
 	REMOVE_TRAIT(src, TRAIT_THINKING_IN_CHARACTER, CURRENTLY_TYPING_TRAIT)
 	remove_thinking_indicator()
 	remove_typing_indicator()
-
