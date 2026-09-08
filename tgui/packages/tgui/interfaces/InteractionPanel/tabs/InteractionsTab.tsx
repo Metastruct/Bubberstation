@@ -15,6 +15,9 @@ import { useBackend } from '../../../backend';
 
 type InteractionFeedback = {
   specialized: BooleanLike;
+  self_variant: BooleanLike;
+  combat_variant: BooleanLike;
+  prone_variant: BooleanLike;
   sound: BooleanLike;
   status_effect: BooleanLike;
   decal: BooleanLike;
@@ -112,19 +115,21 @@ export const InteractionsTab = (props: InteractionsTabProps) => {
     const badges = badgesFor(interactionFeedback);
     const specialized = !!interactionFeedback?.specialized;
 
-    // Self-overrides are checked before combat/prone on the backend (see get_zone_data), so
-    // when targeting yourself that's what actually fires, regardless of combat mode or posture.
-    const primaryIcon = specialized
-      ? isTargetSelf
-        ? 'user'
-        : combat_mode
-          ? 'fist-raised'
-          : target_prone
-            ? 'bed'
-            : 'exclamation-circle'
-      : interactionFeedback?.sound
-        ? 'volume-up'
-        : 'exclamation-circle';
+    // Which icon to show is driven by which override tier actually matched on the backend (see
+    // get_zone_data), not just by the current combat_mode/target_prone state. An interaction can
+    // have a plain zone override with no _combat/_prone variant at all, and that shouldn't be
+    // shown as a combat- or prone-specific indicator.
+    const primaryIcon = interactionFeedback?.self_variant
+      ? 'user'
+      : interactionFeedback?.combat_variant
+        ? 'fist-raised'
+        : interactionFeedback?.prone_variant
+          ? 'bed'
+          : specialized
+            ? 'exclamation-circle'
+            : interactionFeedback?.sound
+              ? 'volume-up'
+              : 'exclamation-circle';
 
     const tooltipLines = [descriptions[interaction]];
     if (badges.length > 0) {

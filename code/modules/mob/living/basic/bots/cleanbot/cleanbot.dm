@@ -8,7 +8,7 @@
 	health = 25
 	maxHealth = 25
 	light_color = "#99ccff"
-	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT, /datum/material/glass = SMALL_MATERIAL_AMOUNT * 2)
+	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 6, /datum/material/glass = SMALL_MATERIAL_AMOUNT * 2)
 
 	req_one_access = list(ACCESS_ROBOTICS, ACCESS_JANITOR)
 	radio_key = /obj/item/encryptionkey/headset_service
@@ -112,6 +112,7 @@
 	))
 	///drawings we hunt
 	var/static/list/cleanable_drawings = typecacheof(list(/obj/effect/decal/cleanable/crayon))
+	var/static/list/cleanable_liquids = typecacheof(/obj/effect/abstract/liquid_turf) - typecacheof(/obj/effect/abstract/liquid_turf/immutable) // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 	///emagged phrases
 	var/static/list/emagged_phrases = list(
 		"DISGUSTING.",
@@ -186,7 +187,7 @@
 
 /mob/living/basic/bot/cleanbot/examine(mob/user)
 	. = ..()
-	if(ascended && user.stat == CONSCIOUS && user.client)
+	if(ascended && !IS_UNCONSCIOUS_OR_CRIT(user) && user.client)
 		user.client.give_award(/datum/award/achievement/misc/cleanboss, user)
 	if(isnull(weapon))
 		return
@@ -232,6 +233,7 @@
 	data["custom_controls"]["clean_trash"] = janitor_mode_flags & CLEANBOT_CLEAN_TRASH
 	data["custom_controls"]["clean_graffiti"] = janitor_mode_flags & CLEANBOT_CLEAN_DRAWINGS
 	data["custom_controls"]["pest_control"] = janitor_mode_flags & CLEANBOT_CLEAN_PESTS
+	data["custom_controls"]["clean_liquids"] = janitor_mode_flags & CLEANBOT_CLEAN_LIQUIDS // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 	return data
 
 // Actions received from TGUI
@@ -250,6 +252,10 @@
 			janitor_mode_flags ^= CLEANBOT_CLEAN_TRASH
 		if("clean_graffiti")
 			janitor_mode_flags ^= CLEANBOT_CLEAN_DRAWINGS
+		// META EDIT - ADDITION - START - CLEANBOT_LIQUIDS
+		if("clean_liquids")
+			janitor_mode_flags ^= CLEANBOT_CLEAN_LIQUIDS
+		// META EDIT - ADDITION - END - CLEANBOT_LIQUIDS
 
 /mob/living/basic/bot/cleanbot/Destroy()
 	QDEL_NULL(build_bucket)
@@ -340,6 +346,7 @@
 	ai_controller.set_blackboard_key(BB_HUNTABLE_PESTS, huntable_pests)
 	ai_controller.set_blackboard_key(BB_HUNTABLE_TRASH, huntable_trash)
 	ai_controller.set_blackboard_key(BB_CLEANABLE_DRAWINGS, cleanable_drawings)
+	ai_controller.set_blackboard_key(BB_CLEANABLE_LIQUIDS, cleanable_liquids) // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 	ai_controller.set_blackboard_key(BB_CLEANBOT_EMAGGED_PHRASES, emagged_phrases)
 
 /mob/living/basic/bot/cleanbot/autopatrol
@@ -349,3 +356,13 @@
 	name = "Scrubs, MD"
 	req_one_access = list(ACCESS_ROBOTICS, ACCESS_JANITOR, ACCESS_MEDICAL)
 	bot_mode_flags = ~(BOT_MODE_ON | BOT_MODE_REMOTE_ENABLED)
+	additional_access = /datum/id_trim/job/janitor/medical_cleanbot
+
+/datum/id_trim/job/janitor/medical_cleanbot
+	minimal_access = list(
+		ACCESS_JANITOR,
+		ACCESS_MAINT_TUNNELS,
+		ACCESS_MINERAL_STOREROOM,
+		ACCESS_SERVICE,
+		ACCESS_MEDICAL,
+	)

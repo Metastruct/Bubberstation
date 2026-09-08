@@ -212,6 +212,37 @@ GLOBAL_VAR_INIT(claude_debug_handle_counter, 0)
 		return list("error" = error_text)
 	return list("ok" = TRUE, "result" = claude_debug_encode_value(result))
 
+/// spawn: creates a new instance of an /atom type at a location, returning a
+/// handle to it (same shape as one find() match). Location is either an
+/// existing handle (spawns "in"/at that atom, e.g. a turf or a mob to place
+/// something in the hands of) or raw x/y/z map coordinates.
+/proc/claude_debug_spawn(path_text, loc_handle, x_text, y_text, z_text)
+	var/spawn_path = text2path(path_text)
+	if(!ispath(spawn_path, /atom))
+		return list("error" = "Not a valid /atom type path")
+
+	var/atom/location
+	if(loc_handle)
+		location = claude_debug_resolve_handle(loc_handle)
+		if(!location)
+			return list("error" = "Handle not found or object no longer exists")
+	else if(x_text && y_text && z_text)
+		location = locate(text2num(x_text), text2num(y_text), text2num(z_text))
+		if(!location)
+			return list("error" = "No turf at that location")
+	else
+		return list("error" = "Provide either loc_handle, or all of x/y/z")
+
+	var/atom/new_atom
+	var/error_text
+	try
+		new_atom = new spawn_path(location)
+	catch(var/exception/e)
+		error_text = "[e]"
+	if(error_text)
+		return list("error" = error_text)
+	return list("ok" = TRUE, "handle" = claude_debug_mint_handle(new_atom), "type" = "[new_atom.type]", "repr" = "[new_atom]")
+
 /datum/world_topic/claude_debug/Run(list/input)
 	var/find_type = input["find"]
 	if(find_type)
@@ -228,6 +259,10 @@ GLOBAL_VAR_INIT(claude_debug_handle_counter, 0)
 	var/call_handle = input["call_proc"]
 	if(call_handle)
 		return claude_debug_call_proc(call_handle, input["proc"], input["args"])
+
+	var/spawn_path = input["spawn"]
+	if(spawn_path)
+		return claude_debug_spawn(spawn_path, input["loc"], input["x"], input["y"], input["z"])
 
 	return ..()
 

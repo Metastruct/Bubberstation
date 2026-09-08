@@ -86,11 +86,7 @@ GLOBAL_DATUM_INIT(audio_browser, /datum/audio_browser, new)
 /datum/asset/json/audio_browser/generate()
 	return SSsounds.all_sounds
 
-/client/verb/open_audio_browser()
-	set category = "OOC"
-	set name = "Open Audio Browser"
-	set desc = "Browse, search, and preview every sound in the game, and copy their resource paths."
-
+GAME_VERB_DESC(/client, open_audio_browser, "Open Audio Browser", "Browse, search, and preview every sound in the game, and copy their resource paths.", "OOC")
 	if(CONFIG_GET(flag/audio_browser_admin_only) && !check_rights_for(src, R_SOUND))
 		to_chat(usr, span_warning("This feature is restricted to admins."))
 		return

@@ -53,4 +53,10 @@
 	if (!istype(name_preference))
 		return FALSE
 
-	return preferences.update_preference(name_preference, name_preference.create_random_value(preferences))
+	. = preferences.update_preference(name_preference, name_preference.create_random_value(preferences))
+	// META EDIT - ADDITION - START - RANDOMIZE_NAME_STALE_PROFILES_FIX
+	// This bypasses set_preference's handler (preferences.dm) entirely via action_delegations,
+	// so it needs its own copy of that handler's tainted_character_profiles check.
+	if (.)
+		preferences.tainted_character_profiles = TRUE
+	// META EDIT - ADDITION - END

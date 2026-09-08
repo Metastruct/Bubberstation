@@ -57,11 +57,12 @@ function setStatTabsStyle(style: string): void {
   }, 1500);
 }
 
-// META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
-/** Drives the --chat-name-color-mix-say/-radio CSS variables the color-mix() rules in main.scss read. */
-function setChatNameColorMix(sayMix: number, radioMix: number): void {
+// META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR
+/** Drives the --chat-name-color-mix-say/-radio/-looc CSS variables the color-mix() rules in main.scss read. */
+function setChatNameColorMix(sayMix: number, radioMix: number, loocMix: number): void {
   document.body.style.setProperty('--chat-name-color-mix-say', `${sayMix}%`);
   document.body.style.setProperty('--chat-name-color-mix-radio', `${radioMix}%`);
+  document.body.style.setProperty('--chat-name-color-mix-looc', `${loocMix}%`);
 }
 // META EDIT - ADDITION - END
 
@@ -80,7 +81,7 @@ export function generalSettingsHandler(update: SettingsState): void {
   setGlobalFontFamily(update.fontFamily);
   updateGlobalOverrideRule();
 
-  // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
-  setChatNameColorMix(update.chatNameColorMixSay, update.chatNameColorMixRadio);
+  // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR
+  setChatNameColorMix(update.chatNameColorMixSay, update.chatNameColorMixRadio, update.chatNameColorMixLooc);
   // META EDIT - ADDITION - END
 }

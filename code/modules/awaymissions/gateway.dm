@@ -348,6 +348,7 @@ GLOBAL_LIST_EMPTY(gateway_destinations)
 /obj/machinery/computer/gateway_control
 	name = "Gateway Control"
 	desc = "Human friendly interface to the mysterious gate next to it."
+	icon_state = MAP_SWITCH("computer", "/obj/machinery/computer/piratepad_control")
 	var/obj/machinery/gateway/G
 
 /obj/machinery/computer/gateway_control/Initialize(mapload, obj/item/circuitboard/C)
@@ -473,7 +474,10 @@ GLOBAL_LIST_EMPTY(gateway_destinations)
 
 	cam_background.add_filter("portal_blur", 1, list("type" = "blur", "size" = 0.5))
 
-	vis_contents += TURF_NEIGHBORS(center_turf)
+	// META EDIT - CHANGE - START - GATEWAY_PREVIEW_MISSING_CENTER
+	// TURF_NEIGHBORS excludes center_turf, but the preview needs to show it too
+	vis_contents += CORNER_BLOCK_OFFSET(center_turf, 3, 3, -1, -1)
+	// META EDIT - CHANGE - END - GATEWAY_PREVIEW_MISSING_CENTER
 	cam_background.icon_state = "scanline4"
 	cam_background.color = "#adadff"
 	cam_background.alpha = 128

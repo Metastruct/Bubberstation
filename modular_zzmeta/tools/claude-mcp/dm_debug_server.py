@@ -35,6 +35,7 @@ import signal
 import socket
 import struct
 import subprocess
+import sys
 import time
 import urllib.parse
 import urllib.request
@@ -42,6 +43,9 @@ import urllib.request
 import websockets
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Image
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import dreamchecker_diff  # noqa: E402 - shared parser/baseline logic with modular_zzmeta/tools/check.sh
 
 HOST = os.environ.get("DM_DEBUG_HOST", "127.0.0.1")
 PORT = os.environ.get("DM_DEBUG_PORT")
@@ -56,6 +60,23 @@ BOOT_STATE_DIR = os.path.join(REPO_ROOT, "data", "logs", "claude_debug_boot")
 BOOT_PID_FILE = os.path.join(BOOT_STATE_DIR, "pid")
 BOOT_LOG_FILE = os.path.join(BOOT_STATE_DIR, "boot.log")
 NEXT_MAP_FILE = os.path.join(REPO_ROOT, "data", "next_map.json")
+# Written by tools/build/build.ts (defineParametersChanged) with the exact -D list
+# from the last `build.sh dm` compile, so dm_debug_boot_server can tell whether the
+# currently-compiled tgstation.dmb already has FORCE_MAP/AUTOSTART_GAME baked in and
+# skip the corresponding runtime workaround instead of doing it unconditionally.
+LAST_DEFINE_PARAMS_FILE = os.path.join(REPO_ROOT, "data", "last_define_params.json")
+
+
+def _last_compile_defines() -> list:
+    """Best-effort read of the last compile's -D list. Returns [] if the file is
+    missing or unparseable, which keeps every caller's fallback behavior identical
+    to before this file existed (i.e. do the workaround, don't assume anything)."""
+    try:
+        with open(LAST_DEFINE_PARAMS_FILE) as f:
+            defines = json.load(f)
+        return defines if isinstance(defines, list) else []
+    except (OSError, ValueError):
+        return []
 
 # This process's own debug log - separate from the DreamDaemon logs under
 # data/logs/ that dm_debug_find_log searches. The MCP framework normally logs
@@ -452,14 +473,25 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
     smallest debug map still carries the full persistent-world save data
     (lavaland dwellers, monkeys, morgue occupants) - "smaller" cuts the
     station's own footprint, not the persistent content layered on top.
+    Ignored (see below) if the last compile baked in FORCE_MAP.
 
-    IMPORTANT - this writes real, live state in the checkout for as long as
-    the server is running: data/next_map.json (which map boots next) and a
+    IMPORTANT - if the last compile did NOT bake in FORCE_MAP, this writes
+    real, live state in the checkout for as long as the server is running:
+    data/next_map.json (which map boots next) and a
     data/logs/claude_debug_boot/ directory. ALWAYS call dm_debug_stop_server
     when done testing, even if you hit an error partway through - it is the
     only thing that removes next_map.json again, and leaving it in place
     would silently hijack the map choice of the user's own next real
-    DreamDaemon boot in this checkout, not just yours.
+    DreamDaemon boot in this checkout, not just yours. If the last compile
+    DID bake in FORCE_MAP (see tools/build.sh's -D flags, and
+    data/last_define_params.json which records what was actually used),
+    that define fully overrides next_map.json at the engine level
+    (code/controllers/subsystem/mapping.dm's PreInit()), so this skips the
+    write entirely rather than leaving useless dead state around - the
+    `map` argument only affects the returned message in that case.
+    Similarly, if AUTOSTART_GAME was baked in, the redundant
+    `start_immediately = TRUE` SDQL poke (see below) is skipped too, since
+    the compiled default is already TRUE.
 
     Only one boot at a time is tracked (a second call while one is already
     running raises rather than launching a duplicate) - call
@@ -470,9 +502,14 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
     if not os.path.exists(DMB_PATH):
         raise TopicError(f"{DMB_PATH} doesn't exist - compile first (tools/build/build.sh dm).")
 
-    map_json = os.path.join(REPO_ROOT, "_maps", f"{map}.json")
-    if not os.path.exists(map_json):
-        raise TopicError(f"No _maps/{map}.json - check the map name (e.g. 'runtimestation').")
+    last_defines = _last_compile_defines()
+    force_map_baked_in = any(d.startswith("FORCE_MAP") for d in last_defines)
+    autostart_baked_in = "AUTOSTART_GAME" in last_defines
+
+    if not force_map_baked_in:
+        map_json = os.path.join(REPO_ROOT, "_maps", f"{map}.json")
+        if not os.path.exists(map_json):
+            raise TopicError(f"No _maps/{map}.json - check the map name (e.g. 'runtimestation').")
 
     if os.path.exists(BOOT_PID_FILE):
         with open(BOOT_PID_FILE) as f:
@@ -483,7 +520,8 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
         )
 
     os.makedirs(BOOT_STATE_DIR, exist_ok=True)
-    shutil.copy(map_json, NEXT_MAP_FILE)
+    if not force_map_baked_in:
+        shutil.copy(map_json, NEXT_MAP_FILE)
 
     log_f = open(BOOT_LOG_FILE, "wb")
     proc = subprocess.Popen(
@@ -508,8 +546,11 @@ def dm_debug_boot_server(map: str = "runtimestation", boot_timeout: float = 180.
     # verb sets (code/modules/admin/verbs/server.dm:125) - never touches
     # config.txt, so it can't affect the user's own real server. Retried every
     # poll iteration (cheap, and the topic handler genuinely isn't up in the
-    # first second or so) until it succeeds once.
-    forced_immediate_start = not KEY
+    # first second or so) until it succeeds once. Skipped entirely if
+    # AUTOSTART_GAME was baked into the last compile, since start_immediately
+    # already defaults to TRUE in that case (code/controllers/subsystem/ticker.dm)
+    # and this poke would just be a wasted round trip every poll iteration.
+    forced_immediate_start = (not KEY) or autostart_baked_in
 
     start_time = time.time()
     logger.info("dm_debug_boot_server: launched pid=%s map=%r, polling boot.log", proc.pid, map)
@@ -727,6 +768,40 @@ def dm_debug_set_var(handle: str, var: str, value_type: str, value: str = "") ->
     else:
         raise TopicError(f"Unknown value_type {value_type!r}, expected null/num/text/path/ref")
     result = _claude_debug_call(set_var=handle, var=var, value=json.dumps(encoded))
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+@_logged_tool
+def dm_debug_spawn(path: str, loc_handle: str = "", x: int = 0, y: int = 0, z: int = 0) -> str:
+    """Create a new instance of an /atom type path and get back a real handle
+    to it, same shape as one dm_debug_find match - the missing piece for
+    setting up a test scenario from scratch (a mob to test an interaction
+    on, an item to hand someone) rather than only ever finding things that
+    already happen to exist on the map.
+
+    Give it a location one of two ways:
+      - `loc_handle`: an existing handle (from dm_debug_find or a prior
+        dm_debug_spawn) to spawn "in"/at - a turf to place a mob on, or a
+        mob/container to place an item directly into.
+      - `x`/`y`/`z`: raw map coordinates, resolved server-side via locate().
+    Provide one or the other, not both.
+
+    Example: dm_debug_spawn("/mob/living/carbon/human", x=9, y=8, z=1)
+
+    Returns raw JSON text: {"ok": true, "handle": "h7",
+    "type": "/mob/living/carbon/human", "repr": "..."}, or raises with the
+    DM-side error text (e.g. "No turf at that location") on failure.
+
+    Whatever you spawn is real, persistent round state until someone
+    deletes it - there's no dm_debug_spawn equivalent of dm_debug_stop_server
+    that tracks and cleans these up automatically, unlike the disposable
+    server itself. Prefer this against dm_debug_boot_server's own disposable
+    instance (which gets torn down as a whole) rather than the user's real
+    server, and qdel() what you spawned via dm_debug_call_proc when done
+    testing if it isn't inside a disposable boot.
+    """
+    result = _claude_debug_call(spawn=path, loc=loc_handle or None, x=x or None, y=y or None, z=z or None)
     return json.dumps(result, indent=2)
 
 
@@ -965,7 +1040,16 @@ def _format_check_result(r: dict) -> str:
     line = f"[{status}] {r['name']} ({r['duration']:.1f}s)"
     if "diagnostic_count" in r:
         line += f" - {r['diagnostic_count']} diagnostic(s)" if r["diagnostic_count"] is not None else " - count unparseable"
-    if r["ok"] is not True:
+    if "exit_code" in r and r["exit_code"] is not None and "new_diagnostics" in r:
+        line += f", raw exit code {r['exit_code']} (this is what CI's pipefail gate sees - always nonzero here due to preexisting diagnostics, not a useful signal on its own)"
+    if "new_diagnostics" in r:
+        if r["new_diagnostics"]:
+            line += f"\n{len(r['new_diagnostics'])} NEW diagnostic(s) not in baseline:\n" + "\n".join(r["new_diagnostics"])
+        else:
+            line += "\nNo new diagnostics vs baseline."
+        if r.get("fixed_count"):
+            line += f"\n({r['fixed_count']} baseline diagnostic(s) no longer present - run with dreamchecker_update_baseline=True to adopt.)"
+    elif r["ok"] is not True:
         tail = r["output"][-3000:]
         line += f"\n{tail}"
     return line
@@ -973,7 +1057,7 @@ def _format_check_result(r: dict) -> str:
 
 @mcp.tool()
 @_logged_tool
-def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = False, run_tgui_lint: bool = False) -> str:
+def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = False, run_tgui_lint: bool = False, dreamchecker_update_baseline: bool = False) -> str:
     """Run the locally-runnable subset of .github/workflows/run_linters.yml
     (see the checklist this was built from) and report a pass/fail summary -
     a clean `tools/build/build.sh dm` compile alone does NOT catch everything
@@ -1001,19 +1085,36 @@ def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = 
     `run_dreamchecker=True` (default) additionally runs dreamchecker - a
     static-type checker stricter than the DM compiler itself, catching
     things like a weakly-typed asset-datum return where the compiler accepts
-    a proc call but dreamchecker flags "requires static type". Not a
-    pass/fail gate here: dreamchecker's own exit code is NOT trustworthy
-    (confirmed live - it returns 0 even for a rejected/unknown argument), so
-    this instead confirms the run was real by checking for its own "Parsing
-    tgstation.dme..." progress line, and separately reports the "Found N
-    diagnostics" count. That count is NOT necessarily caused by your
-    change - this codebase can carry pre-existing diagnostics on a clean
-    checkout with no relevant changes at all (confirmed live: 147 on an
-    unmodified tree at the time this tool was built). Skip re-litigating
-    every diagnostic; check whether any reported file:line falls inside
-    something you actually touched this session before treating it as a
-    real regression. If `dreamchecker` isn't on PATH, this is reported as
-    skipped (not a failure) with the install command
+    a proc call but dreamchecker flags "requires static type". CI runs this
+    same binary as `~/dreamchecker 2>&1 | bash tools/ci/annotate_dm.sh`
+    under GitHub Actions' default `bash -eo pipefail` shell, so CI's step
+    fails whenever dreamchecker's raw process exit code is nonzero - no
+    baseline comparison on CI's side. That raw exit code is reported here
+    too (confirmed live: it is 1 on a fully clean, untouched checkout right
+    now, because of a preexisting proc-level sleep-safety error in
+    code/modules/wiremod/core/component.dm unrelated to any given change),
+    so treating it as pass/fail here would report FAIL on every run
+    forever. Instead this diffs dreamchecker's parsed diagnostics against a
+    committed baseline file (modular_zzmeta/tools/dreamchecker_baseline.txt,
+    shared with modular_zzmeta/tools/check.sh - the same checklist as a
+    plain shell script for running by hand after a manual edit, no MCP
+    session needed) and reports ONLY the diagnostics that are NEW relative
+    to that baseline - this is the actual "would this fail CI for a reason
+    I introduced" signal. `ok` is True only when there are zero new
+    diagnostics; if no baseline file exists yet, `ok` is None (SKIP) and
+    the full raw output is shown - run once with
+    `dreamchecker_update_baseline=True` on a clean tree to create it (or
+    `modular_zzmeta/tools/check.sh --update-baseline`). Also reports if any
+    baseline diagnostics disappeared (a fix landed) without auto-adopting
+    them - rerun with `dreamchecker_update_baseline=True` to accept that as
+    the new baseline once you're confident it's real. The diagnostic-block
+    parser (`dreamchecker_diff.parse_diagnostics`) matches dreamchecker's
+    two block shapes (a location-line-prefixed diagnostic, and a bare
+    proc-level error followed by "- file:line:col:" context lines);
+    anything else is dropped, same as CI's own annotator effectively
+    ignores it as an inline comment even though it still counts toward the
+    raw diagnostic count and exit code. If `dreamchecker` isn't on PATH,
+    this is reported as skipped (not a failure) with the install command
     (`bash tools/ci/install_spaceman_dmm.sh dreamchecker`, then symlink onto
     PATH - see the project's own linter-checklist notes for why a bare
     missing-binary case can otherwise look identical to a false "clean"
@@ -1069,21 +1170,42 @@ def dm_debug_run_linters(run_dreamchecker: bool = True, run_icon_cutter: bool = 
             })
         else:
             start = time.monotonic()
+            exit_code = None
             try:
                 result = subprocess.run(
                     ["dreamchecker"], cwd=REPO_ROOT,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300,
                 )
                 output = result.stdout.decode(errors="replace")
+                exit_code = result.returncode
             except subprocess.TimeoutExpired as e:
                 output = (e.output or b"").decode(errors="replace") + "\n[TIMED OUT after 300s]"
             ran_for_real = "Parsing tgstation.dme" in output
             match = re.search(r"Found (\d+) diagnostics?", output)
-            checks.append({
-                "name": "dreamchecker", "ok": ran_for_real,
+            diagnostics = dreamchecker_diff.parse_diagnostics(output)
+
+            if dreamchecker_update_baseline:
+                dreamchecker_diff.save_baseline(diagnostics)
+                baseline = set(diagnostics)
+            else:
+                baseline = dreamchecker_diff.load_baseline()
+
+            if baseline is None:
+                ok = None
+            else:
+                new_diagnostics = sorted(d for d in diagnostics if d not in baseline)
+                fixed_count = len(baseline - set(diagnostics))
+                ok = ran_for_real and not new_diagnostics
+
+            check = {
+                "name": "dreamchecker", "ok": ok, "exit_code": exit_code,
                 "diagnostic_count": int(match.group(1)) if match else None,
                 "duration": time.monotonic() - start, "output": output,
-            })
+            }
+            if baseline is not None:
+                check["new_diagnostics"] = new_diagnostics
+                check["fixed_count"] = fixed_count
+            checks.append(check)
 
     lines = [_format_check_result(r) for r in checks]
     total_time = sum(r["duration"] for r in checks)

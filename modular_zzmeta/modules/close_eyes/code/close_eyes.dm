@@ -19,11 +19,7 @@
 	owner.cure_blind(TRAIT_STATUS_EFFECT(id))
 	owner.update_eyes()
 
-/mob/living/carbon/human/verb/toggle_eyes_closed()
-	set name = "Close Eyes"
-	set category = "IC"
-	set desc = "Close your eyes. Use again to open them."
-
+GAME_VERB_DESC(/mob/living/carbon/human, toggle_eyes_closed, "Close Eyes", "Close your eyes. Use again to open them.", "IC")
 	if(incapacitated)
 		to_chat(src, span_warning("You can't do that right now!"))
 		return

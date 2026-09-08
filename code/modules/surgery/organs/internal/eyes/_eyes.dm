@@ -75,9 +75,16 @@
 
 /obj/item/organ/eyes/Initialize(mapload)
 	. = ..()
+	// META EDIT - CHANGE - START - SPECIES_EYE_ICON_BLINK
+	/* ORIGINAL:
 	if (blink_animation)
 		eyelid_left = new(src, "[eye_icon_state]_l")
 		eyelid_right = new(src, "[eye_icon_state]_r")
+	*/
+	if (blink_animation)
+		eyelid_left = new(src, "[eye_icon_state]_l", eye_icon)
+		eyelid_right = new(src, "[eye_icon_state]_r", eye_icon)
+	// META EDIT - CHANGE - END - SPECIES_EYE_ICON_BLINK
 
 /obj/item/organ/eyes/Destroy()
 	QDEL_NULL(eyelid_left)
@@ -133,8 +140,6 @@
 		affected_human.add_eye_color_right(eye_color_right, EYE_COLOR_ORGAN_PRIORITY, update_body = FALSE)
 	refresh_atom_color_overrides()
 
-	if(HAS_TRAIT(affected_human, TRAIT_NIGHT_VISION) && !lighting_cutoff)
-		lighting_cutoff = LIGHTING_CUTOFF_REAL_LOW
 	if(CONFIG_GET(flag/native_fov) && native_fov)
 		affected_human.add_fov_trait(type, native_fov)
 
@@ -281,11 +286,12 @@
 #define OFFSET_Y 2
 
 /// Similar to get_status_text, but appends the text after the damage report, for additional status info
-/obj/item/organ/eyes/get_status_appendix(advanced, add_tooltips)
-	if(owner.stat == DEAD || HAS_TRAIT(owner, TRAIT_KNOCKEDOUT))
-		return
+/obj/item/organ/eyes/get_status_appendix(scanpower, add_tooltips)
+	if(owner.stat == DEAD || IS_UNCONSCIOUS(owner))
+		return // you're blind when dead or unconscious so it's redundant to show it
+
 	if(owner.is_blind())
-		if(advanced)
+		if(scanpower >= SCANPOWER_ADVANCED)
 			if(owner.is_blind_from(QUIRK_TRAIT))
 				return conditional_tooltip("Subject is permanently blind.", "Irreparable under normal circumstances.", add_tooltips)
 			if(owner.is_blind_from(EYE_SCARRING_TRAIT))
@@ -298,7 +304,7 @@
 				return conditional_tooltip("Subject is blind from eye damage.", "Repair surgically, use medication such as [/datum/reagent/medicine/oculine::name], or protect eyes with a blindfold.", add_tooltips)
 		return "Subject is blind."
 	if(owner.is_nearsighted())
-		if(advanced)
+		if(scanpower >= SCANPOWER_ADVANCED)
 			if(owner.is_nearsighted_from(QUIRK_TRAIT))
 				return conditional_tooltip("Subject is permanently nearsighted.", "Irreparable under normal circumstances. Prescription glasses will assuage the effects.", add_tooltips)
 			if(owner.is_nearsighted_from(TRAIT_RIGHT_EYE_SCAR) || owner.is_nearsighted_from(TRAIT_LEFT_EYE_SCAR))
@@ -312,7 +318,7 @@
 
 /obj/item/organ/eyes/show_on_condensed_scans()
 	// Always show if we have an appendix
-	return ..() || (owner.stat != DEAD && !HAS_TRAIT(owner, TRAIT_KNOCKEDOUT) && (owner.is_blind() || owner.is_nearsighted()))
+	return ..() || (owner.stat != DEAD && !IS_UNCONSCIOUS(owner) && (owner.is_blind() || owner.is_nearsighted()))
 
 /// This proc generates a list of overlays that the eye displays on the given head
 /obj/item/organ/eyes/proc/generate_body_overlay(obj/item/bodypart/head/my_head)
@@ -330,9 +336,9 @@
 	if(my_head.owner && !(my_head.owner.obscured_slots & HIDEEYES))
 		overlays += get_emissive_overlays(eye_left, eye_right, my_head)
 
-	if(my_head.head_flags & HEAD_EYECOLOR)
-		eye_right.color = eye_color_right || my_head.owner?.get_right_eye_color()
-		eye_left.color = eye_color_left || my_head.owner?.get_left_eye_color()
+	if((my_head.head_flags & HEAD_EYECOLOR) && my_head.is_husked != HUSKED_ZOMBIE)
+		eye_right.color = my_head.owner?.get_right_eye_color() || eye_color_right
+		eye_left.color = my_head.owner?.get_left_eye_color() || eye_color_left
 		var/list/eyelids = get_eyelid_overlays(eye_left, eye_right, my_head)
 		if (LAZYLEN(eyelids))
 			overlays += eyelids
@@ -357,8 +363,8 @@
 		eye_right.alpha = 0
 
 	if (is_emissive) // Because it was done all weird up there.
-		var/mutable_appearance/emissive_left = emissive_appearance_copy(eye_left, owner)
-		var/mutable_appearance/emissive_right = emissive_appearance_copy(eye_right, owner)
+		var/mutable_appearance/emissive_left = emissive_appearance(eye_left.icon, eye_left.icon_state, offset_spokesman = owner, layer = eye_left.layer)
+		var/mutable_appearance/emissive_right = emissive_appearance(eye_right.icon, eye_right.icon_state, offset_spokesman = owner, layer = eye_right.layer)
 		emissive_left.appearance_flags &= ~RESET_TRANSFORM
 		emissive_right.appearance_flags &= ~RESET_TRANSFORM
 
@@ -507,9 +513,9 @@
 	// If we're knocked out, just color the eyes
 	// META EDIT - CHANGE - START - EYES_CLOSED_TOGGLE
 	/* ORIGINAL:
-	if (!parent.appears_alive() || HAS_TRAIT(parent, TRAIT_KNOCKEDOUT))
+	if (IS_DEAD_OR_FAKING(parent) || IS_UNCONSCIOUS(parent))
 	*/
-	if (!parent.appears_alive() || HAS_TRAIT(parent, TRAIT_KNOCKEDOUT) || HAS_TRAIT(parent, TRAIT_EYES_CLOSED))
+	if (IS_DEAD_OR_FAKING(parent) || IS_UNCONSCIOUS(parent) || HAS_TRAIT(parent, TRAIT_EYES_CLOSED))
 	// META EDIT - CHANGE - END - EYES_CLOSED_TOGGLE
 		eye_right.color = eyelid_color
 		eye_left.color = eyelid_color
@@ -569,6 +575,8 @@
 			animate(time = wait_time)
 
 /obj/item/organ/eyes/proc/blink(duration = BLINK_DURATION, restart_animation = TRUE)
+	if(!blink_animation)
+		return
 	var/left_delayed = prob(50)
 	// Storing blink delay so mistimed blinks of lizards don't get cut short
 	var/sync_blinking = synchronized_blinking && (owner.get_organ_loss(ORGAN_SLOT_BRAIN) < BRAIN_DAMAGE_ASYNC_BLINKING)
@@ -605,9 +613,18 @@
 	layer = -EYES_LAYER
 	vis_flags = VIS_INHERIT_DIR | VIS_INHERIT_PLANE | VIS_INHERIT_ID
 
+// META EDIT - CHANGE - START - SPECIES_EYE_ICON_BLINK
+/* ORIGINAL:
 /obj/effect/abstract/eyelid_effect/Initialize(mapload, new_state)
 	. = ..()
 	icon_state = new_state
+*/
+/obj/effect/abstract/eyelid_effect/Initialize(mapload, new_state, new_icon)
+	. = ..()
+	icon_state = new_state
+	if (new_icon)
+		icon = new_icon
+// META EDIT - CHANGE - END - SPECIES_EYE_ICON_BLINK
 
 #undef BASE_BLINKING_DELAY
 #undef RAND_BLINKING_DELAY

@@ -46,6 +46,8 @@
 /datum/component/interactable/proc/open_interaction_menu(datum/source, mob/user)
 	if(!ishuman(user))
 		return
+	if(user != self && (HAS_TRAIT(self, TRAIT_UNKNOWN_APPEARANCE) || HAS_TRAIT(self, TRAIT_INVISIBLE_MAN)))
+		return
 	build_interactions_list()
 	ui_interact(user)
 
@@ -72,6 +74,9 @@
 
 /datum/component/interactable/ui_status(mob/user, datum/ui_state/state)
 	if(!ishuman(user))
+		return UI_CLOSE
+
+	if(user != self && (HAS_TRAIT(self, TRAIT_UNKNOWN_APPEARANCE) || HAS_TRAIT(self, TRAIT_INVISIBLE_MAN)))
 		return UI_CLOSE
 
 	return UI_INTERACTIVE // This UI is always interactive as we handle distance flags via can_interact
