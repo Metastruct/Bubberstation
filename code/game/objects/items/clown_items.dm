@@ -151,6 +151,10 @@
 
 /obj/item/soap/proc/should_clean(datum/cleaning_source, atom/atom_to_clean, mob/living/cleaner)
 	. = CLEAN_ALLOWED
+	// META EDIT - ADDITION - START - SOAP_FACE_WASH
+	if(cleaner.combat_mode && ismob(atom_to_clean))
+		return CLEAN_BLOCKED|CLEAN_DONT_BLOCK_INTERACTION
+	// META EDIT - ADDITION - END - SOAP_FACE_WASH
 	if(!check_allowed_items(atom_to_clean))
 		. |= CLEAN_NO_XP|CLEAN_NO_WASH
 

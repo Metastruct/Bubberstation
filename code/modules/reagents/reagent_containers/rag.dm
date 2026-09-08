@@ -82,6 +82,14 @@
 	if(!iscarbon(interacting_with) || !reagents?.total_volume)
 		return ..()
 	var/mob/living/carbon/carbon_target = interacting_with
+	// META EDIT - ADDITION - START - SOAP_FACE_WASH
+	if(carbon_target != user)
+		switch(user.zone_selected)
+			if(BODY_ZONE_PRECISE_EYES)
+				return soap_wash_attempt_eyes(src, carbon_target, user)
+			if(BODY_ZONE_PRECISE_MOUTH)
+				return soap_wash_attempt_mouth(src, carbon_target, user)
+	// META EDIT - ADDITION - END - SOAP_FACE_WASH
 	carbon_target.add_blood_DNA(GET_ATOM_BLOOD_DNA(src))
 	var/reagentlist = pretty_string_from_reagent_list(reagents.reagent_list)
 	var/log_object = "containing [reagentlist]"
