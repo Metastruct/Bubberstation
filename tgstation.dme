@@ -10752,6 +10752,8 @@
 #include "modular_zzmeta\modules\interaction_menu\code\click.dm"
 #include "modular_zzmeta\modules\interaction_menu\code\interaction_component.dm"
 #include "modular_zzmeta\modules\interaction_menu\code\interaction_datum.dm"
+#include "modular_zzmeta\modules\slidingpuzzle\code\slidingpuzzle.dm"
+#include "modular_zzmeta\modules\tetris\code\tetris.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soap_face_wash.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soapy_mouth.dm"
 // END_INCLUDE
