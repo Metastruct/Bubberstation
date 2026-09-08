@@ -53,7 +53,7 @@
 		span_danger("[user] washes out [target]'s mouth with \the [washing_item]!"),
 		span_userdanger("[user] washes your mouth out with \the [washing_item]! Blech!"),
 	)
-	target.set_timed_status_effect(SOAP_WASH_MOUTH_DURATION, /datum/status_effect/soap_mouth, only_if_higher = TRUE)
+	target.set_timed_status_effect(SOAP_WASH_MOUTH_DURATION, /datum/status_effect/soapy_mouth, only_if_higher = TRUE)
 	log_combat(user, target, "washed the mouth of", washing_item)
 	return ITEM_INTERACT_SUCCESS
 
