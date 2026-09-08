@@ -464,8 +464,6 @@ export function CommandBar() {
             return;
           }
           if (prefixMatches.length > 1) {
-            // META EDIT - CHANGE - START - commandbar_space_autocomplete_case
-            /* original:
             const kebabs = prefixMatches.map((v) =>
               toKebab(v.name).toLowerCase(),
             );
@@ -473,16 +471,6 @@ export function CommandBar() {
             for (const k of kebabs) {
               while (!k.startsWith(common)) common = common.slice(0, -1);
             }
-            */
-            const kebabs = prefixMatches.map((v) => toKebab(v.name));
-            const lowerKebabs = kebabs.map((k) => k.toLowerCase());
-            let commonLower = lowerKebabs[0];
-            for (const k of lowerKebabs) {
-              while (!k.startsWith(commonLower))
-                commonLower = commonLower.slice(0, -1);
-            }
-            const common = kebabs[0].slice(0, commonLower.length);
-            // META EDIT - CHANGE - END - commandbar_space_autocomplete_case
             if (common.length > input.length) {
               setInput(common);
               setSelectedIndex(0);
