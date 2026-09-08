@@ -3,6 +3,21 @@
 
 /datum/augment_item/organ/apply(mob/living/carbon/human/human_holder, character_setup = FALSE, datum/preferences/prefs)
 	if(character_setup)
+		// META EDIT - ADDITION - START - ORGAN_AUG_PREVIEW_EYES
+		// Only eyes have an on-mob visual among the organ slots this system covers.
+		// Cheaply fake the appearance the same way limb augments do, without actually swapping the organ.
+		if(slot != AUGMENT_SLOT_EYES)
+			return
+		var/obj/item/organ/eyes/new_eyes = path
+		var/obj/item/organ/eyes/current_eyes = human_holder.get_organ_slot(ORGAN_SLOT_EYES)
+		if(!current_eyes)
+			return
+		current_eyes.icon_state = initial(new_eyes.icon_state)
+		current_eyes.eye_icon = initial(new_eyes.eye_icon)
+		current_eyes.eye_icon_state = initial(new_eyes.eye_icon_state)
+		current_eyes.iris_overlay = initial(new_eyes.iris_overlay)
+		current_eyes.blink_animation = initial(new_eyes.blink_animation)
+		// META EDIT - ADDITION - END - ORGAN_AUG_PREVIEW_EYES
 		return
 
 	var/obj/item/organ/organ_path = path // cast this to an organ so we can get the slot from it using initial()
