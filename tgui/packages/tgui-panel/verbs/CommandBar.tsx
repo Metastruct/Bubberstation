@@ -455,6 +455,8 @@ export function CommandBar() {
             selectVerb(verbSuggestions[selectedIndex]);
             return;
           }
+          // META EDIT - CHANGE - START - commandbar_space_autocomplete_case
+          /* original:
           const query = input.toLowerCase();
           const prefixMatches = verbSuggestions.filter((v) =>
             toKebab(v.name).toLowerCase().startsWith(query),
@@ -464,8 +466,6 @@ export function CommandBar() {
             return;
           }
           if (prefixMatches.length > 1) {
-            // META EDIT - CHANGE - START - commandbar_space_autocomplete_case
-            /* original:
             const kebabs = prefixMatches.map((v) =>
               toKebab(v.name).toLowerCase(),
             );
@@ -473,7 +473,25 @@ export function CommandBar() {
             for (const k of kebabs) {
               while (!k.startsWith(common)) common = common.slice(0, -1);
             }
-            */
+            if (common.length > input.length) {
+              setInput(common);
+              setSelectedIndex(0);
+            }
+          }
+          */
+          if (verbSuggestions.length === 1) {
+            selectVerb(verbSuggestions[0]);
+            return;
+          }
+          const query = input.toLowerCase();
+          const prefixMatches = verbSuggestions.filter((v) =>
+            toKebab(v.name).toLowerCase().startsWith(query),
+          );
+          if (prefixMatches.length === 1) {
+            selectVerb(prefixMatches[0]);
+            return;
+          }
+          if (prefixMatches.length > 1) {
             const kebabs = prefixMatches.map((v) => toKebab(v.name));
             const lowerKebabs = kebabs.map((k) => k.toLowerCase());
             let commonLower = lowerKebabs[0];
@@ -487,12 +505,12 @@ export function CommandBar() {
               return;
             }
             const common = kebabs[0].slice(0, commonLower.length);
-            // META EDIT - CHANGE - END - commandbar_space_autocomplete_case
             if (common.length > input.length) {
               setInput(common);
               setSelectedIndex(0);
             }
           }
+          // META EDIT - CHANGE - END - commandbar_space_autocomplete_case
         }
         return;
       case 'Tab':
@@ -521,13 +539,16 @@ export function CommandBar() {
           const verb = verbSuggestions[selectedIndex];
           const isExactMatch =
             toKebab(verb.name).toLowerCase() === input.toLowerCase();
-          if (selectedIndex > 0 || isExactMatch) {
+          const isOnlyMatch = verbSuggestions.length === 1;
+          if (selectedIndex > 0 || isExactMatch || isOnlyMatch) {
             pushHistory(input);
             Byond.sendMessage('verbs/invoke', {
               verb_type: verb.type,
               args: {},
             });
             dismissOrReset();
+          } else {
+            selectVerb(verb);
           }
           // META EDIT - CHANGE - END - commandbar_enter_invokes_immediately
         } else if (selectedVerb && hasSuggestions && !isCurrentArgTypepath) {
