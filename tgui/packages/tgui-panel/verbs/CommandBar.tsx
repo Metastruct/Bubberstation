@@ -464,6 +464,8 @@ export function CommandBar() {
             return;
           }
           if (prefixMatches.length > 1) {
+            // META EDIT - CHANGE - START - commandbar_space_autocomplete_case
+            /* original:
             const kebabs = prefixMatches.map((v) =>
               toKebab(v.name).toLowerCase(),
             );
@@ -471,6 +473,21 @@ export function CommandBar() {
             for (const k of kebabs) {
               while (!k.startsWith(common)) common = common.slice(0, -1);
             }
+            */
+            const kebabs = prefixMatches.map((v) => toKebab(v.name));
+            const lowerKebabs = kebabs.map((k) => k.toLowerCase());
+            let commonLower = lowerKebabs[0];
+            for (const k of lowerKebabs) {
+              while (!k.startsWith(commonLower))
+                commonLower = commonLower.slice(0, -1);
+            }
+            const exactIndex = lowerKebabs.indexOf(commonLower);
+            if (exactIndex >= 0) {
+              selectVerb(prefixMatches[exactIndex]);
+              return;
+            }
+            const common = kebabs[0].slice(0, commonLower.length);
+            // META EDIT - CHANGE - END - commandbar_space_autocomplete_case
             if (common.length > input.length) {
               setInput(common);
               setSelectedIndex(0);
@@ -487,6 +504,8 @@ export function CommandBar() {
       case 'Enter': {
         e.preventDefault();
         if (!selectedVerb && verbSuggestions.length > 0) {
+          // META EDIT - CHANGE - START - commandbar_enter_invokes_immediately
+          /* original:
           const verb = verbSuggestions[selectedIndex];
           if (verb.args.length === 0) {
             pushHistory(input);
@@ -498,6 +517,19 @@ export function CommandBar() {
           } else {
             selectVerb(verb);
           }
+          */
+          const verb = verbSuggestions[selectedIndex];
+          const isExactMatch =
+            toKebab(verb.name).toLowerCase() === input.toLowerCase();
+          if (selectedIndex > 0 || isExactMatch) {
+            pushHistory(input);
+            Byond.sendMessage('verbs/invoke', {
+              verb_type: verb.type,
+              args: {},
+            });
+            dismissOrReset();
+          }
+          // META EDIT - CHANGE - END - commandbar_enter_invokes_immediately
         } else if (selectedVerb && hasSuggestions && !isCurrentArgTypepath) {
           selectCurrentSuggestion();
         } else if (selectedVerb) {
