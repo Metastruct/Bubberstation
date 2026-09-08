@@ -537,19 +537,12 @@ export function CommandBar() {
           }
           */
           const verb = verbSuggestions[selectedIndex];
-          const isExactMatch =
-            toKebab(verb.name).toLowerCase() === input.toLowerCase();
-          const isOnlyMatch = verbSuggestions.length === 1;
-          if (selectedIndex > 0 || isExactMatch || isOnlyMatch) {
-            pushHistory(input);
-            Byond.sendMessage('verbs/invoke', {
-              verb_type: verb.type,
-              args: {},
-            });
-            dismissOrReset();
-          } else {
-            selectVerb(verb);
-          }
+          pushHistory(input);
+          Byond.sendMessage('verbs/invoke', {
+            verb_type: verb.type,
+            args: {},
+          });
+          dismissOrReset();
           // META EDIT - CHANGE - END - commandbar_enter_invokes_immediately
         } else if (selectedVerb && hasSuggestions && !isCurrentArgTypepath) {
           selectCurrentSuggestion();
