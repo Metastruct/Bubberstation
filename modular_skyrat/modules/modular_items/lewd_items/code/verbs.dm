@@ -61,6 +61,8 @@ GAME_VERB_DESC(/mob/living/carbon/human, safeword, "OOC Safe Word", "Removes any
 
 	return TRUE
 
+// META EDIT - REMOVAL - LICK_SMELL_EMOTES
+/* ORIGINAL:
 GAME_VERB(/mob/living/carbon/human, lick, "Lick", "IC")
 	VERB_ARG_TYPED(target, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_VIEW, /mob/living/carbon/human)
 	if(!istype(target) || !(target in get_adjacent_humans()))
@@ -96,4 +98,5 @@ GAME_VERB(/mob/living/carbon/human, smell, "Smell", "IC")
 		nearby_humans -= nearby_human
 
 	return nearby_humans
-
+*/
+// Replaced by the lick/smell hand-item emotes in modular_zzmeta/modules/lick_smell/, which work on any atom instead of just adjacent humans.
