@@ -54,19 +54,30 @@
 		return get_living_taste_text(target, user)
 
 	var/datum/reagents/source_reagents = get_reagents_source(target)
+	var/taste_text
 	if(source_reagents?.total_volume)
-		return source_reagents.generate_taste_message(user, get_detection_threshold(user))
+		taste_text = source_reagents.generate_taste_message(user, get_detection_threshold(user))
+	if(isturf(target))
+		qdel(source_reagents)
+	if(taste_text)
+		return taste_text
 	if(length(target.custom_materials))
 		return target.get_material_english_list(target.custom_materials)
 	return
 
-/// Mob-specific taste resolution: face-decal residue (e.g. pie splat) takes priority. A
-/// covered zone tastes like whatever's covering it rather than the wearer, and the
-/// DNA-feature flavor text only applies to bare, exposed skin.
 /obj/item/hand_item/tongue/proc/get_living_taste_text(mob/living/target, mob/living/user)
 	var/datum/reagents/residue_reagents = get_reagents_source(target)
 	if(residue_reagents?.total_volume)
 		return residue_reagents.generate_taste_message(user, get_detection_threshold(user))
+
+	var/datum/reagents/coating_preview = get_coating_preview(target)
+	if(coating_preview)
+		var/coating_text
+		if(coating_preview.total_volume)
+			coating_text = coating_preview.generate_taste_message(user, get_detection_threshold(user))
+		qdel(coating_preview)
+		if(coating_text)
+			return coating_text
 
 	if(!ishuman(target))
 		return
@@ -97,6 +108,17 @@
 			return covering.get_material_english_list(covering.custom_materials)
 	return
 
+/// Builds a disposable reagents preview from a mob's coated_in_liquid status effect (rain,
+/// showers, splashes, ...), or null if they're dry or it has no reagent identity recorded.
+/obj/item/hand_item/tongue/proc/get_coating_preview(mob/living/target)
+	var/datum/status_effect/coated_in_liquid/coating = target.has_status_effect(/datum/status_effect/coated_in_liquid)
+	if(!length(coating?.soaked_reagents))
+		return null
+	var/datum/reagents/preview = new /datum/reagents(1000)
+	for(var/reagent_type in coating.soaked_reagents)
+		preview.add_reagent(reagent_type, coating.soaked_reagents[reagent_type], no_react = TRUE)
+	return preview
+
 /// Resolves target's reagents: face-decal residue for mobs (never their own internal
 /// reagents, to avoid revealing hidden chemistry), decal shortcuts materialized via
 /// lazy_init_reagents(), or the atom's own reagents otherwise.
@@ -108,6 +130,9 @@
 	if(istype(target, /obj/effect/decal/cleanable))
 		var/obj/effect/decal/cleanable/cleanable_target = target
 		return cleanable_target.lazy_init_reagents()
+	if(isturf(target))
+		var/turf/turf_target = target
+		return turf_target.liquids?.simulate_reagents_threshold(0)
 	if(is_sealed_container(target))
 		return null
 	return target.reagents
@@ -157,7 +182,26 @@
 	. = ..()
 	check_ant_bite(target, user)
 	check_lamp_burn(target, user)
+	check_mousetrap_bite(target, user)
 	consume_licked_reagents(target, user)
+
+/obj/item/hand_item/tongue/licker/proc/check_mousetrap_bite(atom/target, mob/living/user)
+	if(!istype(target, /obj/item/assembly/mousetrap))
+		return
+	var/obj/item/assembly/mousetrap/trap = target
+	if(!trap.armed)
+		return
+	trap.armed = FALSE
+	trap.update_appearance()
+	playsound(trap, 'sound/effects/snap.ogg', 50, TRUE)
+	trap.pulse()
+
+	user.visible_message(
+		span_danger("[user] recoils as [trap] snaps shut on [user.p_their()] tongue!"),
+		span_userdanger("[trap] snaps shut on your tongue!"),
+	)
+	user.apply_damage(3, BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = trap)
+	user.apply_status_effect(/datum/status_effect/speech/slurring/generic, 20 SECONDS)
 
 /// Licking a lit light fixture burns your tongue. Reimplemented instead of calling
 /// /obj/machinery/light/attack_hand_secondary() directly, since that proc also pops the bulb
@@ -182,6 +226,8 @@
 	if(!source_reagents)
 		return
 	var/ant_amount = source_reagents.get_reagent_amount(/datum/reagent/ants) + source_reagents.get_reagent_amount(/datum/reagent/ants/fire)
+	if(isturf(target))
+		qdel(source_reagents)
 	if(!ant_amount)
 		return
 
@@ -196,6 +242,15 @@
 /// bite. Enough licks empty the source entirely, cleaning up any pie residue or floor smudge
 /// it came from too.
 /obj/item/hand_item/tongue/licker/proc/consume_licked_reagents(atom/target, mob/living/user)
+	if(isturf(target))
+		var/turf/turf_target = target
+		if(!turf_target.liquids?.total_reagents)
+			return
+		var/datum/reagents/drained = turf_target.liquids.take_reagents_flat(get_transfer_amount(user))
+		drained.trans_to(user, drained.total_volume, methods = INGEST)
+		qdel(drained)
+		return
+
 	var/datum/reagents/source_reagents = get_reagents_source(target)
 	if(!source_reagents?.total_volume)
 		return
