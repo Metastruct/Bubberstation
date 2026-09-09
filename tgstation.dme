@@ -10757,7 +10757,7 @@
 #include "modular_zzmeta\modules\lick_smell\code\hand_items.dm"
 #include "modular_zzmeta\modules\lick_smell\code\pie_taste.dm"
 #include "modular_zzmeta\modules\slidingpuzzle\code\slidingpuzzle.dm"
-#include "modular_zzmeta\modules\tetris\code\tetris.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soap_face_wash.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soapy_mouth.dm"
+#include "modular_zzmeta\modules\tetris\code\tetris.dm"
 // END_INCLUDE
