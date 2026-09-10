@@ -199,6 +199,18 @@
 /obj/item/hand_item/tongue/licker/proc/should_modify_speech(datum/source, list/speech_args)
 	return !HAS_TRAIT(source, TRAIT_SIGN_LANG)
 
+/obj/item/hand_item/tongue/licker/on_offered(mob/living/offerer, mob/living/offered)
+	if(..())
+		return TRUE
+	offerer.balloon_alert_to_viewers("offers a lick")
+	offerer.visible_message(
+		span_notice("[offerer] offers to let [offered ? "[offered]" : "someone"] lick [offerer.p_them()]!"),
+		span_notice("You offer to let [offered ? "[offered]" : "someone"] lick you!"),
+		null, 2,
+	)
+	offerer.apply_status_effect(/datum/status_effect/offering, src, null, offered)
+	return TRUE
+
 /// A rough tongue (cat, dog, ...) laps up more per lick, checked via the tongue organ itself
 /// so it also covers species that have one natively (e.g. Tajaran).
 /obj/item/hand_item/tongue/licker/proc/get_transfer_amount(mob/living/user)
@@ -372,6 +384,18 @@
 	dna_feature_key = "smell"
 	// Matches get_sniff_examine()'s threshold; smell picks up fainter scents than direct tasting does.
 	detection_threshold = 10
+
+/obj/item/hand_item/tongue/sniffer/on_offered(mob/living/offerer, mob/living/offered)
+	if(..())
+		return TRUE
+	offerer.balloon_alert_to_viewers("offers a sniff")
+	offerer.visible_message(
+		span_notice("[offerer] offers to let [offered ? "[offered]" : "someone"] smell [offerer.p_them()]!"),
+		span_notice("You offer to let [offered ? "[offered]" : "someone"] smell you!"),
+		null, 2,
+	)
+	offerer.apply_status_effect(/datum/status_effect/offering, src, null, offered)
+	return TRUE
 
 /obj/item/hand_item/tongue/sniffer/get_use_block_reason(mob/living/user)
 	if(HAS_TRAIT(user, TRAIT_ANOSMIA))
