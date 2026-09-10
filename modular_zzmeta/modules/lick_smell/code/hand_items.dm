@@ -336,8 +336,8 @@
 /obj/item/hand_item/tongue/sniffer
 	name = "nose"
 	desc = "For catching a whiff."
-	icon = 'icons/ui/chat/emoji.dmi'
-	icon_state = "thinking"
+	icon = 'modular_zzmeta/modules/lick_smell/icons/items.dmi'
+	icon_state = "nose"
 	dna_feature_key = "smell"
 	// Matches get_sniff_examine()'s threshold; smell picks up fainter scents than direct tasting does.
 	detection_threshold = 10
