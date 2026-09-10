@@ -16,6 +16,18 @@
 	do_taste(interacting_with, user)
 	return ITEM_INTERACT_SUCCESS
 
+/obj/item/hand_item/tongue/on_offer_taken(mob/living/offerer, mob/living/taker)
+	. = ..()
+	if(.)
+		return
+	var/block_reason = get_use_block_reason(taker)
+	if(block_reason)
+		to_chat(taker, span_warning(block_reason))
+		return TRUE
+	do_taste(offerer, taker)
+	qdel(src)
+	return TRUE
+
 /// Returns a rejection message if the action can't be used right now, else null.
 /obj/item/hand_item/tongue/proc/get_use_block_reason(mob/living/user)
 	return
@@ -167,6 +179,25 @@
 	dna_feature_key = "taste"
 	/// How much of the target's reagents actually enter the licker's body per lick, same as a small bite.
 	var/lick_transfer_amount = 1
+	/// Letter garbling for trying to talk with your tongue hanging out of your mouth.
+	var/static/list/speech_replacements = list(
+		new /regex("s+", "g") = "th",
+		new /regex("S+", "g") = "Th",
+		new /regex("z+", "g") = "th",
+		new /regex("Z+", "g") = "Th",
+		new /regex("l+", "g") = "w",
+		new /regex("L+", "g") = "W",
+		new /regex("r+", "g") = "w",
+		new /regex("R+", "g") = "W",
+	)
+
+/obj/item/hand_item/tongue/licker/Initialize(mapload)
+	. = ..()
+	AddComponent(/datum/component/speechmod, replacements = speech_replacements, slots = ITEM_SLOT_HANDS, should_modify_speech = CALLBACK(src, PROC_REF(should_modify_speech)))
+
+/// Sign language doesn't need a working tongue.
+/obj/item/hand_item/tongue/licker/proc/should_modify_speech(datum/source, list/speech_args)
+	return !HAS_TRAIT(source, TRAIT_SIGN_LANG)
 
 /// A rough tongue (cat, dog, ...) laps up more per lick, checked via the tongue organ itself
 /// so it also covers species that have one natively (e.g. Tajaran).
