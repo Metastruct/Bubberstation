@@ -10740,7 +10740,6 @@
 #include "modular_zzmeta\modules\afk_indicator\code\afk_indicator.dm"
 #include "modular_zzmeta\modules\chat_colors\code\say_chat_colors.dm"
 #include "modular_zzmeta\modules\chat_resize_fix\code\chat_resize_fix.dm"
-#include "modular_zzmeta\modules\claude_debug\code\claude_debug.dm"
 #include "modular_zzmeta\modules\cleanbot_liquids\code\liquid_turf_wash.dm"
 #include "modular_zzmeta\modules\close_eyes\code\close_eyes.dm"
 #include "modular_zzmeta\modules\commit_announcer\code\commit_topic.dm"
@@ -10753,7 +10752,7 @@
 #include "modular_zzmeta\modules\interaction_menu\code\interaction_component.dm"
 #include "modular_zzmeta\modules\interaction_menu\code\interaction_datum.dm"
 #include "modular_zzmeta\modules\slidingpuzzle\code\slidingpuzzle.dm"
-#include "modular_zzmeta\modules\tetris\code\tetris.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soap_face_wash.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soapy_mouth.dm"
+#include "modular_zzmeta\modules\tetris\code\tetris.dm"
 // END_INCLUDE
