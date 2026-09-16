@@ -125,10 +125,10 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", /mob)
 			if(!target_prefs && target_mob.ckey)
 				target_prefs = GLOB.preferences_datums[target_mob.ckey]
 			if(preview_dummy && target_prefs)
+				// Loadout is a combination of the saved loadout items AND the saved underwear.
 				if(is_loadout_preview)
 					preview_dummy.equip_outfit_and_loadout(/datum/outfit, target_prefs)
-				else
-					preview_dummy.apply_underwear_prefs(target_prefs)
+				preview_dummy.apply_underwear_prefs(target_prefs)
 		// META EDIT - ADDITION - END - SELECT_EQUIPMENT_RESTORE_PREFS
 
 		cached_dummy_icon = get_flat_human_icon(null,
@@ -256,6 +256,7 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", /mob)
 	// META EDIT - ADDITION - START - SELECT_EQUIPMENT_RESTORE_PREFS
 	// "Loadout" and "Underwear" are special bare outfits that restore the target's own saved
 	// character preferences instead of just being an empty outfit like "Naked".
+	// "Loadout" is a combination of the saved loadout items AND the saved underwear.
 	if(istype(dresscode, /datum/outfit/loadout) || istype(dresscode, /datum/outfit/underwear))
 		var/datum/preferences/target_prefs = human_target.client?.prefs
 		if(!target_prefs && human_target.ckey)
@@ -263,9 +264,9 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", /mob)
 
 		if(!target_prefs)
 			tgui_alert(usr, "Could not find saved character preferences for this mob.")
-		else if(istype(dresscode, /datum/outfit/loadout))
-			human_target.equip_outfit_and_loadout(/datum/outfit, target_prefs)
 		else
+			if(istype(dresscode, /datum/outfit/loadout))
+				human_target.equip_outfit_and_loadout(/datum/outfit, target_prefs)
 			human_target.apply_underwear_prefs(target_prefs)
 	else if(dresscode != "Naked")
 		human_target.equipOutfit(dresscode)
