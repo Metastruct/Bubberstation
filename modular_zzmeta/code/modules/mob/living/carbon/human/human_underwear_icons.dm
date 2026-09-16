@@ -35,6 +35,7 @@
 			underwear_overlay = mutable_appearance(worn_item.icon, underwear_icon_state, -BODY_LAYER)
 		if(!worn_item.use_static)
 			underwear_overlay.color = worn_item.color
+		apply_height(underwear_overlay, ENTIRE_BODY)
 		overlays_standing[UNDERWEAR_LAYER] = underwear_overlay
 	apply_overlay(UNDERWEAR_LAYER)
 	if(!(living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
@@ -50,6 +51,7 @@
 		var/mutable_appearance/bra_overlay = mutable_appearance(worn_item.icon, worn_item.icon_state, -BODY_LAYER)
 		if(!worn_item.use_static)
 			bra_overlay.color = worn_item.color
+		apply_height(bra_overlay, ENTIRE_BODY)
 		overlays_standing[BRA_LAYER] = bra_overlay
 	apply_overlay(BRA_LAYER)
 	if(!(living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
@@ -69,6 +71,7 @@
 			undershirt_overlay = mutable_appearance(worn_item.icon, worn_item.icon_state, -BODY_LAYER)
 		if(!worn_item.use_static)
 			undershirt_overlay.color = worn_item.color
+		apply_height(undershirt_overlay, ENTIRE_BODY)
 		overlays_standing[UNDERSHIRT_LAYER] = undershirt_overlay
 	apply_overlay(UNDERSHIRT_LAYER)
 	if(!(living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
@@ -87,6 +90,7 @@
 		var/mutable_appearance/socks_overlay = mutable_appearance(worn_item.icon, socks_icon_state, -BODY_LAYER)
 		if(!worn_item.use_static)
 			socks_overlay.color = worn_item.color
+		apply_height(socks_overlay, ENTIRE_BODY)
 		overlays_standing[SOCKS_LAYER] = socks_overlay
 	apply_overlay(SOCKS_LAYER)
 
