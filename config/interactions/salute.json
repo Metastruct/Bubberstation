@@ -1,0 +1,11 @@
+{
+  "name": "Salute",
+  "description": "Snap to a salute, perhaps to show respect for the Captain.",
+  "usage": "self",
+  "category": "Miscellaneous",
+  "distance_allowed": 1,
+  "message": ["%USER% snaps to a salute!"],
+  "sound_possible": ["sound/mobs/humanoids/human/salute/salute.ogg"],
+  "sound_range": 5,
+  "interaction_requires": ["self_hand"]
+}

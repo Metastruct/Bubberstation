@@ -4,15 +4,21 @@ import { loadedMappings } from '../../assets';
 
 /// --------- Handlers ------------------------------------------------------///
 
+// META EDIT ADDITION: the server can regenerate icon_ref_map.json later on. Track the
+// last url we fetched, not just whether we have any data, so a later map isn't ignored.
+let lastFetchedIconRefMapUrl: string | undefined;
+
 export function handleLoadAssets(payload: Record<string, string>): void {
   loadMappings(payload, loadedMappings);
 
+  const iconRefMapUrl = payload['icon_ref_map.json'];
   if (
-    'icon_ref_map.json' in payload &&
+    iconRefMapUrl &&
     Byond.iconRefMap &&
-    Object.keys(Byond.iconRefMap).length === 0
+    iconRefMapUrl !== lastFetchedIconRefMapUrl // META EDIT CHANGE, ORIGINAL: Object.keys(Byond.iconRefMap).length === 0
   ) {
-    fetchRetry(payload['icon_ref_map.json'])
+    lastFetchedIconRefMapUrl = iconRefMapUrl; // META EDIT ADDITION
+    fetchRetry(iconRefMapUrl)
       .then((res) => res.json())
       .then(setIconRefMap)
       .catch(console.error);
@@ -23,5 +29,6 @@ export function handleLoadAssets(payload: Record<string, string>): void {
 
 // https://biomejs.dev/linter/rules/no-assign-in-expressions/
 function setIconRefMap(map: Record<string, string>): void {
-  Byond.iconRefMap = map;
+  // META EDIT CHANGE, ORIGINAL: Byond.iconRefMap = map;
+  Byond.iconRefMap = { ...Byond.iconRefMap, ...map };
 }

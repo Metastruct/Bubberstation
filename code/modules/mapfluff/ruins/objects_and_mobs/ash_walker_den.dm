@@ -48,7 +48,7 @@
 	for(var/mob/living/offeredmob in view(src, 1)) //Only for corpse right next to/on same tile
 		if(offeredmob.loc == src)
 			continue //Ashwalker Revive in Progress...
-		if(offeredmob.stat)
+		if(IS_UNCONSCIOUS_OR_CRIT(offeredmob))
 			offeredmob.unequip_everything()
 
 			if(issilicon(offeredmob)) //no advantage to sacrificing borgs...
@@ -96,8 +96,8 @@
 	var/mob/living/carbon/human/newwalker = new /mob/living/carbon/human(get_step(loc, pick(GLOB.alldirs)))
 	newwalker.set_species(/datum/species/lizard/ashwalker)
 	newwalker.real_name = oldmob.real_name
-	newwalker.undershirt = "Nude"
-	newwalker.underwear = "Nude"
+	newwalker.set_undershirt("Nude") // META EDIT - CHANGE - UNDERWEAR_ITEMS
+	newwalker.set_underwear("Nude") // META EDIT - CHANGE - UNDERWEAR_ITEMS
 	newwalker.update_body()
 	newwalker.remove_language(/datum/language/common)
 	oldmob.mind.transfer_to(newwalker)

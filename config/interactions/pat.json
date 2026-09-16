@@ -1,0 +1,35 @@
+{
+  "name": "Pat",
+  "description": "Pat their shoulder, or their head if you're aiming there.",
+  "usage": "both",
+  "category": "Miscellaneous",
+  "distance_allowed": 0,
+  "message": ["%USER% pats %TARGET% on their shoulder."],
+  "interaction_requires": ["self_hand"],
+  "sound_range": 3,
+  "sound_possible": [
+    "sound/effects/rustle/rustle1.ogg",
+    "sound/effects/rustle/rustle2.ogg",
+    "sound/effects/rustle/rustle3.ogg",
+    "sound/effects/rustle/rustle4.ogg",
+    "sound/effects/rustle/rustle5.ogg"
+  ],
+  "zone_overrides": {
+    "head": {
+      "message": ["%USER% pats %TARGET%'s head!"],
+      "sound_possible": ["sound/items/weapons/thudswoosh.ogg"]
+    },
+    "_self": {
+      "message": ["%USER% pats their own shoulder."],
+      "self_messages": [
+        "<span class='purple'>You pat your own shoulder, comforting yourself.</span>"
+      ]
+    },
+    "head_self": {
+      "message": ["%USER% pats their own head!"],
+      "self_messages": [
+        "<span class='purple'>You pat your own head.</span>"
+      ]
+    }
+  }
+}

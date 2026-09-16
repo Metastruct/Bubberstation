@@ -1,0 +1,12 @@
+{
+  "name": "Handshake",
+  "description": "Shake hands with them. Savvy.",
+  "usage": "other",
+  "category": "Miscellaneous",
+  "distance_allowed": 0,
+  "message": ["%USER% shakes %TARGET%'s hand."],
+  "interaction_requires": ["self_hand", "target_hand"],
+  "sound_possible": [
+    "sound/items/weapons/thudswoosh.ogg"
+  ]
+}

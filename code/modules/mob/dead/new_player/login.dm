@@ -44,7 +44,10 @@
 
 	add_sight(SEE_TURFS)
 
-	client.playtitlemusic()
+	// META EDIT - CHANGE - START - LOADING_MUSIC
+	// Dispatches to loading music during startup instead of always starting title music, since a caller further down the Login() override chain immediately interrupts it with playlobbymusic() anyway.
+	client.playlobbymusic()
+	// META EDIT - CHANGE - END
 
 	var/datum/asset/asset_datum = get_asset_datum(/datum/asset/simple/lobby)
 	asset_datum.send(client)

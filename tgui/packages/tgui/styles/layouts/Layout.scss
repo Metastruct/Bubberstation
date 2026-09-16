@@ -4,7 +4,13 @@
  */
 
 .Layout__content {
-  overflow-x: hidden;
+  // META EDIT - CHANGE - START - LAYOUT_HORIZONTAL_OVERFLOW
+  // ORIGINAL: overflow-x: hidden;
+  // "hidden" clips wide rows (e.g. a settings panel resized narrower than its buttons) with no way to
+  // reach the clipped part at all. "auto" only shows a scrollbar when content actually overflows, so it's
+  // a no-op for windows that already fit.
+  overflow-x: auto;
+  // META EDIT - CHANGE - END
   overflow-y: hidden;
   position: absolute;
   inset: 0;

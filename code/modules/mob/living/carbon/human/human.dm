@@ -1,5 +1,5 @@
-/mob/living/carbon/human/Initialize(mapload)
-	add_verb(src, /mob/living/proc/mob_sleep)
+/mob/living/carbon/human/Initialize(mapload, datum/species/species)
+	ASSIGN_GAME_VERB(src, /mob/living, mob_sleep)
 	add_verb(src, /mob/living/proc/toggle_resting)
 
 	icon_state = "" //Remove the inherent human icon that is visible on the map editor. We're rendering ourselves limb by limb, having it still be there results in a bug where the basic human icon appears below as south in all directions and generally looks nasty.
@@ -10,7 +10,8 @@
 	// Physiology needs to be created before species, as some species modify physiology
 	setup_physiology()
 
-	create_dna()
+
+	create_dna(species)
 	dna.species.create_fresh_body(src)
 	setup_human_dna()
 
@@ -41,10 +42,16 @@
 /mob/living/carbon/human/proc/setup_physiology()
 	physiology = new()
 
+/mob/living/carbon/human/get_unconscious_appearance()
+	return get_generic_humanoid_static_appearance()
+
 /mob/living/carbon/human/proc/setup_mood()
 	if (CONFIG_GET(flag/disable_human_mood))
 		return
 	mob_mood = new /datum/mood(src)
+
+/mob/living/carbon/human/dummy/get_unconscious_appearance()
+	return null
 
 /mob/living/carbon/human/dummy/setup_mood()
 	return
@@ -98,7 +105,6 @@
 		update_fullscreen()
 		return
 	return ..()
-
 
 /mob/living/carbon/human/Topic(href, href_list)
 
@@ -277,7 +283,7 @@
 				return
 			if(ishuman(human_or_ghost_user))
 				var/mob/living/carbon/human/human_user = human_or_ghost_user
-				if(human_user.stat || human_user == src) //|| !human_user.canmove || human_user.restrained()) Fluff: Sechuds have eye-tracking technology and sets 'arrest' to people that the wearer looks and blinks at.
+				if(IS_UNCONSCIOUS_OR_CRIT(human_user) || human_user == src) //|| !human_user.canmove || human_user.restrained()) Fluff: Sechuds have eye-tracking technology and sets 'arrest' to people that the wearer looks and blinks at.
 					return   //Non-fluff: This allows sec to set people to arrest as they get disarmed or beaten
 			// Checks the user has security clearence before allowing them to change arrest status via hud, comment out to enable all access
 				var/obj/item/clothing/glasses/hud/security/user_glasses = human_user.glasses
@@ -451,8 +457,8 @@
 	return chest?.get_butt_sprite()
 
 /mob/living/carbon/human/get_footprint_sprite()
-	var/obj/item/bodypart/leg/L = get_bodypart(BODY_ZONE_R_LEG) || get_bodypart(BODY_ZONE_L_LEG)
-	return shoes?.footprint_sprite || L?.footprint_sprite
+	var/obj/item/bodypart/leg/leg = get_bodypart(BODY_ZONE_R_LEG) || get_bodypart(BODY_ZONE_L_LEG)
+	return astype(get_item_by_slot(ITEM_SLOT_FEET), /obj/item/clothing/shoes)?.footprint_sprite || leg?.footprint_sprite
 
 #define CHECK_PERMIT(item) (item && item.item_flags & NEEDS_PERMIT)
 
@@ -537,7 +543,7 @@
 	else
 		set_facial_hairstyle("Shaved", update = FALSE)
 	set_hairstyle(pick("Bedhead", "Bedhead 2", "Bedhead 3"), update = FALSE)
-	underwear = "Nude"
+	set_underwear("Nude") // META EDIT - CHANGE - UNDERWEAR_ITEMS
 	update_body(is_creating = TRUE)
 
 /mob/living/carbon/human/singularity_pull(atom/singularity, current_size)
@@ -563,7 +569,7 @@
 		if (DOING_INTERACTION_WITH_TARGET(src,target))
 			return FALSE
 
-		if (target.stat == DEAD || HAS_TRAIT(target, TRAIT_FAKEDEATH))
+		if (IS_DEAD_OR_FAKING(target))
 			balloon_alert(src, "[target.p_they()] [target.p_are()] dead!")
 			return FALSE
 
@@ -686,7 +692,7 @@
 	if(dna?.species)
 		add_atom_colour(COLOR_BLACK, TEMPORARY_COLOUR_PRIORITY)
 		var/mutable_appearance/shock_animation_dna = mutable_appearance(icon, "electrocuted_base", appearance_flags = RESET_COLOR|KEEP_APART)
-		apply_height_filters(shock_animation_dna)
+		apply_height(shock_animation_dna, ENTIRE_BODY)
 		zap_appearance = shock_animation_dna
 
 	// Otherwise do a generic animation
@@ -934,22 +940,26 @@
 	return ..()
 
 /mob/living/carbon/human/mouse_buckle_handling(mob/living/M, mob/living/user)
-	if(pulling != M || grab_state != GRAB_AGGRESSIVE || stat != CONSCIOUS)
+	// META EDIT START - CHANGE - piggyback no longer requires an aggressive grab - Original: if(pulling != M || grab_state != GRAB_AGGRESSIVE || IS_UNCONSCIOUS_OR_CRIT(src))
+	if(IS_UNCONSCIOUS_OR_CRIT(src))
+	// META EDIT END
 		return FALSE
 
-	//If they dragged themselves to you and you're currently aggressively grabbing them try to piggyback
+	// META EDIT START - CHANGE - no longer requires an aggressive grab - Original: "//If they dragged themselves to you and you're currently aggressively grabbing them try to piggyback"
+	//If they dragged themselves to you try to piggyback
+	// META EDIT END
 	if(user == M && can_piggyback(M))
 		piggyback(M)
 		return TRUE
 
 	//If you dragged them to you and you're aggressively grabbing try to fireman carry them
-	if(can_be_firemanned(M))
+	if(pulling == M && grab_state == GRAB_AGGRESSIVE && can_be_firemanned(M))
 		fireman_carry(M)
 		return TRUE
 
 //src is the user that will be carrying, target is the mob to be carried
 /mob/living/carbon/human/proc/can_piggyback(mob/living/carbon/target)
-	return (istype(target) && target.stat == CONSCIOUS)
+	return (istype(target) && !IS_UNCONSCIOUS_OR_CRIT(target))
 
 /mob/living/carbon/human/proc/can_be_firemanned(mob/living/carbon/target)
 	return ishuman(target) && target.body_position == LYING_DOWN
@@ -1124,10 +1134,8 @@
 	var/race = null
 	var/use_random_name = TRUE
 
-/mob/living/carbon/human/species/create_dna()
-	dna = new /datum/dna(src)
-	if (!isnull(race))
-		dna.species = new race
+/mob/living/carbon/human/species/create_dna(datum/species/species)
+	..(race) //Kind of shit but I'm brainfarting how to do this better right now.
 
 /mob/living/carbon/human/species/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, list/override_markings, retain_features = FALSE, retain_mutantparts = FALSE) // SKYRAT EDIT - Customization
 
@@ -1162,6 +1170,21 @@
 	if (!hands_covered && check_hands)
 		return FALSE
 	return head_covered || HAS_TRAIT(src, TRAIT_HEAD_ATMOS_SEALED)
+
+/mob/living/carbon/human/should_electrocute(power_source)
+	if (gloves?.siemens_coefficient == 0)
+		return FALSE
+	return ..()
+
+/mob/living/carbon/human/can_touch_acid(atom/acided_atom, acid_power, acid_volume)
+	if(gloves?.resistance_flags & (UNACIDABLE | ACID_PROOF))
+		return TRUE
+	return ..()
+
+/mob/living/carbon/human/can_touch_burning(atom/burning_atom, acid_power, acid_volume)
+	if(gloves?.max_heat_protection_temperature >= BURNING_ITEM_MINIMUM_TEMPERATURE)
+		return TRUE
+	return ..()
 
 /mob/living/carbon/human/species/abductor
 	race = /datum/species/abductor
@@ -1240,6 +1263,3 @@
 
 /mob/living/carbon/human/species/zombie
 	race = /datum/species/zombie
-
-/mob/living/carbon/human/species/zombie/infectious
-	race = /datum/species/zombie/infectious

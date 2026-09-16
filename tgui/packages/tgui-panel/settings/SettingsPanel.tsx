@@ -44,13 +44,19 @@ export function SettingsPanel(props) {
           </Tabs>
         </Section>
       </Stack.Item>
-      <Stack.Item grow basis={0}>
+      {/* META EDIT - CHANGE - START - LAYOUT_HORIZONTAL_OVERFLOW */}
+      {/* ORIGINAL: <Stack.Item grow basis={0}> */}
+      {/* This Stack isn't wrapped in a Layout__content like the chat pane is, so a too-wide tab (e.g. Text
+          Highlights' checkbox row) had nowhere to overflow into except invisibly past the window edge.
+          overflowX makes this item scroll instead, and also stops it forcing the whole Stack wider. */}
+      <Stack.Item grow basis={0} overflowX="auto">
         {activeTab === 'general' && <SettingsGeneral />}
         {activeTab === 'chatPage' && <ChatPageSettings />}
         {activeTab === 'textHighlight' && <TextHighlightSettings />}
         {activeTab === 'statPanel' && <SettingsStatPanel />}
         {activeTab === 'websocket' && <SettingsWebsocket />}
       </Stack.Item>
+      {/* META EDIT - CHANGE - END */}
     </Stack>
   );
 }

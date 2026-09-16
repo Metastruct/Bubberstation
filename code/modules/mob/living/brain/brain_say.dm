@@ -31,6 +31,9 @@
 		return ..()
 
 /mob/living/brain/treat_message(message, tts_message, tts_filter, capitalize_message = TRUE)
-	if(capitalize_message)
+	// META EDIT - CHANGE - START - AUTOCAPITALIZATION_PREFERENCE
+	// ORIGINAL: if(capitalize_message)
+	if(capitalize_message && (!client || client.autocapitalization))
 		message = capitalize(message)
+	// META EDIT - CHANGE - END
 	return list(message = message, tts_message = message, tts_filter = list())

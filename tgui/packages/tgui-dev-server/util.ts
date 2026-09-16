@@ -38,3 +38,15 @@ export async function resolveGlob(
 
   return results;
 }
+
+/** Resolves a single glob pattern that is itself an absolute path (contains wildcard segments). */
+export async function resolveAbsoluteGlob(pattern: string): Promise<string[]> {
+  const glob = new Glob(pattern);
+  const results: string[] = [];
+
+  for await (const match of glob.scan({ onlyFiles: false, absolute: true })) {
+    results.push(match);
+  }
+
+  return results;
+}

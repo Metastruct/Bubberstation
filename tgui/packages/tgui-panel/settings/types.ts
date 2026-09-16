@@ -8,6 +8,11 @@ const viewSchema = z.object({
 
 export const settingsSchema = z.object({
   adminMusicVolume: z.number(),
+  // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR
+  chatNameColorMixSay: z.number(),
+  chatNameColorMixRadio: z.number(),
+  chatNameColorMixLooc: z.number(),
+  // META EDIT - ADDITION - END
   fontFamily: z.string(),
   fontSize: z.number(),
   initialized: z.boolean(),
@@ -30,6 +35,10 @@ export type HighlightSetting = {
   matchCase: boolean;
   matchWord: boolean;
   enabled: boolean;
+  /** Comma-separated job titles this highlight is limited to. Empty = all jobs. */
+  jobFilter: string;
+  /** Character names this highlight is limited to. Empty = all characters. */
+  characterFilter: string[];
 };
 
 export type HighlightState = {

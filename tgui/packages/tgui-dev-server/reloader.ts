@@ -9,7 +9,7 @@ import path from 'node:path';
 
 import { DreamSeeker } from './dreamseeker';
 import { createLogger } from './logging';
-import { resolveGlob, resolvePath } from './util';
+import { resolveAbsoluteGlob, resolveGlob, resolvePath } from './util';
 import { regQuery } from './winreg';
 
 const logger = createLogger('reloader');
@@ -45,7 +45,7 @@ export async function findCacheRoot(): Promise<string | undefined> {
       continue;
     }
 
-    const paths = await resolveGlob(pattern);
+    const paths = await resolveAbsoluteGlob(pattern);
     if (paths.length > 0) {
       cacheRoot = paths[0];
       onCacheRootFound(cacheRoot);

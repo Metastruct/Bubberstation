@@ -7,6 +7,10 @@ import { RADIO_PREFIXES, WindowSize } from './constants';
  */
 export function windowOpen(channel: Channel, scale: boolean): void {
   setWindowVisibility(true, scale);
+  // META EDIT ADDITION: focus used to only be given by a second server winset() alongside the
+  // open command (code/datums/keybinding/communication.dm). Doing it here too means a client-local
+  // open (modular_zzmeta/code/modules/client/client_procs.dm) doesn't need a server round trip for it.
+  Byond.winset(null, { 'tgui_say.browser.focus': true });
   Byond.sendMessage('open', { channel });
 }
 

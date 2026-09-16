@@ -28,6 +28,15 @@ export const sound_announcements: FeatureToggle = {
   component: CheckboxInput,
 };
 
+// META EDIT - ADDITION - START - ANNOUNCEMENT_VOLUME
+export const sound_announcements_volume: Feature<number> = {
+  name: 'Announcement volume',
+  category: 'SOUND',
+  description: 'The volume that announcement sounds (command reports, notices, alarms, etc.) will play at.',
+  component: FeatureSliderInput,
+};
+// META EDIT - ADDITION - END - ANNOUNCEMENT_VOLUME
+
 export const sound_ghost_poll_prompt: FeatureChoiced = {
   name: 'Ghost poll prompt',
   category: 'SOUND',
@@ -133,6 +142,13 @@ export const sound_achievement: FeatureChoiced = {
     If disabled, no sound will be played.
   `,
   component: FeatureDropdownInput,
+};
+
+export const sound_radio_noise: Feature<number> = {
+  name: 'Radio sound volume',
+  category: 'SOUND',
+  description: 'Volume of the bloops that play when a radio message is said or received.',
+  component: FeatureSliderInput,
 };
 
 export const sound_ai_vox: Feature<number> = {

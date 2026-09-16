@@ -39,7 +39,9 @@ excluded_files = [
     # Doesn't come with the repo, but is in CI.
     "DMCompiler_linux-x64/*.dm",
     # BUBBER EDIT - Modular files
-    "modular_zubbers/code/__DEFINES/*.dm"
+    "modular_zubbers/code/__DEFINES/*.dm",
+    # META EDIT - Modular files
+    "modular_zzmeta/code/__DEFINES/*.dm"
 ]
 
 define_regex = re.compile(r"(\s+)?#define\s?([A-Z0-9_]+)\(?(.+)\)?")

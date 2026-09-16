@@ -30,6 +30,15 @@ SUBSYSTEM_DEF(assets)
 
 	transport.Initialize(cache)
 
+	// META EDIT - ADDITION - START - ICON_REF_MAP_GAGS_LATE_REGEN
+	// icon_ref_map's early pass runs before mapping/atoms, so GAGS colors only
+	// generated lazily by map-placed instances aren't interned yet. Regenerate now
+	// that atoms (thus mapping) has finished. Client picks up the new url via the
+	// normal per-window asset resend, see tgui's assets.ts handler.
+	var/datum/asset/json/icon_ref_map/icon_ref_map = get_asset_datum(/datum/asset/json/icon_ref_map)
+	icon_ref_map.regenerate()
+	// META EDIT - ADDITION - END - ICON_REF_MAP_GAGS_LATE_REGEN
+
 	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/assets/Recover()

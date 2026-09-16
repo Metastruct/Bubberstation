@@ -1,4 +1,7 @@
 // THIS IS A SKYRAT UI FILE
+// META EDIT - ADDITION - START - MARKINGS_PRESET_DROPDOWN_STATE
+import { useState } from 'react';
+// META EDIT - ADDITION - END - MARKINGS_PRESET_DROPDOWN_STATE
 import {
   Box,
   Button,
@@ -220,6 +223,11 @@ export const LimbsPage = (props) => {
   const { act } = useBackend<PreferencesMenuData>();
   const markings = data.marking_presets ? data.marking_presets : [];
   const balance = -data.quirks_balance;
+  // META EDIT - ADDITION - START - MARKINGS_PRESET_DROPDOWN_STATE
+  const [selectedPreset, setSelectedPreset] = useState<string | undefined>(
+    undefined,
+  );
+  // META EDIT - ADDITION - END - MARKINGS_PRESET_DROPDOWN_STATE
   return (
     <Stack minHeight="100%">
       <Stack.Item minWidth="33%" minHeight="100%">
@@ -228,9 +236,14 @@ export const LimbsPage = (props) => {
             <Dropdown
               width="100%"
               options={Object.values(markings)}
-              selected={Object.values(markings)[1]}
+              // META EDIT - CHANGE - START - MARKINGS_PRESET_DROPDOWN_STATE
+              selected={selectedPreset}
               placeholder="Pick a preset:"
-              onSelected={(value) => act('set_preset', { preset: value })}
+              onSelected={(value) => {
+                setSelectedPreset(value);
+                act('set_preset', { preset: value });
+              }}
+              // META EDIT - CHANGE - END - MARKINGS_PRESET_DROPDOWN_STATE
             />
           </div>
           <div>

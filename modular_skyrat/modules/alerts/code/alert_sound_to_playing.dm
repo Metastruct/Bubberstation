@@ -9,11 +9,13 @@
 		if(ismob(m) && !isnewplayer(m))
 			var/mob/M = m
 			if(M.client?.prefs.read_preference(/datum/preference/toggle/sound_announcements) && !HAS_TRAIT(M, TRAIT_DEAF))
+				// META EDIT - CHANGE - START - ANNOUNCEMENT_VOLUME
 				if(override_volume)
-					M.playsound_local(get_turf(M), S, 80, FALSE)
+					M.playsound_local(get_turf(M), S, 80, FALSE, volume_preference = /datum/preference/numeric/volume/sound_announcements_volume)
 				else
 					var/area/A = get_area(M)
 					if(is_type_in_typecache(A, quiet_areas)) //These areas don't hear it as loudly
-						M.playsound_local(get_turf(M), S, 30, FALSE)
+						M.playsound_local(get_turf(M), S, 30, FALSE, volume_preference = /datum/preference/numeric/volume/sound_announcements_volume)
 					else
-						M.playsound_local(get_turf(M), S, 70, FALSE)
+						M.playsound_local(get_turf(M), S, 70, FALSE, volume_preference = /datum/preference/numeric/volume/sound_announcements_volume)
+				// META EDIT - CHANGE - END - ANNOUNCEMENT_VOLUME

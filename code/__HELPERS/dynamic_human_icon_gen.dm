@@ -14,10 +14,7 @@ GLOBAL_LIST_EMPTY(dynamic_human_appearances)
 	var/mob/living/carbon/human/dummy/consistent/dummy = new()
 	dummy.set_species(species_path)
 	dummy.stat = DEAD //this is to avoid side effects of mob spawners
-	dummy.underwear = "Nude"
-	dummy.undershirt = "Nude"
-	dummy.socks = "Nude"
-	dummy.bra = "Nude" // SKYRAT EDIT ADDITION - Underwear and bra split
+	// META EDIT - REMOVAL - UNDERWEAR_ITEMS: a freshly created dummy has no underwear items equipped, no reset needed
 	dummy.set_combat_mode(combat_mode)
 	if(outfit_path)
 		var/datum/outfit/outfit = new outfit_path()

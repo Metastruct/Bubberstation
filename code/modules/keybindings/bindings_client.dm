@@ -1,8 +1,6 @@
 // Clients aren't datums so we have to define these procs indpendently.
 // These verbs are called for all key press and release events
-/client/verb/keyDown(_key as text, mousepos_x as num, mousepos_y as num, sizex as num, sizey as num)
-	set instant = TRUE
-	set hidden = TRUE
+GAME_VERB_NATIVE_INSTANT(/client, keyDown, "keyDown", null, _key as text, mousepos_x as num, mousepos_y as num, sizex as num, sizey as num)
 
 	client_keysend_amount += 1
 
@@ -47,6 +45,10 @@
 
 	//the time a key was pressed isn't actually used anywhere (as of 2019-9-10) but this allows easier access usage/checking
 	keys_held[_key] = world.time
+	// META EDIT - ADDITION - START - INSTANT_OPEN_MODIFIER_GUARD
+	if(_key == "Alt" || _key == "Ctrl" || _key == "Shift")
+		set_instant_open_macros(FALSE)
+	// META EDIT - ADDITION - END - INSTANT_OPEN_MODIFIER_GUARD
 	var/movement = movement_keys[_key]
 	if(movement)
 		calculate_move_dir()
@@ -82,9 +84,7 @@
 	mob.focus?.key_down(_key, src, full_key)
 	mob.update_mouse_pointer()
 
-/client/verb/keyUp(_key as text, mousepos_x as num, mousepos_y as num, sizex as num, sizey as num)
-	set instant = TRUE
-	set hidden = TRUE
+GAME_VERB_NATIVE_INSTANT(/client, keyUp, "keyUp", null, _key as text, mousepos_x as num, mousepos_y as num, sizex as num, sizey as num)
 
 	var/key_combo = key_combos_held[_key]
 	if(key_combo)
@@ -96,6 +96,10 @@
 
 	keys_held -= _key
 
+	// META EDIT - ADDITION - START - INSTANT_OPEN_MODIFIER_GUARD
+	if((_key == "Alt" || _key == "Ctrl" || _key == "Shift") && !keys_held["Alt"] && !keys_held["Ctrl"] && !keys_held["Shift"])
+		set_instant_open_macros(TRUE)
+	// META EDIT - ADDITION - END - INSTANT_OPEN_MODIFIER_GUARD
 	var/movement = movement_keys[_key]
 	if(movement)
 		calculate_move_dir()

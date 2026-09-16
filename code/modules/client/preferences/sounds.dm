@@ -129,7 +129,9 @@
 
 /datum/preference/numeric/volume/sound_lobby_volume/apply_to_client_updated(client/client, value)
 	if (value && isnewplayer(client.mob))
-		client.playtitlemusic()
+		// BUBBER EDIT - CHANGE - START - LOADING_MUSIC
+		client.playlobbymusic()
+		// BUBBER EDIT - CHANGE - END
 	else
 		client.mob.stop_sound_channel(CHANNEL_LOBBYMUSIC)
 
@@ -150,6 +152,7 @@
 
 /// Controls radio noise volume
 /datum/preference/numeric/volume/sound_radio_noise
+	category = PREFERENCE_CATEGORY_GAME_PREFERENCES
 	savefile_key = "sound_radio_noise"
 	savefile_identifier = PREFERENCE_PLAYER
 

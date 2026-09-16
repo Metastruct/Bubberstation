@@ -62,9 +62,10 @@
 	prev_facial_hair_style = user.facial_hairstyle
 	prev_hair_color = user.hair_color
 	prev_facial_hair_color = user.facial_hair_color
-	prev_underwear = user.underwear
-	prev_undershirt = user.undershirt
-	prev_socks = user.socks
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	prev_underwear = user.w_underwear?.name || "Nude"
+	prev_undershirt = user.w_undershirt?.name || "Nude"
+	prev_socks = user.w_socks?.name || "Nude"
 //	prev_eye_color
 	prev_disfigured = HAS_TRAIT(user, TRAIT_DISFIGURED) // I was disfigured! //prev_disabilities = user.disabilities
 	prev_features = user.dna.features
@@ -78,9 +79,10 @@
 	user.facial_hairstyle = pick(random_facial_hairstyle(user.gender), "Shaved")
 	user.hair_color = "#[random_short_color()]"
 	user.facial_hair_color = user.hair_color
-	user.underwear = random_underwear(user.gender)
-	user.undershirt = random_undershirt(user.gender)
-	user.socks = random_socks(user.gender)
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	user.set_underwear(random_underwear(user.gender))
+	user.set_undershirt(random_undershirt(user.gender))
+	user.set_socks(random_socks(user.gender))
 
 	//user.eye_color = random_eye_color()
 	if(prev_disfigured)
@@ -120,9 +122,10 @@
 	user.facial_hairstyle = prev_facial_hair_style
 	user.hair_color = prev_hair_color
 	user.facial_hair_color = prev_facial_hair_color
-	user.underwear = prev_underwear
-	user.undershirt = prev_undershirt
-	user.socks = prev_socks
+	// META EDIT - CHANGE - UNDERWEAR_ITEMS
+	user.set_underwear(prev_underwear)
+	user.set_undershirt(prev_undershirt)
+	user.set_socks(prev_socks)
 	user.dna.mutant_bodyparts = prev_mutant_bodyparts
 	user.dna.body_markings = prev_markings
 
@@ -145,14 +148,16 @@
 
 // CAST EFFECT // General effect (poof, splat, etc) when you cast. Doesn't happen automatically!
 /datum/action/cooldown/bloodsucker/veil/proc/cast_effect()
-	// Effect
 	playsound(get_turf(owner), 'sound/effects/magic/smoke.ogg', 20, 1)
-	do_smoke(3, FALSE, get_turf(owner), smoke_type = /obj/effect/particle_effect/fluid/smoke/vampsmoke)
-	owner.spin(8, 1) //Spin around like a loon.
+	do_smoke(1, FALSE, get_turf(owner), smoke_type = /datum/effect_system/fluid_spread/smoke/vamp)
+	owner.spin(8, 1)
+
+/datum/effect_system/fluid_spread/smoke/vamp
+	effect_type = /obj/effect/particle_effect/fluid/smoke/vampsmoke
 
 /obj/effect/particle_effect/fluid/smoke/vampsmoke
 	opacity = FALSE
 	lifetime = 0
 
 /obj/effect/particle_effect/fluid/smoke/vampsmoke/fade_out(frames = 0.8 SECONDS)
-	..(frames)
+	. = ..()

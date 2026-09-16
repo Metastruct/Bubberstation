@@ -23,9 +23,9 @@
 	update_mob_height()
 	// Toggle passtable
 	if(HAS_TRAIT(src, TRAIT_DWARF))
-		passtable_on(src, TRAIT_DWARF)
+		ADD_TRAIT(src, TRAIT_PASSTABLE, TRAIT_DWARF)
 	else
-		passtable_off(src, TRAIT_DWARF)
+		REMOVE_TRAIT(src, TRAIT_PASSTABLE, TRAIT_DWARF)
 
 /// Gaining or losing [TRAIT_TOO_TALL] updates our height
 /mob/living/carbon/human/proc/on_tootall_trait(datum/source)
@@ -80,7 +80,11 @@
 	update_visible_name()
 	update_body()
 
-/// When [TRAIT_NO_UNDERWEAR] is added or removed we need to update our body to hide or show underwear sprites
+/// When [TRAIT_NO_UNDERWEAR] is gained, force-unequip any underwear-category items already worn
+// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
 /mob/living/carbon/human/proc/no_underwear_toggle(datum/source)
 	SIGNAL_HANDLER
-	update_body()
+	if(HAS_TRAIT(src, TRAIT_NO_UNDERWEAR))
+		for(var/obj/item/clothing/underwear/worn_item in list(w_underwear, w_bra, w_undershirt, w_socks))
+			qdel(worn_item)
+// META EDIT - CHANGE - END - UNDERWEAR_ITEMS

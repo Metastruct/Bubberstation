@@ -109,10 +109,7 @@
 		human_attacker.set_species(/datum/species/plasmaman)
 		human_attacker.add_traits(list(TRAIT_FORCED_STANDING, TRAIT_BOMBIMMUNE), type)
 		human_attacker.unequip_everything()
-		human_attacker.underwear = "Nude"
-		human_attacker.undershirt = "Nude"
-		human_attacker.socks = "Nude"
-		human_attacker.bra = "Nude" // SKYRAT EDIT ADDITION - Underwear and bra split
+		human_attacker.remove_all_underwear_items() // META EDIT - CHANGE - UNDERWEAR_ITEMS
 		human_attacker.update_body()
 
 	var/turf/boomspot = get_turf(user)

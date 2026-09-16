@@ -4,7 +4,6 @@
 #define LAW_ZEROTH "zeroth"
 #define LAW_INHERENT "inherent"
 #define LAW_SUPPLIED "supplied"
-#define LAW_ION "ion"
 #define LAW_HACKED "hacked"
 
 //AI notification defines
@@ -90,7 +89,6 @@ GLOBAL_LIST_EMPTY(cyborg_all_models_icon_list)
 /// Default view range for finding targets.
 #define DEFAULT_SCAN_RANGE 7
 //Amount of time that must pass after a Commissioned bot gets saluted to get another.
-#define BOT_COMMISSIONED_SALUTE_DELAY (60 SECONDS)
 
 //Bot mode defines displaying how Bots act
 ///The Bot is currently active, and will do whatever it is programmed to do.
@@ -303,12 +301,14 @@ DEFINE_BITFIELD(mulebot_delivery_flags, list(
 #define CLEANBOT_CLEAN_TRASH (1<<1)
 #define CLEANBOT_CLEAN_PESTS (1<<2)
 #define CLEANBOT_CLEAN_DRAWINGS (1<<3)
+#define CLEANBOT_CLEAN_LIQUIDS (1<<4) // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 
 DEFINE_BITFIELD(janitor_mode_flags, list(
 	"CLEANBOT_CLEAN_BLOOD" = CLEANBOT_CLEAN_BLOOD,
 	"CLEANBOT_CLEAN_TRASH" = CLEANBOT_CLEAN_TRASH,
 	"CLEANBOT_CLEAN_PESTS" = CLEANBOT_CLEAN_PESTS,
 	"CLEANBOT_CLEAN_DRAWINGS" = CLEANBOT_CLEAN_DRAWINGS,
+	"CLEANBOT_CLEAN_LIQUIDS" = CLEANBOT_CLEAN_LIQUIDS, // META EDIT - ADDITION - CLEANBOT_LIQUIDS
 ))
 
 //bot navigation beacon defines

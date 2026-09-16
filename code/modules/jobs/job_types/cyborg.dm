@@ -27,9 +27,11 @@
 	if(!iscyborg(spawned))
 		return
 	var/mob/living/silicon/robot/robot_spawn = spawned
-	robot_spawn.notify_ai(AI_NOTIFICATION_NEW_BORG)
 	if(player_client)
 		robot_spawn.set_gender(player_client)
+		// META EDIT - ADDITION - START - SILICON_HEADSHOT_SNAPSHOT
+		robot_spawn.apply_pref_headshot(player_client)
+		// META EDIT - ADDITION - END - SILICON_HEADSHOT_SNAPSHOT
 	//SKYRAT EDIT START
 	robot_spawn.set_connected_ai(select_priority_ai())
 	if(robot_spawn.connected_ai)
@@ -48,6 +50,10 @@
 	//SKYRAT EDIT END
 	if(!robot_spawn.connected_ai) // Only log if there's no Master AI
 		robot_spawn.log_current_laws()
+
+	// cyborgs can late spawn in some strange circumstances
+	if(SSticker.current_state != GAME_STATE_SETTING_UP)
+		robot_spawn.notify_ai(AI_NOTIFICATION_NEW_BORG)
 
 /datum/job/cyborg/get_radio_information()
 	return "<b>Prefix your message with :b to speak with other cyborgs and AI.</b>"

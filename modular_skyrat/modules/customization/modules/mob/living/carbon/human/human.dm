@@ -74,51 +74,13 @@
 /mob/living/carbon/human/species/serpentid
 	race = /datum/species/gas
 
-/mob/living/carbon/human/verb/toggle_undies()
-	set category = "IC"
-	set name = "Toggle underwear visibility"
-	set desc = "Allows you to toggle which underwear should show or be hidden. Underwear will obscure genitals."
-
-	if(stat != CONSCIOUS)
-		to_chat(usr, span_warning("You can't toggle underwear visibility right now..."))
-		return
-
-	var/underwear_button = underwear_visibility & UNDERWEAR_HIDE_UNDIES ? "Show underwear" : "Hide underwear"
-	var/undershirt_button = underwear_visibility & UNDERWEAR_HIDE_SHIRT ? "Show shirt" : "Hide shirt"
-	var/socks_button = underwear_visibility & UNDERWEAR_HIDE_SOCKS ? "Show socks" : "Hide socks"
-	var/bra_button = underwear_visibility & UNDERWEAR_HIDE_BRA ? "Show bra" : "Hide bra"
-	var/list/choice_list = list("[underwear_button]" = "underwear", "[bra_button]" = "bra", "[undershirt_button]" = "shirt", "[socks_button]" = "socks","show all" = "show", "Hide all" = "hide")
-	var/picked_visibility = input(src, "Choose visibility setting", "Show/Hide underwear") as null|anything in choice_list
-	if(picked_visibility)
-		var/picked_choice = choice_list[picked_visibility]
-		switch(picked_choice)
-			if("underwear")
-				underwear_visibility ^= UNDERWEAR_HIDE_UNDIES
-			if("bra")
-				underwear_visibility ^= UNDERWEAR_HIDE_BRA
-			if("shirt")
-				underwear_visibility ^= UNDERWEAR_HIDE_SHIRT
-			if("socks")
-				underwear_visibility ^= UNDERWEAR_HIDE_SOCKS
-			if("show")
-				underwear_visibility = NONE
-			if("hide")
-				underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
-		update_body()
-		SEND_SIGNAL(src, COMSIG_HUMAN_TOGGLE_UNDERWEAR, picked_choice)
-	return
-
 /mob/living/carbon/human/revive(full_heal_flags = NONE, excess_healing = 0, force_grab_ghost = FALSE)
 	. = ..()
 	if(.)
 		if(dna && dna.species)
 			dna.species.spec_revival(src)
 
-/mob/living/carbon/human/verb/toggle_mutant_part_visibility()
-	set category = "IC"
-	set name = "Show/Hide Mutant Parts"
-	set desc = "Allows you to choose to try and hide your mutant bodyparts under your clothes."
-
+GAME_VERB_DESC(/mob/living/carbon/human, toggle_mutant_part_visibility, "Show/Hide Mutant Parts", "Allows you to choose to try and hide your mutant bodyparts under your clothes.", "IC")
 	mutant_part_visibility()
 
 /mob/living/carbon/human/proc/mutant_part_visibility(quick_toggle, re_do)
@@ -137,7 +99,7 @@
 	)
 
 	// Stat check
-	if(stat != CONSCIOUS)
+	if(IS_UNCONSCIOUS_OR_CRIT(usr))
 		to_chat(usr, span_warning("You can't do this right now..."))
 		return
 
@@ -201,17 +163,12 @@
 	// automatically re-do the menu after making a selection
 	mutant_part_visibility(re_do = TRUE)
 
-
 // Feign impairment verb
 #define DEFAULT_TIME 30
 #define MAX_TIME 36000 // 10 hours
 
-/mob/living/carbon/human/verb/acting()
-	set category = "IC"
-	set name = "Feign Impairment"
-	set desc = "Pretend to be impaired for a defined duration."
-
-	if(stat != CONSCIOUS)
+GAME_VERB_DESC(/mob/living/carbon/human, acting, "Feign Impairment", "Pretend to be impaired for a defined duration.", "IC")
+	if(IS_UNCONSCIOUS_OR_CRIT(usr))
 		to_chat(usr, span_warning("You can't do this right now..."))
 		return
 

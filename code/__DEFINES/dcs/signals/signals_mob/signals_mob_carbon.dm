@@ -62,6 +62,8 @@
 
 /// From /obj/item/bodypart/proc/update_limb(): (dropping_limb, is_creating)
 #define COMSIG_BODYPART_UPDATED "bodypart_updated"
+/// Also from /obj/item/bodypart/proc/update_limb(), sent to the mob: (dropping_limb, is_creating)
+#define COMSIG_CARBON_BODYPART_UPDATED "carbon_bodypart_updated"
 /// From /datum/component/butchering/create_replacement_limb(): (replacement limb)
 #define COMSIG_BODYPART_BUTCHERED "bodypart_butchered"
 
@@ -136,6 +138,10 @@
 #define COMSIG_HUMAN_BURNING "human_burning"
 ///from /mob/living/carbon/human/proc/force_say(): ()
 #define COMSIG_HUMAN_FORCESAY "human_forcesay"
+///from /datum/interaction/proc/act(), sent to the mob who performed the interaction: (interaction, target, zone)
+#define COMSIG_HUMAN_INTERACTION_PERFORMED "human_interaction_performed"
+///from /datum/interaction/proc/act(), sent to the mob the interaction was performed on: (interaction, user, zone)
+#define COMSIG_HUMAN_INTERACTION_RECEIVED "human_interaction_received"
 
 ///from /mob/living/carbon/human/get_visible_name(), not sent if the mob has TRAIT_UNKNOWN: (identity)
 #define COMSIG_HUMAN_GET_VISIBLE_NAME "human_get_visible_name"
@@ -155,7 +161,7 @@
 #define COMSIG_MONKEY_HUMANIZE "monkey_humanize"
 
 ///From mob/living/carbon/human/suicide()
-#define COMSIG_HUMAN_SUICIDE_ACT "human_suicide_act"
+#define COMSIG_LIVING_SUICIDE_ACT "human_suicide_act"
 
 ///from base of /mob/living/carbon/regenerate_limbs(): (excluded_limbs)
 #define COMSIG_CARBON_REGENERATE_LIMBS "living_regen_limbs"
@@ -221,3 +227,5 @@
 #define COMSIG_END_DREAMING "end_dreaming"
 /// From /mob/living/carbon/item_coverage_changed: (added_slots, removed_slots)
 #define COMSIG_CARBON_ITEM_COVERAGE_CHANGED "carbon_item_coverage_changed"
+/// From /mob/living/carbon/proc/get_sight_and_cutoffs(): (list/new_sight_flags)
+#define COMSIG_CARBON_UPDATE_SIGHT_CUTOFFS "carbon_update_sight_cutoffs"

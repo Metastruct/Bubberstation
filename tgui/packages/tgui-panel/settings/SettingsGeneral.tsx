@@ -156,9 +156,62 @@ export function SettingsGeneral(props) {
             }
           />
         </LabeledList.Item>
+        {/* META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR */}
+        <LabeledList.Item label="Say color mix">
+          <Slider
+            width="100%"
+            step={1}
+            minValue={0}
+            maxValue={100}
+            value={settings.chatNameColorMixSay}
+            unit="%"
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({
+                chatNameColorMixSay: value,
+              })
+            }
+          />
+        </LabeledList.Item>
+        <LabeledList.Item label="Radio color mix">
+          <Slider
+            width="100%"
+            step={1}
+            minValue={0}
+            maxValue={100}
+            value={settings.chatNameColorMixRadio}
+            unit="%"
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({
+                chatNameColorMixRadio: value,
+              })
+            }
+          />
+        </LabeledList.Item>
+        <LabeledList.Item label="LOOC color mix">
+          <Slider
+            width="100%"
+            step={1}
+            minValue={0}
+            maxValue={100}
+            value={settings.chatNameColorMixLooc}
+            unit="%"
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({
+                chatNameColorMixLooc: value,
+              })
+            }
+          />
+        </LabeledList.Item>
+        {/* META EDIT - ADDITION - END */}
       </LabeledList>
       <Divider />
-      <Stack fill>
+      {/* META EDIT - CHANGE - START - LAYOUT_HORIZONTAL_OVERFLOW */}
+      {/* ORIGINAL: <Stack fill> */}
+      {/* wrap so this row drops to a second line on a narrow window instead of overflowing */}
+      <Stack fill wrap>
         <Stack.Item mt={0.15}>
           <Button
             icon="compact-disc"

@@ -54,3 +54,26 @@ export function setupPanelFocusHacks(): void {
     deferredFocusMap();
   });
 }
+
+// META EDIT - ADDITION - START - STUCK_POINTER_EVENTS_FIX
+/**
+ * tgui-core's DraggableControl (used by Slider and friends) sets document.body.style.pointerEvents =
+ * "none" for the duration of a drag, and only restores it once a "mouseup" reaches this panel's own
+ * document. This panel is just one of several separately-docked BYOND browser controls sharing the same
+ * game window (map, stat panel, chat, etc.), so if the drag's mouseup lands on a different one of those
+ * controls instead, it never reaches here, and pointer-events stays stuck at "none" for the whole panel.
+ * "blur" reliably fires the moment that happens (focus leaves this control), so use it as a safety net.
+ * No known upstream fix, see https://github.com/tgstation/tgui-core.
+ */
+export function setupStuckPointerEventsFix(): void {
+  function unstick(): void {
+    if (document.body.style.pointerEvents === 'none') {
+      document.body.style.pointerEvents = '';
+    }
+  }
+
+  window.addEventListener('blur', unstick);
+  window.addEventListener('mouseup', unstick);
+  window.addEventListener('pointerup', unstick);
+}
+// META EDIT - ADDITION - END

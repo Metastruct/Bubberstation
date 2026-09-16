@@ -242,10 +242,13 @@
 
 ///copies over clothing preferences like underwear to another human
 /mob/living/carbon/human/proc/copy_clothing_prefs(mob/living/carbon/human/destination)
-	destination.underwear = underwear
+	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
+	// Colors first, so set_X() below picks up the copied color rather than destination's old one.
 	destination.underwear_color = underwear_color
-	destination.undershirt = undershirt
-	destination.socks = socks
+	destination.set_underwear(w_underwear?.name || "Nude")
+	destination.set_undershirt(w_undershirt?.name || "Nude")
+	destination.set_socks(w_socks?.name || "Nude")
+	// META EDIT - CHANGE - END - UNDERWEAR_ITEMS
 	destination.jumpsuit_style = jumpsuit_style
 
 /// Fully randomizes everything according to the given flags.
@@ -257,7 +260,7 @@
 			continue
 
 		if (preference.is_randomizable())
-			preference.apply_to_human(src, preference.create_random_value(preferences))
+			preference.apply_to_human(src, preference.create_random_value(preferences), preferences)
 
 	fully_replace_character_name(real_name, generate_random_mob_name())
 
@@ -282,9 +285,11 @@
  */
 /mob/living/carbon/human/proc/update_mob_height()
 	var/old_height = mob_height
-	mob_height = dna?.species?.update_species_heights(src) || base_mob_height
+	var/obj/item/bodypart/chest/chest = get_bodypart(BODY_ZONE_CHEST)
+	mob_height = chest?.update_mob_heights(src) || base_mob_height
 	if(old_height != mob_height)
 		regenerate_icons()
+		readjust_atom_huds()
 	SEND_SIGNAL(src, COMSIG_HUMAN_HEIGHT_UPDATED, old_height)
 
 /**

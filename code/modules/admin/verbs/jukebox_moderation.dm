@@ -10,8 +10,11 @@ ADMIN_VERB(upload_jukebox_music, R_SERVER, "Jukebox Upload Music", "Upload a val
 
 	var/list/track_data = splittext(file, "+")
 	if(track_data.len < 2)
-		if(tgui_alert(user, "Your song currently does not have a beat in deciseconds added to its title, e.g: SS13+5.ogg. Continue?", "Confirmation", list("Yes", "No")) != "Yes")
+		// META EDIT - CHANGE - START - JUKEBOX_BEAT_OPTIONAL_CLARITY
+		/* ORIGINAL: if(tgui_alert(user, "Your song currently does not have a beat in deciseconds added to its title, e.g: SS13+5.ogg. Continue?", "Confirmation", list("Yes", "No")) != "Yes") */
+		if(tgui_alert(user, "Your song currently does not have a beat in deciseconds added to its title, e.g: SS13+5.ogg. This is optional, the song will still work fine. Continue?", "Confirmation", list("Yes", "No")) != "Yes")
 			return
+		// META EDIT - CHANGE - END - JUKEBOX_BEAT_OPTIONAL_CLARITY
 	if(track_data.len > 2)
 		tgui_alert(user, "Titles should only have its title and beat in deciseconds, e.g: SS13+5.ogg", "Loading error", list("Ok"))
 		return
@@ -25,6 +28,7 @@ ADMIN_VERB(upload_jukebox_music, R_SERVER, "Jukebox Upload Music", "Upload a val
 
 	message_admins("[key_name_admin(user)] uploaded [clean_name] to the jukebox!")
 	to_chat(user, span_notice("Successfully uploaded [clean_name]!"))
+	refresh_jukebox_songs()
 
 ADMIN_VERB(browse_jukebox_music, R_SERVER, "Jukebox Browse Music", "Browse music files for moderation.", ADMIN_CATEGORY_SERVER)
 	var/list/files = flist(CONFIG_JUKEBOX_SOUNDS)
@@ -51,7 +55,18 @@ ADMIN_VERB(browse_jukebox_music, R_SERVER, "Jukebox Browse Music", "Browse music
 			message_admins(msg)
 			log_admin(msg)
 			SSblackbox.record_feedback("associative", "jukebox_deletion", 1, list("round_id" = "[GLOB.round_id]", "deletor" = "[key_name_admin(user)]", "deleted" = "[choice]"))
+			refresh_jukebox_songs()
 		if ("Download")
 			user << ftp(file(path))
 		else
 			return
+
+/// Recache the songs from config then force replace all the songs.
+/proc/refresh_jukebox_songs()
+	var/refreshed = FALSE
+	for(var/obj/machinery/jukebox/jukebox as anything in SSmachines.get_machines_by_type_and_subtypes(/obj/machinery/jukebox))
+		if(!refreshed)
+			jukebox.music_player.load_songs_from_config(TRUE)
+			refreshed = TRUE
+
+		jukebox.music_player.songs = jukebox.music_player.init_songs()

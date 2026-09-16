@@ -25,11 +25,11 @@
 
 /// Are we wearing something that covers our groin?
 /mob/living/carbon/human/proc/is_bottomless()
-	return (!(wear_suit) || !(wear_suit.body_parts_covered & GROIN)) && (!(w_uniform) || !(w_uniform.body_parts_covered & GROIN))
+	return (!(wear_suit) || !(wear_suit.body_parts_covered & GROIN)) && (!(w_uniform) || !(w_uniform.body_parts_covered & GROIN) || is_groin_exposing_uniform(w_uniform)) // META EDIT - CHANGE - GROIN_EXPOSING_UNIFORM
 
 /// Are we wearing something that covers our shoes?
 /mob/living/carbon/human/proc/is_barefoot()
-	return (!(wear_suit) || !(wear_suit.body_parts_covered & GROIN)) && (!(shoes) || !(shoes.body_parts_covered & FEET))
+	return (!(wear_suit) || !(wear_suit.body_parts_covered & FEET)) && (!(shoes) || !(shoes.body_parts_covered & FEET)) // META EDIT - CHANGE - was checking GROIN instead of FEET
 
 /mob/living/carbon/human/proc/is_hands_uncovered()
 	return (gloves?.body_parts_covered & ARMS)

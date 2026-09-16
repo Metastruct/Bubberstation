@@ -49,6 +49,10 @@ LOBBY_COUNTDOWN 120
 ## Round End Time: This is the amount of time after the round ends that players have to murder death kill each other.
 ROUND_END_COUNTDOWN 90
 
+## The Audio Browser (search/preview/copy-path for every ingame sound) is restricted to admins with R_SOUND by default.
+## Uncomment this and set it to 0 to let all players use it instead.
+#AUDIO_BROWSER_ADMIN_ONLY 0
+
 ## Comment this out if you want to use the SQL based admin system, the legacy system uses admins.txt.
 ## You need to set up your database to use the SQL based system.
 ## This flag is automatically enabled if SQL_ENABLED isn't
@@ -668,3 +672,8 @@ GENERATE_ASSETS_IN_INIT
 ## Path from the config folder to the policy json
 POLICY_JSON_PATH policy.json
 
+# Which CIDs will not be considered for stickybans. This is the default CID that Wine spits out,
+# and for the purpose of not default banning all Linux players, we'll just ignore it.
+# People can spoof this CID and ignore that element of stickybans forever, but they can equally
+# just keep generating new ones. Kind of doesn't matter.
+IGNORED_CIDS 4055623708
