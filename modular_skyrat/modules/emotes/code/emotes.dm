@@ -588,3 +588,11 @@
 	emote_type = EMOTE_AUDIBLE
 	vary = TRUE
 	sound = 'modular_skyrat/modules/emotes/sound/voice/teshtrill.ogg' // Credits to Virgo Station for the files.
+
+/datum/emote/living/wiwi
+	key = "wiwi"
+	key_third_person = "wiwis"
+	message = "wiwis!"
+	emote_type = EMOTE_AUDIBLE
+	vary = TRUE
+	sound = 'modular_skyrat/modules/emotes/sound/voice/wiwi.ogg'
