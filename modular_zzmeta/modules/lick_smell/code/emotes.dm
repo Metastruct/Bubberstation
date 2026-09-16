@@ -11,7 +11,7 @@
 		return
 	var/obj/item/hand_item/tongue/licker/tongue_item = new(user)
 	if(user.put_in_hands(tongue_item))
-		to_chat(user, span_notice("You stick your tongue out, ready to taste something."))
+		user.visible_message("[user] is sticking out [user.p_their()] tongue.", span_notice("You stick your tongue out, ready to taste something."))
 	else
 		qdel(tongue_item)
 		to_chat(user, span_warning("You're incapable of licking in your current state."))

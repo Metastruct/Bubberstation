@@ -7,6 +7,21 @@
 	/// Detection threshold percent passed to generate_taste_message(); lower catches fainter flavors.
 	var/detection_threshold = 15
 
+/obj/item/hand_item/tongue/dropped(mob/user, silent)
+	. = ..()
+	user.visible_message("[user] is retracting [user.p_their()] tongue.", span_notice("You retract your tongue."))
+
+/obj/item/hand_item/tongue/suicide_act(mob/living/user)
+	user.visible_message(span_suicide("[user] is biting [user.p_their()] tongue really hard! It looks like [user.p_theyre()] trying to commit suicide!"))
+	var/obj/item/organ/tongue/our_tongue = user.get_organ_slot(ORGAN_SLOT_TONGUE)
+	if(our_tongue)
+		our_tongue.Remove(user)
+		our_tongue.forceMove(get_turf(user))
+	user.apply_damage(15, BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND)
+	user.bleed(50)
+	user.death(FALSE)
+	return MANUAL_SUICIDE
+
 /obj/item/hand_item/tongue/interact_with_atom(atom/interacting_with, mob/living/user, list/modifiers)
 	var/block_reason = get_use_block_reason(user)
 	if(block_reason)
@@ -43,9 +58,6 @@
 	if(isliving(target) && target != user)
 		SEND_SIGNAL(target, get_target_signal(), user)
 
-/// Returns a note about `target` going bad, for food that's mid-decomposition (stink lines,
-/// visibly rotting), or null if it's fresh or has no decomposition component at all (most
-/// non-food atoms, mobs, and preserved food never do).
 /obj/item/hand_item/tongue/proc/get_staleness_note(atom/target)
 	var/datum/component/decomposition/decomp = target.GetComponent(/datum/component/decomposition)
 	if(!decomp?.original_time)
@@ -97,7 +109,15 @@
 	var/list/covering = get_zone_covering_items(human_target, user.zone_selected)
 	if(covering)
 		return get_covering_taste_text(covering, user)
+	if(user.zone_selected == BODY_ZONE_PRECISE_MOUTH)
+		return get_mouth_taste_text(human_target, user)
 	return human_target.dna?.features[dna_feature_key]
+
+/obj/item/hand_item/tongue/proc/get_mouth_taste_text(mob/living/carbon/human/human_target, mob/living/user)
+	var/datum/reagents/mouth_reagents = human_target.reagents
+	if(!mouth_reagents?.total_volume)
+		return null
+	return mouth_reagents.generate_taste_message(user, get_detection_threshold(user))
 
 /// Returns the clothing items physically covering `zone` on `target`, or null if that zone
 /// is bare skin.
@@ -156,9 +176,8 @@
 		return FALSE
 	return !target.is_open_container()
 
-/// The detection_threshold_percent to use for this user; overridable so traits/quirks can sharpen it.
 /obj/item/hand_item/tongue/proc/get_detection_threshold(mob/living/user)
-	return detection_threshold
+	return user.get_taste_sensitivity()
 
 /obj/item/hand_item/tongue/proc/get_action_signal()
 	CRASH("get_action_signal() not implemented")
@@ -204,7 +223,7 @@
 		return TRUE
 	offerer.balloon_alert_to_viewers("offers a lick")
 	offerer.visible_message(
-		span_notice("[offerer] offers to let [offered ? "[offered]" : "someone"] lick [offerer.p_them()]!"),
+		"[offerer] offers to let [offered ? "[offered]" : "someone"] lick [offerer.p_them()]!",
 		span_notice("You offer to let [offered ? "[offered]" : "someone"] lick you!"),
 		null, 2,
 	)
@@ -240,7 +259,7 @@
 	trap.pulse()
 
 	user.visible_message(
-		span_danger("[user] recoils as [trap] snaps shut on [user.p_their()] tongue!"),
+		"[user] recoils as [trap] snaps shut on [user.p_their()] tongue!",
 		span_userdanger("[trap] snaps shut on your tongue!"),
 	)
 	user.apply_damage(3, BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = trap)
@@ -257,7 +276,7 @@
 		return
 
 	user.visible_message(
-		span_danger("[user] recoils, burning [user.p_their()] tongue on [target]!"),
+		"[user] recoils, burning [user.p_their()] tongue on [target]!",
 		span_userdanger("You burn your tongue on [target]!"),
 	)
 	user.apply_damage(5, BURN, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = target)
@@ -276,7 +295,7 @@
 
 	var/max_damage = min(10, round(ant_amount * 0.1, 0.1))
 	user.visible_message(
-		span_danger("[user] recoils as the ants bite [user.p_their()] tongue!"),
+		"[user] recoils as the ants bite [user.p_their()] tongue!",
 		span_userdanger("The ants bite your tongue!"),
 	)
 	user.apply_damage(rand(1, max_damage), BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = target)
@@ -337,7 +356,7 @@
 
 	if(isnull(taste_text))
 		user.visible_message(
-			span_notice("[user] licks [target][zone_text]."),
+			"[user] licks [target][zone_text].",
 			span_notice("You lick [target][zone_text], but taste nothing of note."),
 			span_hear("You hear a wet noise."),
 			ignored_mobs = isliving(target) ? target : null,
@@ -347,7 +366,7 @@
 		return
 
 	user.visible_message(
-		span_notice("[user] licks [target][zone_text]."),
+		"[user] licks [target][zone_text].",
 		span_notice("You lick [target][zone_text]. [target] tastes like [taste_text]."),
 		span_hear("You hear a wet noise."),
 		ignored_mobs = isliving(target) ? target : null,
@@ -360,7 +379,9 @@
 	if(!isliving(target))
 		return ""
 	switch(user.zone_selected)
-		if(BODY_ZONE_HEAD, BODY_ZONE_PRECISE_MOUTH)
+		if(BODY_ZONE_HEAD)
+			return " on the head"
+		if(BODY_ZONE_PRECISE_EYES ,BODY_ZONE_PRECISE_MOUTH)
 			return " on the face"
 		if(BODY_ZONE_PRECISE_L_HAND, BODY_ZONE_PRECISE_R_HAND)
 			return " on the hand"
@@ -390,7 +411,7 @@
 		return TRUE
 	offerer.balloon_alert_to_viewers("offers a sniff")
 	offerer.visible_message(
-		span_notice("[offerer] offers to let [offered ? "[offered]" : "someone"] smell [offerer.p_them()]!"),
+		"[offerer] offers to let [offered ? "[offered]" : "someone"] smell [offerer.p_them()]!",
 		span_notice("You offer to let [offered ? "[offered]" : "someone"] smell you!"),
 		null, 2,
 	)
@@ -433,7 +454,7 @@
 		return
 
 	user.visible_message(
-		span_notice("[user] leans in and sniffs [target]."),
+		"[user] leans in and sniffs [target].",
 		span_notice("You sniff [target]. [target] smells like [taste_text]."),
 		span_hear("You hear sniffing."),
 		ignored_mobs = isliving(target) ? target : null,
