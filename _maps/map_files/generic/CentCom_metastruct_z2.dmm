@@ -1108,7 +1108,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -2448,7 +2448,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -8830,7 +8830,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -9409,7 +9409,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -10466,7 +10466,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -13121,7 +13121,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -19126,7 +19126,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -29030,7 +29030,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
@@ -30731,7 +30731,7 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/trimline/yellow/warning{
-	alpha = 255];
+	alpha = 255;
 	color = "#CACA4f";
 	dir = 1
 	},
