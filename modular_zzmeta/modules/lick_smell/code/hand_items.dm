@@ -9,6 +9,8 @@
 
 /obj/item/hand_item/tongue/dropped(mob/user, silent)
 	. = ..()
+	if(silent)
+		return
 	user.visible_message("[user] is retracting [user.p_their()] tongue.", span_notice("You retract your tongue."))
 
 /obj/item/hand_item/tongue/suicide_act(mob/living/user)
