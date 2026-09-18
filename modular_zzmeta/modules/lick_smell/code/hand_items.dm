@@ -225,7 +225,7 @@
 		return TRUE
 	offerer.balloon_alert_to_viewers("offers a lick")
 	offerer.visible_message(
-		"[offerer] offers to let [offered ? "[offered]" : "someone"] lick [offerer.p_them()]!",
+		span_notice("[offerer] offers to let [offered ? "[offered]" : "someone"] lick [offerer.p_them()]!"),
 		span_notice("You offer to let [offered ? "[offered]" : "someone"] lick you!"),
 		null, 2,
 	)
@@ -261,7 +261,7 @@
 	trap.pulse()
 
 	user.visible_message(
-		"[user] recoils as [trap] snaps shut on [user.p_their()] tongue!",
+		span_notice("[user] recoils as [trap] snaps shut on [user.p_their()] tongue!"),
 		span_userdanger("[trap] snaps shut on your tongue!"),
 	)
 	user.apply_damage(3, BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = trap)
@@ -278,7 +278,7 @@
 		return
 
 	user.visible_message(
-		"[user] recoils, burning [user.p_their()] tongue on [target]!",
+		span_notice("[user] recoils, burning [user.p_their()] tongue on [target]!"),
 		span_userdanger("You burn your tongue on [target]!"),
 	)
 	user.apply_damage(5, BURN, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = target)
@@ -297,7 +297,7 @@
 
 	var/max_damage = min(10, round(ant_amount * 0.1, 0.1))
 	user.visible_message(
-		"[user] recoils as the ants bite [user.p_their()] tongue!",
+		span_notice("[user] recoils as the ants bite [user.p_their()] tongue!"),
 		span_userdanger("The ants bite your tongue!"),
 	)
 	user.apply_damage(rand(1, max_damage), BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND, attacking_item = target)
@@ -358,7 +358,7 @@
 
 	if(isnull(taste_text))
 		user.visible_message(
-			"[user] licks [target][zone_text].",
+			span_notice("[user] licks [target][zone_text]."),
 			span_notice("You lick [target][zone_text], but taste nothing of note."),
 			span_hear("You hear a wet noise."),
 			ignored_mobs = isliving(target) ? target : null,
@@ -368,7 +368,7 @@
 		return
 
 	user.visible_message(
-		"[user] licks [target][zone_text].",
+		span_notice("[user] licks [target][zone_text]."),
 		span_notice("You lick [target][zone_text]. [target] tastes like [taste_text]."),
 		span_hear("You hear a wet noise."),
 		ignored_mobs = isliving(target) ? target : null,
@@ -413,7 +413,7 @@
 		return TRUE
 	offerer.balloon_alert_to_viewers("offers a sniff")
 	offerer.visible_message(
-		"[offerer] offers to let [offered ? "[offered]" : "someone"] smell [offerer.p_them()]!",
+		span_notice("[offerer] offers to let [offered ? "[offered]" : "someone"] smell [offerer.p_them()]!"),
 		span_notice("You offer to let [offered ? "[offered]" : "someone"] smell you!"),
 		null, 2,
 	)
@@ -456,7 +456,7 @@
 		return
 
 	user.visible_message(
-		"[user] leans in and sniffs [target].",
+		span_notice("[user] leans in and sniffs [target]."),
 		span_notice("You sniff [target]. [target] smells like [taste_text]."),
 		span_hear("You hear sniffing."),
 		ignored_mobs = isliving(target) ? target : null,
