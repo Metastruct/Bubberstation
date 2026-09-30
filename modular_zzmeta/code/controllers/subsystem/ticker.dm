@@ -58,7 +58,7 @@
 		for(var/client/C in GLOB.clients)
 			C.screen -= reboot_hud
 
-// Recap commits landed this round right before the reboot that will actually apply them.
-/datum/controller/subsystem/ticker/reboot_callback(reason, end_string)
+// Recap commits landed this round as soon as a reboot starts counting down.
+/datum/controller/subsystem/ticker/Reboot(reason, end_string, delay)
 	announce_pending_commits()
 	return ..()
