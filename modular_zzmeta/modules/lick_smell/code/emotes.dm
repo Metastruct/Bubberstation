@@ -6,10 +6,10 @@
 
 /datum/emote/living/carbon/lick/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
-	if(user.is_holding_item_of_type(/obj/item/hand_item/tongue/licker))
+	if(user.is_holding_item_of_type(/obj/item/hand_item/senser/licker))
 		to_chat(user, span_notice("You already have your tongue ready."))
 		return
-	var/obj/item/hand_item/tongue/licker/tongue_item = new(user)
+	var/obj/item/hand_item/senser/licker/tongue_item = new(user)
 	if(user.put_in_hands(tongue_item))
 		user.visible_message(span_notice("[user] is sticking out [user.p_their()] tongue."), span_notice("You stick your tongue out, ready to taste something."))
 	else
@@ -24,10 +24,10 @@
 
 /datum/emote/living/carbon/smell/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
-	if(user.is_holding_item_of_type(/obj/item/hand_item/tongue/sniffer))
+	if(user.is_holding_item_of_type(/obj/item/hand_item/senser/sniffer))
 		to_chat(user, span_notice("You already have your nose ready."))
 		return
-	var/obj/item/hand_item/tongue/sniffer/nose_item = new(user)
+	var/obj/item/hand_item/senser/sniffer/nose_item = new(user)
 	if(user.put_in_hands(nose_item))
 		to_chat(user, span_notice("You lean in, ready to take a whiff of something."))
 	else

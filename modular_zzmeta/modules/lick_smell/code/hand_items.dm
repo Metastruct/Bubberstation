@@ -1,30 +1,13 @@
 /// Shared base for lick/smell hand-items: targets any atom, resolves reagent-based taste
 /// text, and falls back to a human target's DNA-feature flavor text when nothing else applies.
-/obj/item/hand_item/tongue
+/obj/item/hand_item/senser
 	inhand_icon_state = "nothing"
 	/// "taste" or "smell", the dna.features[] key to fall back to for human targets
 	var/dna_feature_key
 	/// Detection threshold percent passed to generate_taste_message(); lower catches fainter flavors.
 	var/detection_threshold = 15
 
-/obj/item/hand_item/tongue/dropped(mob/user, silent)
-	. = ..()
-	if(silent)
-		return
-	user.visible_message("[user] is retracting [user.p_their()] tongue.", span_notice("You retract your tongue."))
-
-/obj/item/hand_item/tongue/suicide_act(mob/living/user)
-	user.visible_message(span_suicide("[user] is biting [user.p_their()] tongue really hard! It looks like [user.p_theyre()] trying to commit suicide!"))
-	var/obj/item/organ/tongue/our_tongue = user.get_organ_slot(ORGAN_SLOT_TONGUE)
-	if(our_tongue)
-		our_tongue.Remove(user)
-		our_tongue.forceMove(get_turf(user))
-	user.apply_damage(15, BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND)
-	user.bleed(50)
-	user.death(FALSE)
-	return MANUAL_SUICIDE
-
-/obj/item/hand_item/tongue/interact_with_atom(atom/interacting_with, mob/living/user, list/modifiers)
+/obj/item/hand_item/senser/interact_with_atom(atom/interacting_with, mob/living/user, list/modifiers)
 	var/block_reason = get_use_block_reason(user)
 	if(block_reason)
 		to_chat(user, span_warning(block_reason))
@@ -33,7 +16,7 @@
 	do_taste(interacting_with, user)
 	return ITEM_INTERACT_SUCCESS
 
-/obj/item/hand_item/tongue/on_offer_taken(mob/living/offerer, mob/living/taker)
+/obj/item/hand_item/senser/on_offer_taken(mob/living/offerer, mob/living/taker)
 	. = ..()
 	if(.)
 		return
@@ -46,11 +29,11 @@
 	return TRUE
 
 /// Returns a rejection message if the action can't be used right now, else null.
-/obj/item/hand_item/tongue/proc/get_use_block_reason(mob/living/user)
+/obj/item/hand_item/senser/proc/get_use_block_reason(mob/living/user)
 	return
 
 /// Core dispatcher: works out taste text, fires messages, sends signals.
-/obj/item/hand_item/tongue/proc/do_taste(atom/target, mob/living/user)
+/obj/item/hand_item/senser/proc/do_taste(atom/target, mob/living/user)
 	var/taste_text = get_taste_text(target, user)
 	send_messages(target, user, taste_text)
 	var/staleness_note = get_staleness_note(target)
@@ -60,7 +43,7 @@
 	if(isliving(target) && target != user)
 		SEND_SIGNAL(target, get_target_signal(), user)
 
-/obj/item/hand_item/tongue/proc/get_staleness_note(atom/target)
+/obj/item/hand_item/senser/proc/get_staleness_note(atom/target)
 	var/datum/component/decomposition/decomp = target.GetComponent(/datum/component/decomposition)
 	if(!decomp?.original_time)
 		return
@@ -75,7 +58,7 @@
 
 /// Works out what `target` tastes/smells like from `user`'s perspective.
 /// A null return means "no taste data available at all" (as opposed to a real but bland result).
-/obj/item/hand_item/tongue/proc/get_taste_text(atom/target, mob/living/user)
+/obj/item/hand_item/senser/proc/get_taste_text(atom/target, mob/living/user)
 	if(isliving(target))
 		return get_living_taste_text(target, user)
 
@@ -91,7 +74,7 @@
 		return target.get_material_english_list(target.custom_materials)
 	return
 
-/obj/item/hand_item/tongue/proc/get_living_taste_text(mob/living/target, mob/living/user)
+/obj/item/hand_item/senser/proc/get_living_taste_text(mob/living/target, mob/living/user)
 	var/datum/reagents/residue_reagents = get_reagents_source(target)
 	if(residue_reagents?.total_volume)
 		return residue_reagents.generate_taste_message(user, get_detection_threshold(user))
@@ -115,7 +98,7 @@
 		return get_mouth_taste_text(human_target, user)
 	return human_target.dna?.features[dna_feature_key]
 
-/obj/item/hand_item/tongue/proc/get_mouth_taste_text(mob/living/carbon/human/human_target, mob/living/user)
+/obj/item/hand_item/senser/proc/get_mouth_taste_text(mob/living/carbon/human/human_target, mob/living/user)
 	var/datum/reagents/mouth_reagents = human_target.reagents
 	if(!mouth_reagents?.total_volume)
 		return null
@@ -123,7 +106,7 @@
 
 /// Returns the clothing items physically covering `zone` on `target`, or null if that zone
 /// is bare skin.
-/obj/item/hand_item/tongue/proc/get_zone_covering_items(mob/living/carbon/human/target, zone)
+/obj/item/hand_item/senser/proc/get_zone_covering_items(mob/living/carbon/human/target, zone)
 	var/obj/item/bodypart/target_part = target.get_bodypart(check_zone(zone))
 	if(!target_part)
 		return null
@@ -133,7 +116,7 @@
 /// Works out taste/smell text from whatever's covering a covered body zone: the first
 /// covering item with real reagents, falling back to a material-based description, in case
 /// nothing among them has usable reagents.
-/obj/item/hand_item/tongue/proc/get_covering_taste_text(list/covering_items, mob/living/user)
+/obj/item/hand_item/senser/proc/get_covering_taste_text(list/covering_items, mob/living/user)
 	for(var/obj/item/covering as anything in covering_items)
 		if(covering.reagents?.total_volume)
 			return covering.reagents.generate_taste_message(user, get_detection_threshold(user))
@@ -144,7 +127,7 @@
 
 /// Builds a disposable reagents preview from a mob's coated_in_liquid status effect (rain,
 /// showers, splashes, ...), or null if they're dry or it has no reagent identity recorded.
-/obj/item/hand_item/tongue/proc/get_coating_preview(mob/living/target)
+/obj/item/hand_item/senser/proc/get_coating_preview(mob/living/target)
 	var/datum/status_effect/coated_in_liquid/coating = target.has_status_effect(/datum/status_effect/coated_in_liquid)
 	if(!length(coating?.soaked_reagents))
 		return null
@@ -156,7 +139,7 @@
 /// Resolves target's reagents: face-decal residue for mobs (never their own internal
 /// reagents, to avoid revealing hidden chemistry), decal shortcuts materialized via
 /// lazy_init_reagents(), or the atom's own reagents otherwise.
-/obj/item/hand_item/tongue/proc/get_reagents_source(atom/target)
+/obj/item/hand_item/senser/proc/get_reagents_source(atom/target)
 	if(isliving(target))
 		var/mob/living/living_target = target
 		var/datum/component/face_decal/splat/residue = living_target.GetComponent(/datum/component/face_decal/splat)
@@ -173,26 +156,26 @@
 
 /// True for containers that start sealed (soda cans, tinned food, capped bottles). Solid
 /// food never sets these flags, so it stays tasteable regardless.
-/obj/item/hand_item/tongue/proc/is_sealed_container(atom/target)
+/obj/item/hand_item/senser/proc/is_sealed_container(atom/target)
 	if(!istype(target, /obj/item/reagent_containers) && !istype(target, /obj/item/food/canned))
 		return FALSE
 	return !target.is_open_container()
 
-/obj/item/hand_item/tongue/proc/get_detection_threshold(mob/living/user)
+/obj/item/hand_item/senser/proc/get_detection_threshold(mob/living/user)
 	return user.get_taste_sensitivity()
 
-/obj/item/hand_item/tongue/proc/get_action_signal()
+/obj/item/hand_item/senser/proc/get_action_signal()
 	CRASH("get_action_signal() not implemented")
 
-/obj/item/hand_item/tongue/proc/get_target_signal()
+/obj/item/hand_item/senser/proc/get_target_signal()
 	CRASH("get_target_signal() not implemented")
 
 /// Handles the visible_message/to_chat triad. Overridden per subtype.
-/obj/item/hand_item/tongue/proc/send_messages(atom/target, mob/living/user, taste_text)
+/obj/item/hand_item/senser/proc/send_messages(atom/target, mob/living/user, taste_text)
 	return
 
 
-/obj/item/hand_item/tongue/licker
+/obj/item/hand_item/senser/licker
 	name = "tongue"
 	desc = "For up-close-and-personal tasting."
 	icon = 'icons/obj/medical/organs/organs.dmi'
@@ -212,15 +195,32 @@
 		new /regex("R+", "g") = "W",
 	)
 
-/obj/item/hand_item/tongue/licker/Initialize(mapload)
+/obj/item/hand_item/senser/licker/Initialize(mapload)
 	. = ..()
 	AddComponent(/datum/component/speechmod, replacements = speech_replacements, slots = ITEM_SLOT_HANDS, should_modify_speech = CALLBACK(src, PROC_REF(should_modify_speech)))
 
+/obj/item/hand_item/senser/licker/dropped(mob/user, silent)
+	. = ..()
+	if(silent)
+		return
+	user.visible_message("[user] is retracting [user.p_their()] tongue.", span_notice("You retract your tongue."))
+
+/obj/item/hand_item/senser/licker/suicide_act(mob/living/user)
+	user.visible_message(span_suicide("[user] is biting [user.p_their()] tongue really hard! It looks like [user.p_theyre()] trying to commit suicide!"))
+	var/obj/item/organ/tongue/our_tongue = user.get_organ_slot(ORGAN_SLOT_TONGUE)
+	if(our_tongue)
+		our_tongue.Remove(user)
+		our_tongue.forceMove(get_turf(user))
+	user.apply_damage(15, BRUTE, BODY_ZONE_HEAD, wound_bonus = CANT_WOUND)
+	user.bleed(50)
+	user.death(FALSE)
+	return MANUAL_SUICIDE
+
 /// Sign language doesn't need a working tongue.
-/obj/item/hand_item/tongue/licker/proc/should_modify_speech(datum/source, list/speech_args)
+/obj/item/hand_item/senser/licker/proc/should_modify_speech(datum/source, list/speech_args)
 	return !HAS_TRAIT(source, TRAIT_SIGN_LANG)
 
-/obj/item/hand_item/tongue/licker/on_offered(mob/living/offerer, mob/living/offered)
+/obj/item/hand_item/senser/licker/on_offered(mob/living/offerer, mob/living/offered)
 	if(..())
 		return TRUE
 	offerer.balloon_alert_to_viewers("offers a lick")
@@ -234,7 +234,7 @@
 
 /// A rough tongue (cat, dog, ...) laps up more per lick, checked via the tongue organ itself
 /// so it also covers species that have one natively (e.g. Tajaran).
-/obj/item/hand_item/tongue/licker/proc/get_transfer_amount(mob/living/user)
+/obj/item/hand_item/senser/licker/proc/get_transfer_amount(mob/living/user)
 	if(iscarbon(user))
 		var/mob/living/carbon/carbon_user = user
 		var/obj/item/organ/tongue/user_tongue = carbon_user.get_organ_slot(ORGAN_SLOT_TONGUE)
@@ -242,14 +242,14 @@
 			return lick_transfer_amount * 2
 	return lick_transfer_amount
 
-/obj/item/hand_item/tongue/licker/do_taste(atom/target, mob/living/user)
+/obj/item/hand_item/senser/licker/do_taste(atom/target, mob/living/user)
 	. = ..()
 	check_ant_bite(target, user)
 	check_lamp_burn(target, user)
 	check_mousetrap_bite(target, user)
 	consume_licked_reagents(target, user)
 
-/obj/item/hand_item/tongue/licker/proc/check_mousetrap_bite(atom/target, mob/living/user)
+/obj/item/hand_item/senser/licker/proc/check_mousetrap_bite(atom/target, mob/living/user)
 	if(!istype(target, /obj/item/assembly/mousetrap))
 		return
 	var/obj/item/assembly/mousetrap/trap = target
@@ -270,7 +270,7 @@
 /// Licking a lit light fixture burns your tongue. Reimplemented instead of calling
 /// /obj/machinery/light/attack_hand_secondary() directly, since that proc also pops the bulb
 /// out into the caller's hand.
-/obj/item/hand_item/tongue/licker/proc/check_lamp_burn(atom/target, mob/living/user)
+/obj/item/hand_item/senser/licker/proc/check_lamp_burn(atom/target, mob/living/user)
 	if(!istype(target, /obj/machinery/light))
 		return
 	var/obj/machinery/light/lamp = target
@@ -285,7 +285,7 @@
 
 /// Space ants bite back: licking a pile of them hurts, mirroring the leg damage anyone who
 /// steps in them takes from /datum/component/caltrop, scaled off reagent volume the same way.
-/obj/item/hand_item/tongue/licker/proc/check_ant_bite(atom/target, mob/living/user)
+/obj/item/hand_item/senser/licker/proc/check_ant_bite(atom/target, mob/living/user)
 	var/datum/reagents/source_reagents = get_reagents_source(target)
 	if(!source_reagents)
 		return
@@ -305,7 +305,7 @@
 /// Transfers (not just previews) a bit of the target's reagents into the licker, like a small
 /// bite. Enough licks empty the source entirely, cleaning up any pie residue or floor smudge
 /// it came from too.
-/obj/item/hand_item/tongue/licker/proc/consume_licked_reagents(atom/target, mob/living/user)
+/obj/item/hand_item/senser/licker/proc/consume_licked_reagents(atom/target, mob/living/user)
 	if(isturf(target))
 		var/turf/turf_target = target
 		if(!turf_target.liquids?.total_reagents)
@@ -329,7 +329,7 @@
 	else if(istype(target, /obj/effect/decal/cleanable))
 		qdel(target)
 
-/obj/item/hand_item/tongue/licker/get_use_block_reason(mob/living/user)
+/obj/item/hand_item/senser/licker/get_use_block_reason(mob/living/user)
 	if(!iscarbon(user))
 		return
 	var/mob/living/carbon/carbon_user = user
@@ -340,13 +340,13 @@
 	if(carbon_user.is_mouth_covered())
 		return "Your mouth is covered!"
 
-/obj/item/hand_item/tongue/licker/get_action_signal()
+/obj/item/hand_item/senser/licker/get_action_signal()
 	return COMSIG_LIVING_LICK_ATOM
 
-/obj/item/hand_item/tongue/licker/get_target_signal()
+/obj/item/hand_item/senser/licker/get_target_signal()
 	return COMSIG_LIVING_LICKED
 
-/obj/item/hand_item/tongue/licker/send_messages(atom/target, mob/living/user, taste_text)
+/obj/item/hand_item/senser/licker/send_messages(atom/target, mob/living/user, taste_text)
 	var/zone_text = get_zone_flavor(target, user)
 
 	if(target == user)
@@ -377,7 +377,7 @@
 		to_chat(target, span_notice("[user] licks you[zone_text]!"))
 
 /// Returns a body-zone-flavored suffix like " on the face" for mob targets, "" otherwise.
-/obj/item/hand_item/tongue/licker/proc/get_zone_flavor(atom/target, mob/living/user)
+/obj/item/hand_item/senser/licker/proc/get_zone_flavor(atom/target, mob/living/user)
 	if(!isliving(target))
 		return ""
 	switch(user.zone_selected)
@@ -399,7 +399,7 @@
 			return ""
 
 
-/obj/item/hand_item/tongue/sniffer
+/obj/item/hand_item/senser/sniffer
 	name = "nose"
 	desc = "For catching a whiff."
 	icon = 'modular_zzmeta/modules/lick_smell/icons/items.dmi'
@@ -408,7 +408,7 @@
 	// Matches get_sniff_examine()'s threshold; smell picks up fainter scents than direct tasting does.
 	detection_threshold = 10
 
-/obj/item/hand_item/tongue/sniffer/on_offered(mob/living/offerer, mob/living/offered)
+/obj/item/hand_item/senser/sniffer/on_offered(mob/living/offerer, mob/living/offered)
 	if(..())
 		return TRUE
 	offerer.balloon_alert_to_viewers("offers a sniff")
@@ -420,7 +420,7 @@
 	offerer.apply_status_effect(/datum/status_effect/offering, src, null, offered)
 	return TRUE
 
-/obj/item/hand_item/tongue/sniffer/get_use_block_reason(mob/living/user)
+/obj/item/hand_item/senser/sniffer/get_use_block_reason(mob/living/user)
 	if(HAS_TRAIT(user, TRAIT_ANOSMIA))
 		return "You can't smell anything!"
 	if(!iscarbon(user))
@@ -432,18 +432,18 @@
 		return "Your face is covered, you can't get a good whiff!"
 
 /// Keen Nose picks up fainter scents than the baseline threshold allows.
-/obj/item/hand_item/tongue/sniffer/get_detection_threshold(mob/living/user)
+/obj/item/hand_item/senser/sniffer/get_detection_threshold(mob/living/user)
 	if(HAS_TRAIT(user, TRAIT_KEEN_NOSE))
 		return detection_threshold * 0.5
 	return detection_threshold
 
-/obj/item/hand_item/tongue/sniffer/get_action_signal()
+/obj/item/hand_item/senser/sniffer/get_action_signal()
 	return COMSIG_LIVING_SMELL_ATOM
 
-/obj/item/hand_item/tongue/sniffer/get_target_signal()
+/obj/item/hand_item/senser/sniffer/get_target_signal()
 	return COMSIG_LIVING_SMELLED
 
-/obj/item/hand_item/tongue/sniffer/send_messages(atom/target, mob/living/user, taste_text)
+/obj/item/hand_item/senser/sniffer/send_messages(atom/target, mob/living/user, taste_text)
 	if(target == user)
 		if(isnull(taste_text))
 			to_chat(user, span_notice("You take a whiff of yourself, but smell nothing of note."))
