@@ -423,7 +423,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		sound_cache = pick(sound_pool)
 		// playsound()'s range is always SOUND_RANGE (15) + extrarange, so we offset by -SOUND_RANGE to make
 		// extrarange effectively equal to the JSON-defined sound_range instead of stacking on top of it.
-		playsound(source = user, soundin = sound_cache, vol = 50, vary = FALSE, extrarange = sound_range - SOUND_RANGE, ignore_walls = FALSE, volume_preference = /datum/preference/numeric/volume/sound_emote)
+		playsound(source = target, soundin = sound_cache, vol = 50, vary = FALSE, extrarange = sound_range - SOUND_RANGE, ignore_walls = FALSE, volume_preference = /datum/preference/numeric/volume/sound_emote)
 
 	var/list/target_say_phrases = get_zone_pool(zone, combat_mode, prone, is_self, "target_force_say_phrases", target_force_say_phrases)
 	if(target_say_phrases.len && prob(get_zone_value(zone, combat_mode, prone, is_self, "target_force_say_chance", target_force_say_chance)))
