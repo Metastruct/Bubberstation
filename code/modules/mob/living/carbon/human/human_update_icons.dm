@@ -1044,7 +1044,18 @@ mutant_styles: The mutant style - taur bodytype, STYLE_TESHARI, etc. // SKYRAT E
 		var/obj/item/organ/eyes/eyes = locate() in noggin
 		eyes?.refresh(src, call_update = FALSE)
 
-	var/list/eye_overlays = noggin.get_eye_overlays()
+	// META EDIT - ADDITION - START - TRANSFORMATION_EYE_SHAPE
+	// The transformation component renders the mob's bodyparts off a dummy, but the eye overlay
+	// lives on its own layer and was always built from our own eye organ. Use the dummy's head for
+	// the overlay so a transformed mob shows the source form's eye shape (including any species eye
+	// override) instead of keeping its own eyes.
+	var/datum/component/transformation/transformation = GetComponent(/datum/component/transformation)
+	var/obj/item/bodypart/head/overlay_head = transformation?.dummy?.get_bodypart(BODY_ZONE_HEAD) || noggin
+	if(overlay_head.is_invisible)
+		return
+	// META EDIT - ADDITION - END - TRANSFORMATION_EYE_SHAPE
+
+	var/list/eye_overlays = overlay_head.get_eye_overlays()
 	if(length(eye_overlays))
 		for(var/image/overlay as anything in eye_overlays)
 			apply_height(overlay, UPPER_BODY)

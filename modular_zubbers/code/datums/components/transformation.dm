@@ -70,6 +70,11 @@
 	var/obj/item/organ/eyes/owner_eyes = owner.get_organ_slot(ORGAN_SLOT_EYES)
 	cached_features["eyes"] += list("color_l" = owner.eye_color_left, "color_r" = owner.eye_color_right, "blinking" = owner_eyes.blink_animation)
 	owner.set_eye_color(original.eye_color_left, original.eye_color_right)
+	// META EDIT - ADDITION - START - TRANSFORMATION_EYE_SHAPE
+	// update_eyes() now builds the eye overlay from the dummy's head, so the dummy's eye color
+	// has to match the source form too, not just the owner's.
+	dummy.set_eye_color(original.eye_color_left, original.eye_color_right)
+	// META EDIT - ADDITION - END - TRANSFORMATION_EYE_SHAPE
 	owner_eyes.blink_animation = FALSE
 	/// Quad eyes
 	cached_features["quadeyes"] += HAS_TRAIT_FROM(owner, TRAIT_QUAD_EYES, TRAIT_GENERIC)
