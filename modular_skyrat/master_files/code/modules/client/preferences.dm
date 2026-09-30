@@ -178,7 +178,7 @@
 /datum/preferences/safe_transfer_prefs_to(mob/living/carbon/human/character, icon_updates = TRUE, is_antag = FALSE, visuals_only = FALSE)
 	// clear organs that might not be replaced
 	for (var/obj/item/organ/iter_organ as anything in character.organs)
-		var/feature_key = iter_organ.bodypart_overlay?.feature_key
+		var/feature_key = iter_organ.bodypart_overlay?.feature_key || iter_organ.mutantpart_key // META EDIT - CHANGE - MUTANT_ORGAN_EYE_SHAPE_CLEANUP
 		if (isnull(feature_key))
 			continue
 		if(character.dna.mutant_bodyparts[feature_key] && character.dna.mutant_bodyparts[feature_key][MUTANT_INDEX_NAME] != SPRITE_ACCESSORY_NONE)
