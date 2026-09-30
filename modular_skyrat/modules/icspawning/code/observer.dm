@@ -23,10 +23,9 @@
 	var/outfit_option
 	/// Initial list of outfits
 	var/list/outfit_options = list(
-		"Bluespace Tech" = /datum/outfit/admin/bst,
-		// META EDIT - ADDITION - START - UNDERWEAR_ITEMS
-		"Underwear" = /datum/outfit/underwear,
-		// META EDIT - ADDITION - END
+		"Underwear" = /datum/outfit/underwear, // META EDIT - UNDERWEAR_ITEMS
+		"Bluespace Tech (Admin)" = /datum/outfit/admin/bst,
+		"Bluespace Tech (Admin) (MODSuit)" = /datum/outfit/admin/bst/mod,
 		"Naked" = /datum/outfit,
 		"Show All" = "Show All",
 	)
@@ -58,7 +57,7 @@
 
 	outfit_option = tgui_input_list(user, "Which outfit to use?", "IC Quick Spawn", outfit_options)
 	// META EDIT - CHANGE - START - UNDERWEAR_ITEMS
-	// ORIGINAL: if(outfit_option == outfit_options[3])
+	// ORIGINAL: if(outfit_option == outfit_options[4])
 	if(outfit_option == "Show All")
 	// META EDIT - CHANGE - END
 		outfit_option = user.client.robust_dress_shop_skyrat()

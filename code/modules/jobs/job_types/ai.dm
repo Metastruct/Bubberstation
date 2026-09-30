@@ -43,6 +43,10 @@
 		// META EDIT - ADDITION - END - SILICON_HEADSHOT_SNAPSHOT
 	ai_spawn.log_current_laws()
 	// SKYRAT EDIT ADDITION START
+	var/list/turf/adj_turfs = get_adjacent_open_turfs(ai_spawn)
+	var/turf/picked_turf = pick(adj_turfs)
+	new /mob/living/silicon/robot/shell(picked_turf)
+
 	for(var/mob/living/silicon/robot/sync_target in GLOB.silicon_mobs)
 		if(!(sync_target.registered_z in SSmapping.levels_by_trait(ZTRAIT_STATION)) || (sync_target.registered_z in SSmapping.levels_by_trait(ZTRAIT_ICE_RUINS_UNDERGROUND))) // Skip ghost cafe, interlink, and other cyborgs.
 			continue
