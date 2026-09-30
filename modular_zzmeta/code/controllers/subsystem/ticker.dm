@@ -62,3 +62,8 @@
 /datum/controller/subsystem/ticker/Reboot(reason, end_string, delay)
 	announce_pending_commits()
 	return ..()
+
+// clear the commits when rebooting
+/datum/controller/subsystem/ticker/reboot_callback(reason, end_string)
+	clear_pending_commits()
+	return ..()

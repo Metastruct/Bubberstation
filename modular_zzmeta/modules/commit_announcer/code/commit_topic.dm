@@ -21,11 +21,14 @@ GLOBAL_LIST_EMPTY(pending_commit_announcements)
 		GLOB.pending_commit_announcements += "[short_hash] \[[branch]\] by [html_encode(author)]: [html_encode(message)]"
 	return "OK"
 
-/// Recaps every commit announced since the last call, then clears the backlog. Call this right before a reboot actually happens.
+/// Recaps every commit announced since the last call.
 /proc/announce_pending_commits()
 	if(!length(GLOB.pending_commit_announcements))
 		return
 	to_chat(world, span_boldannounce("Changes to expect next restart:"))
 	for(var/line in GLOB.pending_commit_announcements)
 		to_chat(world, span_announce(line))
+
+/// clears the commits, separated so it can run on the reboot callback
+/proc/clear_pending_commits()
 	GLOB.pending_commit_announcements.Cut()
