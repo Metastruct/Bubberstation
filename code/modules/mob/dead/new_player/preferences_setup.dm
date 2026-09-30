@@ -1,5 +1,9 @@
 /// Fully randomizes everything in the character.
 /datum/preferences/proc/randomise_appearance_prefs(randomize_flags = ALL)
+	// META EDIT - ADDITION - START - NEW_CHARACTER_MARKINGS_RESET
+	// reset body_markings when creating a new character, otherwise they will be used.
+	body_markings = list()
+	// META EDIT - ADDITION - END - NEW_CHARACTER_MARKINGS_RESET
 	for (var/datum/preference/preference as anything in get_preferences_in_priority_order())
 		if (!preference.included_in_randomization_flags(randomize_flags))
 			continue
