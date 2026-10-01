@@ -10737,6 +10737,7 @@
 #include "modular_zzmeta\code\datums\status_effects\debuffs\muffled.dm"
 #include "modular_zzmeta\code\datums\status_effects\neutral\interaction_tether.dm"
 #include "modular_zzmeta\code\game\atoms_movable.dm"
+#include "modular_zzmeta\code\game\objects\items\pillow.dm"
 #include "modular_zzmeta\code\game\objects\items\plushes.dm"
 #include "modular_zzmeta\code\game\objects\items\trash.dm"
 #include "modular_zzmeta\code\game\sound\sound.dm"
