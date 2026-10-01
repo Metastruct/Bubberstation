@@ -4,6 +4,11 @@ import type { HighlightSetting, HighlightState, SettingsState } from './types';
 
 export const defaultSettings: SettingsState = {
   adminMusicVolume: 0.5,
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  chatScaling: true,
+  chatScalingMax: 300,
+  chatScalingRepeats: 20,
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
   // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR
   chatNameColorMixSay: 100,
   chatNameColorMixRadio: 50,

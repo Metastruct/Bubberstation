@@ -13,6 +13,11 @@ export const settingsSchema = z.object({
   chatNameColorMixRadio: z.number(),
   chatNameColorMixLooc: z.number(),
   // META EDIT - ADDITION - END
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  chatScaling: z.boolean(),
+  chatScalingMax: z.number(),
+  chatScalingRepeats: z.number(),
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
   fontFamily: z.string(),
   fontSize: z.number(),
   initialized: z.boolean(),

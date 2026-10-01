@@ -87,12 +87,14 @@ function handleImageError(e) {
 /**
  * Assigns a "times-repeated" badge to the message.
  */
-function updateMessageBadge(message) {
+function updateMessageBadge(message, scale = 1) {
+  // META EDIT - CHANGE - CHAT_REPEAT_SCALE
   const { node, times } = message;
   if (!node || !times) {
     // Nothing to update
     return;
   }
+  node.style.fontSize = scale > 1 ? `${scale * 100}%` : ''; // META EDIT - CHANGE - CHAT_REPEAT_SCALE
   const foundBadge = node.querySelector('.Chat__badge');
   const badge = foundBadge || document.createElement('div');
   badge.textContent = times;
@@ -119,6 +121,11 @@ class ChatRenderer {
   highlightParsers: Array<any> | null;
   currentJob: string | null;
   currentCharacter: string | null;
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  messageScaling: boolean;
+  messageScalingMax: number;
+  messageScalingRepeats: number;
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
   handleScroll: (type: any) => void;
 
   constructor() {
@@ -134,6 +141,11 @@ class ChatRenderer {
     this.scrollNode = null;
     this.currentJob = null;
     this.currentCharacter = null;
+    // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+    this.messageScaling = true;
+    this.messageScalingMax = 300;
+    this.messageScalingRepeats = 20;
+    // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
     this.scrollTracking = true;
     this.lastScrollHeight = 0;
     this.handleScroll = (evt) => {
@@ -196,6 +208,33 @@ class ChatRenderer {
       this.rootNode!.style.setProperty(key, style[key]);
     }
   }
+
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  getRepeatScale(times: number): number {
+    if (!this.messageScaling) {
+      return 1;
+    }
+    const max = this.messageScalingMax / 100;
+    if (max <= 1) {
+      return 1;
+    }
+    const repeats = Math.max(2, this.messageScalingRepeats);
+    return Math.min(1 + ((times - 1) * (max - 1)) / (repeats - 1), max);
+  }
+
+  /** Applies the scaling settings and resizes already-combined messages. */
+  setMessageScaling(enabled: boolean, maxScale: number, maxRepeats: number) {
+    this.messageScaling = enabled;
+    this.messageScalingMax = maxScale;
+    this.messageScalingRepeats = maxRepeats;
+    for (const message of this.messages) {
+      if (message.times && message.node) {
+        const scale = this.getRepeatScale(message.times);
+        message.node.style.fontSize = scale > 1 ? `${scale * 100}%` : '';
+      }
+    }
+  }
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
 
   setJob(title) {
     this.currentJob =
@@ -410,7 +449,13 @@ class ChatRenderer {
       const combinable = this.getCombinableMessage(message);
       if (combinable) {
         combinable.times = (combinable.times || 1) + 1;
-        updateMessageBadge(combinable);
+        updateMessageBadge(combinable, this.getRepeatScale(combinable.times)); // META EDIT - CHANGE - CHAT_REPEAT_SCALE
+        // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+        // The message just grew, which pushes it below the Chatinput.
+        if (this.scrollTracking) {
+          this.scrollToBottom();
+        }
+        // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
         continue;
       }
       // Reuse message node
@@ -530,7 +575,7 @@ class ChatRenderer {
         );
         message.type = typeDef?.type || MESSAGE_TYPE_UNKNOWN;
       }
-      updateMessageBadge(message);
+      updateMessageBadge(message, this.getRepeatScale(message.times || 1)); // META EDIT - CHANGE - CHAT_REPEAT_SCALE
       if (!countByType[message.type]) {
         countByType[message.type] = 0;
       }
