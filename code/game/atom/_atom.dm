@@ -911,7 +911,8 @@
 			if (name_override_returns & SCREENTIP_NAME_SET)
 				used_name = returned_name[1]
 
-		if (flags_1 & HAS_CONTEXTUAL_SCREENTIPS_1 || held_item?.item_flags & ITEM_HAS_CONTEXTUAL_SCREENTIPS)
+		// ORIGINAL: if (flags_1 & HAS_CONTEXTUAL_SCREENTIPS_1 || held_item?.item_flags & ITEM_HAS_CONTEXTUAL_SCREENTIPS)
+		if ((flags_1 & HAS_CONTEXTUAL_SCREENTIPS_1 || held_item?.item_flags & ITEM_HAS_CONTEXTUAL_SCREENTIPS) && !HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE)) // META EDIT - CHANGE - DISGUISED_MOB_SCREENTIP_HIDE
 			var/list/context = list()
 
 			var/contextual_screentip_returns = \
