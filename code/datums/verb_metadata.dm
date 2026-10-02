@@ -27,7 +27,12 @@
 	if(arg_type & VERB_ARG_TYPE_TEXT)
 		return tgui_input_text(user, name, verb_name)
 	if(arg_type & VERB_ARG_TYPE_MESSAGE)
-		return tgui_input_text(user, name, verb_name, multiline = TRUE)
+		// META EDIT - CHANGE - START - SDQL2_RAW_INPUT
+		// MESSAGE inputs are html encoded by tgui_input_text() by default,
+		// which turns " into &quot; and fucks shit up.
+		// ORIGINAL: return tgui_input_text(user, name, verb_name, multiline = TRUE)
+		return tgui_input_text(user, name, verb_name, multiline = TRUE, encode = !(arg_type & VERB_ARG_TYPE_RAW_MESSAGE))
+		// META EDIT - CHANGE - END - SDQL2_RAW_INPUT
 	if(arg_type & VERB_ARG_TYPE_SOUND)
 		return input(user, name, verb_name) as null|sound
 	if(arg_type & VERB_ARG_TYPE_TYPEPATH)
