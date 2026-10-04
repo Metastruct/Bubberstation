@@ -40,7 +40,7 @@ GLOBAL_VAR_INIT(coat_rack_recipe_registered, register_coat_rack_recipe())
 	return ..()
 
 /obj/structure/coat_rack/proc/is_body_slot_item(obj/item/tool)
-	return istype(tool, /obj/item/clothing/under) || istype(tool, /obj/item/clothing/suit) || istype(tool, /obj/item/clothing/underwear/undershirt)
+	return istype(tool, /obj/item/clothing/under) || istype(tool, /obj/item/clothing/suit) || istype(tool, /obj/item/clothing/underwear/undershirt) || istype(tool, /obj/item/clothing/neck)
 
 /obj/structure/coat_rack/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
 	. = ..()
