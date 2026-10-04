@@ -88,10 +88,7 @@
 		if(GENITAL_ALWAYS_SHOW)
 			return TRUE
 		if(GENITAL_HIDDEN_BY_CLOTHES)
-			if((human.w_uniform && human.w_uniform.body_parts_covered & genital_location) || (human.wear_suit && human.wear_suit.body_parts_covered & genital_location))
-				return FALSE
-			else
-				return TRUE
+			return !human.is_body_zone_covered(genital_location) // META EDIT - CHANGE - UNIFIED_EXPOSURE
 		else
 			return FALSE
 
