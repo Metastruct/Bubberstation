@@ -1,5 +1,5 @@
 /// shuts the eyes visually (the same way it's used by unconsciousness/death, see get_eyelid_overlays())
-/// and actually blinds the owner until removed.
+/// and actually blinds the user until removed.
 /datum/status_effect/eyes_closed
 	id = "eyes_closed"
 	duration = STATUS_EFFECT_PERMANENT
