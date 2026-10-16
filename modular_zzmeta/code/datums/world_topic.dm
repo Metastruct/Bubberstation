@@ -1,5 +1,5 @@
 /// Cache lifetime for a generated mugshot
-#define META_HEADSHOT_CACHE_TIME 5 MINUTES
+#define META_HEADSHOT_CACHE_TIME 2 MINUTES
 
 /mob/living
 	/// Cached `data:image/png;base64,...` mugshot for the player list.
