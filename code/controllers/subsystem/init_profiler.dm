@@ -8,8 +8,11 @@ SUBSYSTEM_DEF(init_profiler)
 	ss_flags = SS_NO_FIRE
 
 /datum/controller/subsystem/init_profiler/Initialize()
-	if(CONFIG_GET(flag/auto_profile))
+	// META EDIT - CHANGE - START - FORBID_ALL_PROFILING
+	// ORIGINAL: if(CONFIG_GET(flag/auto_profile))
+	if(CONFIG_GET(flag/auto_profile) && !CONFIG_GET(flag/forbid_all_profiling))
 		write_init_profile()
+	// META EDIT - CHANGE - END - FORBID_ALL_PROFILING
 	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/init_profiler/proc/write_init_profile()
