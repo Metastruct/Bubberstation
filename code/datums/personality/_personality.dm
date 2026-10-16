@@ -83,6 +83,13 @@
 		SSpersonalities.processing_personalities[src] -= who
 
 /datum/personality/process(seconds_per_tick)
+	// META EDIT - ADDITION - START - PERSONALITY_QDEL_GUARD
+	// Deleted mobs are never removed from processing_personalities, leaving null list entries
+	// that were passed straight into on_tick() and raised a runtime on every fire.
+	var/list/subjects = SSpersonalities.processing_personalities[src]
+	if(length(subjects) && (null in subjects))
+		subjects -= list(null)
+	// META EDIT - ADDITION - END - PERSONALITY_QDEL_GUARD
 	for(var/mob/living/subject as anything in SSpersonalities.processing_personalities[src])
 		if(IS_UNCONSCIOUS(subject) || HAS_TRAIT(subject, TRAIT_NO_TRANSFORM))
 			continue
