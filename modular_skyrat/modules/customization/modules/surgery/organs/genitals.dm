@@ -641,8 +641,11 @@
 			layer_real = -ASS_LAYER_ABOVE_SUIT
 		else if(layer_index == EXTERNAL_ADJACENT)
 			layer_real = -ASS_ADJ_LAYER_ABOVE_SUIT
-	else if(wearer?.w_uniform && layer_index == EXTERNAL_ADJACENT)
-		layer_real = -ASS_ADJ_LAYER_ABOVE_UNIFORM
+	// META EDIT - CHANGE - START - Fucked up layering
+	// ORIGINAL:
+	// else if(wearer?.w_uniform && layer_index == EXTERNAL_ADJACENT)
+	// 	layer_real = -ASS_ADJ_LAYER_ABOVE_UNIFORM
+	// META EDIT - CHANGE - END - Fucked up layering
 	return ..()
 
 /datum/bodypart_overlay/mutant/genital/butt/icon_render_key(obj/item/bodypart/limb)

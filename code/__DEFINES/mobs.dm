@@ -861,11 +861,14 @@ GLOBAL_ALIST_INIT(human_heights_to_offsets, alist(
 /// Handcuff layer (when your hands are cuffed)
 #define HANDCUFF_LAYER 5
 // BUBBER EDIT BEGIN
-#define PENIS_LAYER_FRONT 5.1
-#define BREASTS_FRONT_LAYER 5.2
-#define BELLY_FRONT_LAYER 5.3
-#define VAGINA_FRONT_LAYER 5.4
-#define BALLS_LAYER_FRONT 5.5
+// META EDIT - CHANGE - START - Fucked up layering
+// ORIGINAL: 5.1 / 5.2 / 5.3 / 5.4 / 5.5. Those sat above UNIFORM_LAYER (24), so exposed
+#define PENIS_LAYER_FRONT 25.1
+#define BREASTS_FRONT_LAYER 25.2
+#define BELLY_FRONT_LAYER 25.3
+#define VAGINA_FRONT_LAYER 25.4
+#define BALLS_LAYER_FRONT 25.5
+// META EDIT - CHANGE - END - Fucked up layering
 // BUBBER EDIT END
 	/// Hair that layers out above clothing, including hats (high ponytails and such)
 	#define OUTER_HAIR_LAYER 5.9
@@ -911,7 +914,10 @@ GLOBAL_ALIST_INIT(human_heights_to_offsets, alist(
 #define ID_LAYER 18
 // BUBBER EDIT ADDITION BEGIN
 #define BANDAGE_LAYER 19
-#define ASS_LAYER_FRONT 19.9
+// META EDIT - CHANGE - START - Fucked up layering
+// ORIGINAL: #define ASS_LAYER_FRONT 19.9
+#define ASS_LAYER_FRONT 25.6
+// META EDIT - CHANGE - END - Fucked up layering
 #define NIPPLES_LAYER 20
 #define PENIS_LAYER 21
 #define VAGINA_LAYER 22
