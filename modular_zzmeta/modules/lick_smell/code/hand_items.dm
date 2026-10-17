@@ -194,13 +194,27 @@
 		new /regex("r+", "g") = "w",
 		new /regex("R+", "g") = "W",
 	)
+	/// The visual tongue overlay shown on the holder while this is held out.
+	var/datum/bodypart_overlay/simple/emote/tongue/tongue_overlay
 
 /obj/item/hand_item/senser/licker/Initialize(mapload)
 	. = ..()
 	AddComponent(/datum/component/speechmod, replacements = speech_replacements, slots = ITEM_SLOT_HANDS, should_modify_speech = CALLBACK(src, PROC_REF(should_modify_speech)))
 
+/obj/item/hand_item/senser/licker/equipped(mob/user, slot, initial)
+	. = ..()
+	if(tongue_overlay || !(slot & ITEM_SLOT_HANDS) || !ishuman(user))
+		return
+	var/mob/living/carbon/human/human_user = user
+	tongue_overlay = human_user.give_emote_overlay(/datum/bodypart_overlay/simple/emote/tongue)
+
+/obj/item/hand_item/senser/licker/Destroy()
+	QDEL_NULL(tongue_overlay)
+	return ..()
+
 /obj/item/hand_item/senser/licker/dropped(mob/user, silent)
 	. = ..()
+	QDEL_NULL(tongue_overlay)
 	if(silent)
 		return
 	user.visible_message("[user] is retracting [user.p_their()] tongue.", span_notice("You retract your tongue."))
