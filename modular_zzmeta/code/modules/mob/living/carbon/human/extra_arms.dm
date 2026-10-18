@@ -2,6 +2,20 @@
 	/// Optional abstract chest arms granted by the "Extra Arms" preference (non-moth species only).
 	var/list/extra_arms
 
+/datum/bodypart_overlay/simple/extra_arms
+	layers = list(EXTERNAL_FRONT = BODY_FRONT_LAYER)
+	offset_location = UPPER_BODY
+	icon = 'icons/mob/human/species/misc/extra_arms.dmi'
+	icon_state = "m_extra_arms_generic_FRONT"
+
+/// Greyscale sprite; tint with the owning chest limb's draw colour (mutant colour/skin tone).
+/datum/bodypart_overlay/simple/extra_arms/color_image(image/overlay, obj/item/bodypart/limb, layer_index)
+	overlay.color = isnull(limb?.draw_color) ? draw_color : limb.draw_color
+
+/datum/bodypart_overlay/simple/extra_arms/icon_render_key(obj/item/bodypart/limb)
+	. = ..()
+	. += "[limb?.draw_color]"
+
 /**
  * Enables or disables the optional extra chest arms.
  *
@@ -38,7 +52,7 @@
 	right_arm.try_attach_limb(src, special = TRUE)
 	extra_arms = list(left_arm, right_arm)
 
-	chest.add_bodypart_overlay(new /datum/bodypart_overlay/simple/moth_arms())
+	chest.add_bodypart_overlay(new /datum/bodypart_overlay/simple/extra_arms())
 	update_body()
 
 /// Removes the optional extra arms and their chest overlay.
@@ -58,7 +72,7 @@
 	change_number_of_hands(2)
 
 	var/obj/item/bodypart/chest/chest = get_bodypart(BODY_ZONE_CHEST)
-	chest?.remove_bodypart_overlay(/datum/bodypart_overlay/simple/moth_arms)
+	chest?.remove_bodypart_overlay(/datum/bodypart_overlay/simple/extra_arms)
 	update_body()
 
 /// Re-evaluate the optional extra arms after a species change, since replace_body()
