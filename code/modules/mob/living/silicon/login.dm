@@ -8,6 +8,11 @@
 			voice = voice_to_use
 		if(pitch_to_use)
 			pitch = pitch_to_use
+		// META EDIT - ADDITION - START - TTS_ESPEAK_CUSTOM_VOICE
+		var/custom_to_use = client?.prefs.read_preference(/datum/preference/text/tts_custom_voice)
+		if(custom_to_use)
+			tts_custom_voice = custom_to_use
+		// META EDIT - ADDITION - END - TTS_ESPEAK_CUSTOM_VOICE
 	return ..()
 
 

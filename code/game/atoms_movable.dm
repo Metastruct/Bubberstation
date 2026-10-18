@@ -122,6 +122,12 @@
 	/// The blip variant to use for blip calculation.
 	var/blip_number = "1"
 
+	// META EDIT - ADDITION - START - TTS_ESPEAK_CUSTOM_VOICE
+	/// Free-form eSpeak spec ("<voice> [speed=] [pitch=] [amplitude=]"), only
+	/// honored when the selected TTS voice is an eSpeak one. See tools/tts-sam.
+	var/tts_custom_voice = ""
+	// META EDIT - ADDITION - END - TTS_ESPEAK_CUSTOM_VOICE
+
 	/// Datum that keeps all data related to zero-g drifting and handles related code/comsigs
 	var/datum/drift_handler/drift_handler
 
