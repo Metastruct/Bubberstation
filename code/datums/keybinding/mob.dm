@@ -35,6 +35,26 @@
 	M.swap_hand()
 	return TRUE
 
+// META EDIT - ADDITION - START - SWAP_HANDS_REVERSE_KEYBIND
+/datum/keybinding/mob/swap_hands_reverse
+	hotkey_keys = list("ShiftX")
+	name = "swap_hands_reverse"
+	full_name = "Swap hands (Reverse)"
+	description = "Swaps to the previous hand instead of the next one."
+	keybind_signal = COMSIG_KB_MOB_SWAPHANDSREVERSE_DOWN
+
+/datum/keybinding/mob/swap_hands_reverse/down(client/user, turf/target, mousepos_x, mousepos_y)
+	. = ..()
+	if(.)
+		return
+	var/mob/M = user.mob
+	var/previous_index = M.active_hand_index - 1
+	if(previous_index < 1)
+		previous_index = M.get_num_hand_slots()
+	M.swap_hand(previous_index)
+	return TRUE
+// META EDIT - ADDITION - END - SWAP_HANDS_REVERSE_KEYBIND
+
 /datum/keybinding/mob/select_hand
 	var/hand_index = NONE
 
