@@ -1,6 +1,6 @@
 /mob/living/carbon/human
 	/// Optional abstract chest arms granted by the "Extra Arms" preference (non-moth species only).
-	var/list/extra_arms
+	var/list/obj/item/bodypart/arm/extra_arms
 
 /datum/bodypart_overlay/simple/extra_arms
 	layers = list(EXTERNAL_FRONT = BODY_FRONT_LAYER)
