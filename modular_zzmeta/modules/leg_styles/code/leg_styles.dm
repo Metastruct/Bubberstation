@@ -1,16 +1,3 @@
-#define FEATURE_LEG_STYLE "leg_style"
-
-/// Use the species' own leg types (for synths: the chassis synth art).
-#define LEG_STYLE_NATIVE "Native"
-#define LEG_STYLE_ORGANIC "Organic Lizard"
-#define LEG_STYLE_LIZARD "Lizard"
-#define LEG_STYLE_TESHARI "Teshari"
-#define LEG_STYLE_VOX "Vox"
-#define LEG_STYLE_SHADEKIN "Shadekin"
-#define LEG_STYLE_AQUATIC "Aquatic"
-#define LEG_STYLE_LYCAN "Lycan"
-#define LEG_STYLE_XENOHYBRID "Xenohybrid"
-
 /// A selectable leg style.
 /datum/leg_style
 	/// The name shown in the dropdown and stored in [FEATURE_LEG_STYLE].

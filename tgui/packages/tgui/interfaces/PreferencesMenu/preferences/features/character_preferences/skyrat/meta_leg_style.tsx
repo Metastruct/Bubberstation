@@ -1,7 +1,7 @@
-import {
-  type FeatureChoiced,
-  type FeatureChoicedServerData,
-  type FeatureValueProps,
+import type {
+  FeatureChoiced,
+  FeatureChoicedServerData,
+  FeatureValueProps,
 } from '../../base';
 import { FeatureDropdownInput } from '../../dropdowns';
 
