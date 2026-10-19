@@ -504,7 +504,10 @@ GLOBAL_LIST_INIT(message_modes_stat_limits, list(
 
 /mob/living/silicon/get_tts_voice(list/filter, list/special_filter)
 	. = ..()
-	special_filter |= TTS_FILTER_SILICON
+	// META EDIT - CHANGE - TTS_SILICON_EFFECT
+	// ORIGINAL: special_filter |= TTS_FILTER_SILICON
+	var/silicon_effect = client?.prefs.read_preference(/datum/preference/choiced/tts_silicon_effect) || "blend"
+	special_filter |= "[TTS_FILTER_SILICON]:[silicon_effect]"
 
 /mob/living/proc/clear_saypopup(image/say_popup)
 	LAZYREMOVE(update_on_z, say_popup)

@@ -17,7 +17,7 @@
 	if(!SStts.tts_enabled)
 		return FALSE
 	var/selected = preferences.read_preference(/datum/preference/choiced/voice)
-	return istext(selected) && findtext(selected, "eSpeak")
+	return istext(selected) && (findtext(selected, "eSpeak") || findtext(selected, "DECtalk"))
 
 /datum/preference/text/tts_custom_voice/apply_to_human(mob/living/carbon/human/target, value)
 	target.tts_custom_voice = value

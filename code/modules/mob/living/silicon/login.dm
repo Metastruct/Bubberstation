@@ -13,6 +13,14 @@
 		if(custom_to_use)
 			tts_custom_voice = custom_to_use
 		// META EDIT - ADDITION - END - TTS_ESPEAK_CUSTOM_VOICE
+		// META EDIT - ADDITION - START - TTS_WHISPER_VOICE
+		var/whisper_voice_to_use = client?.prefs.read_preference(/datum/preference/choiced/tts_whisper_voice)
+		if(whisper_voice_to_use && whisper_voice_to_use != "same")
+			tts_whisper_voice = whisper_voice_to_use
+		var/whisper_custom_to_use = client?.prefs.read_preference(/datum/preference/text/tts_whisper_custom)
+		if(whisper_custom_to_use)
+			tts_whisper_custom = whisper_custom_to_use
+		// META EDIT - ADDITION - END - TTS_WHISPER_VOICE
 	return ..()
 
 

@@ -82,6 +82,16 @@ SUBSYSTEM_DEF(tts)
 		return FALSE
 	available_speakers = json_decode(response.body)
 	tts_enabled = TRUE
+	// META EDIT - ADDITION - START - TTS_VOICE_REFRESH
+	// The voice preferences cache their possible values once per world process, so
+	// a reconnect (e.g. after adding voices) would otherwise never show up in the
+	// character setup dropdown. Clear them so the next UI build repopulates.
+	if(GLOB.preference_entries)
+		for(var/preference_type in list(/datum/preference/choiced/voice, /datum/preference/choiced/tts_whisper_voice))
+			var/datum/preference/choiced/voice_preference = GLOB.preference_entries[preference_type]
+			if(voice_preference)
+				voice_preference.cached_values = null
+	// META EDIT - ADDITION - END - TTS_VOICE_REFRESH
 	if(CONFIG_GET(str_list/tts_voice_blacklist))
 		var/list/blacklisted_voices = CONFIG_GET(str_list/tts_voice_blacklist)
 		log_config("Processing the TTS voice blacklist.")
@@ -442,7 +452,7 @@ SUBSYSTEM_DEF(tts)
 
 #undef TTS_ARBRITRARY_DELAY
 
-/datum/controller/subsystem/tts/proc/queue_tts_message(datum/target, message, datum/language/language, speaker, filter, list/listeners, local = FALSE, message_range = 7, volume_offset = 0, pitch = 0, special_filters = "", blip_base = "male", blip_number = "1", force_blips = FALSE, identifier = "invalid")
+/datum/controller/subsystem/tts/proc/queue_tts_message(datum/target, message, datum/language/language, speaker, filter, list/listeners, local = FALSE, message_range = 7, volume_offset = 0, pitch = 0, special_filters = "", blip_base = "male", blip_number = "1", force_blips = FALSE, identifier = "invalid", custom_voice = null) // META EDIT - CHANGE - TTS_ESPEAK_CUSTOM_VOICE
 	if(!tts_enabled)
 		return
 	// TGS updates can clear out the tmp folder, so we need to create the folder again if it no longer exists.
@@ -474,15 +484,19 @@ SUBSYSTEM_DEF(tts)
 	var/file_name_radio = "tmp/tts/[identifier]_radio.ogg"
 	var/file_name_blips_radio = "tmp/tts/[identifier]_blips_radio.ogg"
 	var/file_name_radio_gibberish = "tmp/tts/[identifier]_radio_gibberish.ogg"
-	// META EDIT - ADDITION - START - TTS_ESPEAK_CUSTOM_VOICE
-	// Pass the speaker's free-form eSpeak spec through to the TTS server (it is
-	// ignored for non-eSpeak voices). Only the base request needs it; blips and
-	// radio read/transform that cached audio.
+	// META EDIT - CHANGE - START - TTS_ESPEAK_CUSTOM_VOICE
+	// Pass the free-form eSpeak spec through to the TTS server (it is ignored for
+	// non-eSpeak voices). Callers that know it (whisper, preview) pass custom_voice
+	// explicitly; otherwise fall back to the speaker's normal customization. Only
+	// the base request needs it; blips and radio read/transform that cached audio.
 	var/custom_query = ""
-	var/atom/movable/voice_source = target
-	if(istype(voice_source) && length(voice_source.tts_custom_voice))
-		custom_query = "&custom=[url_encode(voice_source.tts_custom_voice)]"
-	// META EDIT - ADDITION - END - TTS_ESPEAK_CUSTOM_VOICE
+	if(isnull(custom_voice))
+		var/atom/movable/voice_source = target
+		if(istype(voice_source))
+			custom_voice = voice_source.tts_custom_voice
+	if(length(custom_voice))
+		custom_query = "&custom=[url_encode(custom_voice)]"
+	// META EDIT - CHANGE - END - TTS_ESPEAK_CUSTOM_VOICE
 	request.prepare(RUSTG_HTTP_METHOD_GET, "[CONFIG_GET(string/tts_http_url)]/tts?voice=[speaker]&identifier=[identifier]&filter=[tts_filter_encode(filter, speaker, pitch)]&pitch=[pitch]&special_filters=[url_encode(special_filters)][custom_query]", json_encode(list("text" = shell_scrubbed_input)), headers, file_name, timeout_seconds = CONFIG_GET(number/tts_http_timeout_seconds))
 	request_blips.prepare(RUSTG_HTTP_METHOD_GET, "[CONFIG_GET(string/tts_http_url)]/tts-blips?voice=[speaker]&identifier=[identifier]&filter=[tts_filter_encode(filter, speaker, pitch, blips = TRUE)]&pitch=[pitch]&special_filters=[url_encode(special_filters)]&blip_base=[blip_base]&blip_number=[blip_number]", json_encode(list("text" = shell_scrubbed_input)), headers, file_name_blips, timeout_seconds = CONFIG_GET(number/tts_http_timeout_seconds))
 	request_radio.prepare(RUSTG_HTTP_METHOD_GET, "[CONFIG_GET(string/tts_http_url)]/tts-radio?voice=[speaker]&identifier=[identifier]&filter=[tts_filter_encode(filter, speaker, pitch)]&pitch=[pitch]&special_filters=[url_encode(special_filters)]", json_encode(list("text" = shell_scrubbed_input)), headers, file_name_radio, timeout_seconds = CONFIG_GET(number/tts_http_timeout_seconds))

@@ -128,6 +128,13 @@
 	var/tts_custom_voice = ""
 	// META EDIT - ADDITION - END - TTS_ESPEAK_CUSTOM_VOICE
 
+	// META EDIT - ADDITION - START - TTS_WHISPER_VOICE
+	/// TTS voice used only while whispering. Empty means "same as normal voice".
+	var/tts_whisper_voice = ""
+	/// Free-form eSpeak spec used only while whispering (see tts_custom_voice).
+	var/tts_whisper_custom = ""
+	// META EDIT - ADDITION - END - TTS_WHISPER_VOICE
+
 	/// Datum that keeps all data related to zero-g drifting and handles related code/comsigs
 	var/datum/drift_handler/drift_handler
 
