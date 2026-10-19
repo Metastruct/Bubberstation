@@ -459,10 +459,10 @@ SUBSYSTEM_DEF(tts)
 	if(!fexists("tmp/tts/init.txt"))
 		rustg_file_write("rustg HTTP requests can't write to folders that don't exist, so we need to make it exist.", "tmp/tts/init.txt")
 
-	var/static/regex/contains_alphanumeric = regex("\[a-zA-Z0-9]")
-	// If there is no alphanumeric char, the output will usually be static, so
-	// don't bother sending
-	if(contains_alphanumeric.Find(message) == 0)
+	// If there's nothing speakable (only punctuation/whitespace), skip it - the
+	// output would usually be static. Accepts non-Latin scripts via the helper.
+	// META EDIT - CHANGE - TTS_INLINE_COMMANDS
+	if(!tts_has_speakable_text(message))
 		return
 
 	var/shell_scrubbed_input = tts_speech_filter(message)
