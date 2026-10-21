@@ -1,23 +1,24 @@
 /proc/tts_speech_filter(text)
-	// Keep ASCII alphanumerics, whitespace, common punctuation, the symbols used for
-	// inline TTS engine commands (DECtalk "[:ra 200]", eSpeak "[en+m3 speed=180]"),
-	// and any non-ASCII character so non-Latin scripts (Japanese, Cyrillic, ...)
-	// reach the engine. BYOND regex works on UTF-8 bytes, so filter char-by-char.
-	// META EDIT - CHANGE - TTS_INLINE_COMMANDS
-	// ORIGINAL: var/static/regex/bad_chars_regex = regex("\[^a-zA-Z0-9 ,?.!'&-]", "g")
-	// ORIGINAL: return bad_chars_regex.Replace(text, " ")
-	var/static/list/allowed_punctuation = list(
-		" ", ",", "?", ".", "!", "'", "&", "=", "+", ":", "[", "]", "-", "<", ">", "_",
-	)
-	var/static/regex/ascii_alphanumeric = regex(@@^[a-zA-Z0-9]$@)
+	// Minimal sanitizer: ASCII control characters become spaces and whitespace
+	// runs collapse to one, but every printable character is kept - including the
+	// backslash SAPI4 tags use. The text only ever leaves as a JSON body, so
+	// there is no shell/injection reason to strip punctuation.
+	// META EDIT - REPLACEMENT - START - TTS_MINIMAL_SPEECH_FILTER
+	// ORIGINAL (upstream): var/static/regex/bad_chars_regex = regex("\[^a-zA-Z0-9 ,?.!'&-]", "g")
+	// ORIGINAL (upstream): return bad_chars_regex.Replace(text, " ")
+	// PREVIOUS (TTS_INLINE_COMMANDS): char-by-char allowlist of alphanumerics,
+	// non-ASCII, and " , ? . ! ' & = + : [ ] - < > _"
 	var/list/out = list()
 	for(var/i in 1 to length_char(text))
 		var/char = copytext_char(text, i, i + 1)
-		if(text2ascii(char) >= 128 || (char in allowed_punctuation) || ascii_alphanumeric.Find(char))
-			out += char
-		else
-			out += " "
+		var/char_code = text2ascii(char)
+		if(char_code < 32 || char_code == 127)
+			char = " "
+		if(char == " " && length(out) && out[length(out)] == " ")
+			continue
+		out += char
 	return jointext(out, "")
+	// META EDIT - REPLACEMENT - END - TTS_MINIMAL_SPEECH_FILTER
 
 /// Whether a message has anything a TTS engine can actually pronounce: an ASCII
 /// alphanumeric, or a non-Latin (non-ASCII) character.
