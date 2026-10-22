@@ -65,7 +65,7 @@
 		return
 	if(!is_open_container() || !reagents?.total_volume)
 		return
-	if(!sniffer.is_holding(src))
+	if(!sniffer.is_holding(src) && !sniffer.has_status_effect(/datum/status_effect/sensory/smell)) // META EDIT - CHANGE - LICK_SMELL
 		return
 	if(!sniffer.get_bodypart(BODY_ZONE_HEAD)) // Need a nose to smell
 		return

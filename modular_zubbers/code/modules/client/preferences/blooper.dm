@@ -7,9 +7,25 @@
 	// no bloopers configured, return dummy list to avoid runtimes
 	if(!length(SSblooper.blooper_list))
 		return list("none")
-	return assoc_to_keys(SSblooper.blooper_list)
+	// META EDIT - CHANGE - START - BLOOPER_NONE_OPTION
+	// ORIGINAL: return assoc_to_keys(SSblooper.blooper_list)
+	return list("none") + assoc_to_keys(SSblooper.blooper_list)
+	// META EDIT - CHANGE - END - BLOOPER_NONE_OPTION
+
+// META EDIT - ADDITION - START - BLOOPER_NONE_OPTION
+/datum/preference/choiced/blooper/create_default_value()
+	// Keep defaulting to a real blooper now that "none" leads the choice list.
+	if(!length(SSblooper.blooper_list))
+		return "none"
+	return pick(assoc_to_keys(SSblooper.blooper_list))
+// META EDIT - ADDITION - END - BLOOPER_NONE_OPTION
 
 /datum/preference/choiced/blooper/apply_to_human(mob/living/carbon/human/target, value)
+	// META EDIT - ADDITION - START - BLOOPER_NONE_OPTION
+	if(value == "none")
+		target.blooper = null
+		return
+	// META EDIT - ADDITION - END - BLOOPER_NONE_OPTION
 	target.blooper = SSblooper.blooper_list[value]
 
 /datum/preference/choiced/blooper/is_accessible(datum/preferences/preferences)
@@ -19,8 +35,15 @@
 	var/list/data = ..()
 	if(!length(SSblooper.blooper_list))
 		return data
-	var/list/display_names = list()
+	// META EDIT - CHANGE - START - BLOOPER_NONE_OPTION
+	// ORIGINAL: var/list/display_names = list()
+	var/list/display_names = list("none" = "None")
+	// META EDIT - CHANGE - END - BLOOPER_NONE_OPTION
 	for(var/id in get_choices())
+		// META EDIT - ADDITION - START - BLOOPER_NONE_OPTION
+		if(id == "none")
+			continue
+		// META EDIT - ADDITION - END - BLOOPER_NONE_OPTION
 		display_names[id] = astype(SSblooper.blooper_list[id], /datum/blooper).name
 	data[CHOICED_PREFERENCE_DISPLAY_NAMES] = display_names
 	return data

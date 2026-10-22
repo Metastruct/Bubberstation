@@ -1,35 +1,27 @@
 /datum/emote/living/carbon/lick
 	key = "lick"
 	key_third_person = "licks"
-	can_use_flags = EMOTE_CANUSE_REQUIRE_HANDS
 	cooldown = 3 SECONDS
 
 /datum/emote/living/carbon/lick/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
-	if(user.is_holding_item_of_type(/obj/item/hand_item/senser/licker))
-		to_chat(user, span_notice("You already have your tongue ready."))
+	if(!isliving(user))
 		return
-	var/obj/item/hand_item/senser/licker/tongue_item = new(user)
-	if(user.put_in_hands(tongue_item))
-		user.visible_message(span_notice("[user] is sticking out [user.p_their()] tongue."), span_notice("You stick your tongue out, ready to taste something."))
-	else
-		qdel(tongue_item)
-		to_chat(user, span_warning("You're incapable of licking in your current state."))
+	var/mob/living/living_user = user
+	if(living_user.remove_status_effect(/datum/status_effect/sensory/lick))
+		return
+	living_user.apply_status_effect(/datum/status_effect/sensory/lick)
 
 /datum/emote/living/carbon/smell
 	key = "smell"
 	key_third_person = "smells"
-	can_use_flags = EMOTE_CANUSE_REQUIRE_HANDS
 	cooldown = 3 SECONDS
 
 /datum/emote/living/carbon/smell/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
-	if(user.is_holding_item_of_type(/obj/item/hand_item/senser/sniffer))
-		to_chat(user, span_notice("You already have your nose ready."))
+	if(!isliving(user))
 		return
-	var/obj/item/hand_item/senser/sniffer/nose_item = new(user)
-	if(user.put_in_hands(nose_item))
-		to_chat(user, span_notice("You lean in, ready to take a whiff of something."))
-	else
-		qdel(nose_item)
-		to_chat(user, span_warning("You're incapable of smelling in your current state."))
+	var/mob/living/living_user = user
+	if(living_user.remove_status_effect(/datum/status_effect/sensory/smell))
+		return
+	living_user.apply_status_effect(/datum/status_effect/sensory/smell)

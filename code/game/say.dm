@@ -129,7 +129,15 @@ GLOBAL_LIST_INIT(freqtospan, list(
 	if(length(tts_filter) > 0)
 		filter += tts_filter.Join(",")
 	var/list/special_filter = list()
-	INVOKE_ASYNC(SStts, TYPE_PROC_REF(/datum/controller/subsystem/tts, queue_tts_message), src, html_decode(message), language, get_tts_voice(filter, special_filter), filter.Join(","), hearers, message_range = 7, pitch = pitch, special_filters = special_filter.Join("|"), blip_base = blip_base, blip_number = blip_number, identifier = message_mods[MODE_TTS_IDENTIFIER])
+	// META EDIT - CHANGE - START - TTS_WHISPER_VOICE
+	// Use a separate voice/customization while whispering, if one is set and valid.
+	var/tts_speaker = get_tts_voice(filter, special_filter)
+	var/tts_custom = tts_custom_voice
+	if(message_mods[WHISPER_MODE] && length(tts_whisper_voice) && (tts_whisper_voice in SStts.available_speakers))
+		tts_speaker = tts_whisper_voice
+		tts_custom = tts_whisper_custom
+	// META EDIT - CHANGE - END - TTS_WHISPER_VOICE
+	INVOKE_ASYNC(SStts, TYPE_PROC_REF(/datum/controller/subsystem/tts, queue_tts_message), src, html_decode(message), language, tts_speaker, filter.Join(","), hearers, message_range = 7, pitch = pitch, special_filters = special_filter.Join("|"), blip_base = blip_base, blip_number = blip_number, identifier = message_mods[MODE_TTS_IDENTIFIER], custom_voice = tts_custom)
 
 /atom/movable/proc/get_tts_voice(list/filter, list/special_filter)
 	. = voice

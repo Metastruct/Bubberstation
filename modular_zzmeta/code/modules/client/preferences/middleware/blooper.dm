@@ -11,6 +11,8 @@
 		blooper_to_use = SSblooper.blooper_list[preferences.read_preference(/datum/preference/choiced/blooper)]
 	else
 		blooper_to_use = SSblooper.blooper_list[whisper_choice]
+	if(isnull(blooper_to_use)) // normal voice is set to "none" - nothing to preview
+		return TRUE
 	var/whisper_speed = preferences.read_preference(/datum/preference/numeric/whisper_blooper_speed)
 	var/whisper_pitch = preferences.read_preference(/datum/preference/numeric/whisper_blooper_pitch)
 	var/whisper_pitch_range = preferences.read_preference(/datum/preference/numeric/whisper_blooper_pitch_range)
