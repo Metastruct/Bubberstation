@@ -10727,6 +10727,7 @@
 #include "modular_zubbers\modules\taur_mechanics\taur_clothing_offset.dm"
 #include "modular_zubbers\modules\voskhod\code\mod_suit.dm"
 #include "modular_zubbers\modules\wood_walls\code\new_floors.dm"
+#include "modular_zzmeta\code\__DEFINES\tongue.dm"
 #include "modular_zzmeta\code\__DEFINES\traits.dm"
 #include "modular_zzmeta\code\controllers\subsystem\sounds.dm"
 #include "modular_zzmeta\code\controllers\subsystem\ticker.dm"
@@ -10798,4 +10799,8 @@
 #include "modular_zzmeta\modules\soap_face_wash\code\soap_face_wash.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soapy_mouth.dm"
 #include "modular_zzmeta\modules\tetris\code\tetris.dm"
+#include "modular_zzmeta\modules\tongue_customization\code\overlay.dm"
+#include "modular_zzmeta\modules\tongue_customization\code\preferences.dm"
+#include "modular_zzmeta\modules\tongue_customization\code\preview.dm"
+#include "modular_zzmeta\modules\tongue_customization\code\sprite_accessories.dm"
 // END_INCLUDE
