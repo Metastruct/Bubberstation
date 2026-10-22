@@ -8,6 +8,15 @@ SUBSYSTEM_DEF(blooper)
 
 /datum/controller/subsystem/blooper/OnConfigLoad()
 	blooper_list = initialize_blooper_datums()
+	// META EDIT - ADDITION - START - BLOOPER_CONFIG_REFRESH
+	if(GLOB.preference_entries)
+		for(var/preference_type in list(/datum/preference/choiced/blooper, /datum/preference/choiced/whisper_blooper))
+			var/datum/preference/choiced/blooper_preference = GLOB.preference_entries[preference_type]
+			if(blooper_preference)
+				blooper_preference.cached_values = null
+	if(GLOB.asset_datums[/datum/asset/json/preferences])
+		GLOB.asset_datums[/datum/asset/json/preferences].regenerate()
+	// META EDIT - ADDITION - END - BLOOPER_CONFIG_REFRESH
 
 /datum/controller/subsystem/blooper/proc/initialize_blooper_datums()
 	var/list/blooper_datums = list()
