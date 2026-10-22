@@ -52,16 +52,17 @@
 /datum/sprite_accessory/custom_tongue/longer
 	name = "Longer"
 	icon_state = "longer"
-	allowed_species = list(SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
+	allowed_species = list(SPECIES_INSECT, SPECIES_FLYPERSON, SPECIES_MAMMAL, SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
 
 /datum/sprite_accessory/custom_tongue/longer_a
 	name = "Longer (Animated)"
 	icon_state = "longer_a"
-	allowed_species = list(SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
+	allowed_species = list(SPECIES_INSECT, SPECIES_FLYPERSON, SPECIES_MAMMAL, SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
 
 /datum/sprite_accessory/custom_tongue/anteater
 	name = "Anteater"
 	icon_state = "anteater"
+	allowed_species = list(SPECIES_INSECT, SPECIES_FLYPERSON, SPECIES_MAMMAL, SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
 
 /datum/sprite_accessory/custom_tongue/wide
 	name = "Wide"
