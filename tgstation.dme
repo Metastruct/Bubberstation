@@ -10770,7 +10770,6 @@
 #include "modular_zzmeta\code\game\atoms_movable.dm"
 #include "modular_zzmeta\code\game\objects\items\pillow.dm"
 #include "modular_zzmeta\code\game\objects\items\plushes.dm"
-#include "modular_zzmeta\code\game\objects\items\trash.dm"
 #include "modular_zzmeta\code\game\sound\sound.dm"
 #include "modular_zzmeta\code\game\turfs\open\sand.dm"
 #include "modular_zzmeta\code\modules\admin\verbs\jukebox_moderation.dm"
