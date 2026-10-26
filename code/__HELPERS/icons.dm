@@ -1246,7 +1246,7 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 		return TRUE
 
 	var/static/list/screams = list()
-	if(!isnull(screams[file]))
+	if(isnull(screams[file]))
 		screams[file] = TRUE
 		stack_trace("State [state] in file [file] does not exist.")
 

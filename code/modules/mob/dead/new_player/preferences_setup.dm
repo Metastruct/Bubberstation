@@ -4,6 +4,9 @@
 	// reset body_markings when creating a new character, otherwise they will be used.
 	body_markings = list()
 	// META EDIT - ADDITION - END - NEW_CHARACTER_MARKINGS_RESET
+	var/tree_key = "character[default_slot]"
+	if(!(tree_key in savefile.get_entry()))
+		savefile.set_entry(tree_key, list())
 	for (var/datum/preference/preference as anything in get_preferences_in_priority_order())
 		if (!preference.included_in_randomization_flags(randomize_flags))
 			continue
@@ -73,10 +76,6 @@
 				break
 
 		if(picked_quirk_blacklisted)
-			available_hardcore_quirks -= picked_quirk
-			continue
-
-		if((initial(picked_quirk.quirk_flags) & QUIRK_MOODLET_BASED) && CONFIG_GET(flag/disable_human_mood)) //check for moodlet quirks
 			available_hardcore_quirks -= picked_quirk
 			continue
 
