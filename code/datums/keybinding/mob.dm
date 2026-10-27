@@ -32,15 +32,20 @@
 	if(.)
 		return
 	var/mob/M = user.mob
-	M.swap_hand()
+	// META EDIT - CHANGE - START - FOUR_ARM_PAIR_SWAP
+	// ORIGINAL: M.swap_hand()
+	if(M.get_num_hand_slots() < 2)
+		return TRUE
+	M.cycle_hand(WEST, FALSE)
+	// META EDIT - CHANGE - END - FOUR_ARM_PAIR_SWAP
 	return TRUE
 
 // META EDIT - ADDITION - START - SWAP_HANDS_REVERSE_KEYBIND
 /datum/keybinding/mob/swap_hands_reverse
 	hotkey_keys = list("ShiftX")
 	name = "swap_hands_reverse"
-	full_name = "Swap hands (Reverse)"
-	description = "Swaps to the previous hand instead of the next one."
+	full_name = "Swap to other hand pair"
+	description = "Swaps to the matching hand of your other arm pair (only for species with more than two arms.)"
 	keybind_signal = COMSIG_KB_MOB_SWAPHANDSREVERSE_DOWN
 
 /datum/keybinding/mob/swap_hands_reverse/down(client/user, turf/target, mousepos_x, mousepos_y)
@@ -48,10 +53,9 @@
 	if(.)
 		return
 	var/mob/M = user.mob
-	var/previous_index = M.active_hand_index - 1
-	if(previous_index < 1)
-		previous_index = M.get_num_hand_slots()
-	M.swap_hand(previous_index)
+	if(M.get_num_hand_slots() < 4)
+		return TRUE // only one arm pair, nothing to swap to
+	M.cycle_hand(NORTH, FALSE)
 	return TRUE
 // META EDIT - ADDITION - END - SWAP_HANDS_REVERSE_KEYBIND
 
