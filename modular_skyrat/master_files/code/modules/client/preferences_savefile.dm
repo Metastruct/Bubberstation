@@ -50,14 +50,16 @@
 
 	load_augments(SANITIZE_LIST(save_data["augments"]))
 
-	augment_limb_styles = SANITIZE_LIST(save_data["augment_limb_styles"])
+	// META EDIT - CHANGE - START - LOAD_TREE_SLOT_ALIAS_FIX
+	augment_limb_styles = deep_copy_nested_list(SANITIZE_LIST(save_data["augment_limb_styles"]))
 	for(var/key in augment_limb_styles)
 		if(!GLOB.robotic_styles_list[augment_limb_styles[key]])
 			augment_limb_styles -= key
 
-	features = SANITIZE_LIST(save_data["features"])
-	mutant_bodyparts = SANITIZE_LIST(save_data["mutant_bodyparts"])
-	body_markings = update_markings(SANITIZE_LIST(save_data["body_markings"]))
+	features = deep_copy_nested_list(SANITIZE_LIST(save_data["features"]))
+	mutant_bodyparts = deep_copy_nested_list(SANITIZE_LIST(save_data["mutant_bodyparts"]))
+	body_markings = deep_copy_nested_list(update_markings(SANITIZE_LIST(save_data["body_markings"])))
+	// META EDIT - CHANGE - END - LOAD_TREE_SLOT_ALIAS_FIX
 	mismatched_customization = save_data["mismatched_customization"]
 	allow_advanced_colors = save_data["allow_advanced_colors"]
 
@@ -69,7 +71,7 @@
 	background_info = sanitize_text(background_info)
 	exploitable_info = sanitize_text(exploitable_info)
 
-	var/list/save_languages = SANITIZE_LIST(save_data["languages"])
+	var/list/save_languages = deep_copy_nested_list(SANITIZE_LIST(save_data["languages"])) // META EDIT - CHANGE - LOAD_TREE_SLOT_ALIAS_FIX
 	for(var/language in save_languages)
 		var/value = save_languages[language]
 		save_languages -= language
@@ -286,16 +288,21 @@
 
 /// Saves the modular customizations of a character on the savefile
 /datum/preferences/proc/save_character_skyrat(list/save_data, updated)
-	save_data["augments"] = augments
-	save_data["augment_limb_styles"] = augment_limb_styles
-	save_data["features"] = features
-	save_data["mutant_bodyparts"] = mutant_bodyparts
-	save_data["body_markings"] = body_markings
+	// META EDIT - CHANGE - START - SAVE_TREE_SLOT_ALIAS_FIX
+	// json_savefile stores/returns list references, so assigning the live lists here made
+	// every slot that was saved/duplicated/loaded share one object edits (markings, eye
+	// organs, etc.) then leaked between character slots. Store independent copies instead.
+	save_data["augments"] = deep_copy_nested_list(augments)
+	save_data["augment_limb_styles"] = deep_copy_nested_list(augment_limb_styles)
+	save_data["features"] = deep_copy_nested_list(features)
+	save_data["mutant_bodyparts"] = deep_copy_nested_list(mutant_bodyparts)
+	save_data["body_markings"] = deep_copy_nested_list(body_markings)
 	save_data["mismatched_customization"] = mismatched_customization
 	save_data["allow_advanced_colors"] = allow_advanced_colors
-	save_data["alt_job_titles"] = alt_job_titles
-	save_data["languages"] = languages
-	save_data["food_preferences"] = food_preferences
+	save_data["alt_job_titles"] = deep_copy_nested_list(alt_job_titles)
+	save_data["languages"] = deep_copy_nested_list(languages)
+	save_data["food_preferences"] = deep_copy_nested_list(food_preferences)
+	// META EDIT - CHANGE - END - SAVE_TREE_SLOT_ALIAS_FIX
 	//if(updated) // BUBBER EDIT - This is bullshit, results in newly created characters getting invalid data. Load character should forcefully migrate it, so we can safely assume its up to date
 	//	save_data["modular_version"] = MODULAR_SAVEFILE_VERSION_MAX
 	save_data["modular_version"] = MODULAR_SAVEFILE_VERSION_MAX

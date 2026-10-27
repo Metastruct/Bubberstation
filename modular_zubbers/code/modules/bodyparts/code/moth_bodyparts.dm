@@ -25,7 +25,7 @@
 	icon_state = "moth_chest_m"
 	limb_id = SPECIES_MOTH
 	is_dimorphic = TRUE
-	wing_types = list(/obj/item/organ/wings/functional/moth/megamoth, /obj/item/organ/wings/functional/moth/mothra)
+	wing_types = list(/obj/item/organ/wings/megamoth, /obj/item/organ/wings/mothra)
 	// META EDIT - ADDITION - START - UPSTREAM_97789_MOTH_ARMS
 	brute_modifier = BRUTE_MOD
 	burn_modifier = BURN_MOD
