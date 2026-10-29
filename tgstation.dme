@@ -10806,6 +10806,9 @@
 #include "modular_zzmeta\code\modules\unit_tests\underwear_items.dm"
 #include "modular_zzmeta\maps\offstation\ghostcafe\ghost_role_spawners.dm"
 #include "modular_zzmeta\modules\afk_indicator\code\afk_indicator.dm"
+#include "modular_zzmeta\modules\arcades\spawners.dm"
+#include "modular_zzmeta\modules\arcades\code\slidingpuzzle.dm"
+#include "modular_zzmeta\modules\arcades\code\tetris.dm"
 #include "modular_zzmeta\modules\chat_colors\code\say_chat_colors.dm"
 #include "modular_zzmeta\modules\cleanbot_liquids\code\liquid_turf_wash.dm"
 #include "modular_zzmeta\modules\close_eyes\code\close_eyes.dm"
@@ -10823,8 +10826,6 @@
 #include "modular_zzmeta\modules\lick_smell\code\hazards.dm"
 #include "modular_zzmeta\modules\lick_smell\code\pie_taste.dm"
 #include "modular_zzmeta\modules\lick_smell\code\status_effects.dm"
-#include "modular_zzmeta\modules\slidingpuzzle\code\slidingpuzzle.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soap_face_wash.dm"
 #include "modular_zzmeta\modules\soap_face_wash\code\soapy_mouth.dm"
-#include "modular_zzmeta\modules\tetris\code\tetris.dm"
 // END_INCLUDE
