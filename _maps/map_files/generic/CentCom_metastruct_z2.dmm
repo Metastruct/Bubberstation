@@ -4015,7 +4015,7 @@
 /turf/open/floor/carpet/executive,
 /area/centcom/central_command_areas/admin/interlink)
 "cAA" = (
-/obj/structure/window/reinforced/tinted/fulltile{
+/obj/structure/window/reinforced/fulltile{
 	resistance_flags = 115
 	},
 /obj/structure/flora/rock/pile/jungle/style_4,
@@ -5245,7 +5245,11 @@
 "dxV" = (
 /obj/effect/turf_decal/syndicateemblem/middle/middle,
 /obj/machinery/minimap_table{
-	pixel_x = -16
+	pixel_x = -16;
+	density = 0
+	},
+/obj/structure/platform/plastitanium{
+	alpha = 0
 	},
 /turf/open/indestructible/vault{
 	icon_state = "plastitanium_red"
@@ -6500,6 +6504,7 @@
 /obj/structure/sign/painting/large{
 	pixel_y = -32
 	},
+/obj/machinery/light/warm/directional/south,
 /turf/open/floor/carpet/royalblack,
 /area/centcom/holding/cafe/station/command/cap/private)
 "ezr" = (
@@ -14960,10 +14965,6 @@
 	},
 /turf/open/floor/wood/tile,
 /area/centcom/holding/cafe/station/command/cap/private)
-"kJt" = (
-/obj/machinery/light/small/directional/south,
-/turf/open/floor/carpet/royalblack,
-/area/centcom/holding/cafe/station/command/cap/private)
 "kJL" = (
 /obj/item/flashlight/flare/candle/infinite{
 	pixel_x = 9;
@@ -19766,7 +19767,7 @@
 /turf/open/floor/iron,
 /area/centcom/interlink)
 "oDV" = (
-/obj/structure/window/reinforced/tinted/fulltile{
+/obj/structure/window/reinforced/fulltile{
 	resistance_flags = 115
 	},
 /obj/structure/flora/grass/jungle/a,
@@ -21360,10 +21361,6 @@
 /obj/effect/turf_decal/siding/purple{
 	dir = 6
 	},
-/obj/structure/window/reinforced/survival_pod/spawner/directional/south{
-	dir = 6;
-	density = 0
-	},
 /turf/open/floor/eighties,
 /area/centcom/holding/cafe/station/commons/lounge)
 "pQi" = (
@@ -21602,6 +21599,7 @@
 	dir = 5;
 	color = "#5c5c5e"
 	},
+/obj/machinery/light/small/directional/east,
 /turf/open/indestructible/cobble,
 /area/centcom/holding/cafe/station/command/cap/private)
 "pZa" = (
@@ -23557,10 +23555,6 @@
 "rDX" = (
 /obj/structure/sign/flag/syndicate/directional/north,
 /obj/machinery/light/small/directional/north,
-/obj/structure/window/reinforced/survival_pod/spawner/directional/east{
-	dir = 5;
-	density = 0
-	},
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
 	},
@@ -29357,6 +29351,24 @@
 /obj/item/storage/box/nif_ghost_box/ghost_role{
 	pixel_y = 10
 	},
+/obj/item/storage/box/nif_ghost_box/ghost_role{
+	pixel_y = 10
+	},
+/obj/item/storage/box/nif_ghost_box/ghost_role{
+	pixel_y = 10
+	},
+/obj/item/storage/box/nif_ghost_box/ghost_role{
+	pixel_y = 10
+	},
+/obj/item/storage/box/nif_ghost_box/ghost_role{
+	pixel_y = 10
+	},
+/obj/item/storage/box/nif_ghost_box/ghost_role{
+	pixel_y = 10
+	},
+/obj/item/storage/box/nif_ghost_box/ghost_role{
+	pixel_y = 10
+	},
 /turf/open/indestructible,
 /area/centcom/holding/cafe/station/commons/fitness/locker_room)
 "vXg" = (
@@ -31608,10 +31620,6 @@
 /obj/effect/turf_decal/siding/purple{
 	dir = 10
 	},
-/obj/structure/window/reinforced/survival_pod/spawner/directional/south{
-	dir = 10;
-	density = 0
-	},
 /obj/structure/disposalpipe/segment,
 /turf/open/floor/eighties,
 /area/centcom/holding/cafe/station/commons/lounge)
@@ -32186,10 +32194,6 @@
 /turf/open/floor/engine/n2,
 /area/centcom/holding/cafe/station/engineering)
 "ycl" = (
-/obj/structure/window/reinforced/survival_pod/spawner/directional/east{
-	dir = 6;
-	density = 0
-	},
 /obj/effect/turf_decal/siding/wood,
 /turf/open/floor/wood/tile,
 /area/centcom/holding/cafe/station/command/cap/private)
@@ -64901,7 +64905,7 @@ pYI
 qAo
 rby
 rby
-kJt
+hxk
 lKC
 eLX
 dff
@@ -65927,7 +65931,7 @@ jUf
 cjA
 aCr
 pRA
-pRA
+rzF
 pRA
 pRA
 rzF
@@ -67531,7 +67535,7 @@ aaa
 aaa
 aaa
 aaa
-aaa
+gjG
 gjG
 gjG
 gjG
@@ -68815,7 +68819,7 @@ aaa
 aaa
 aaa
 aaa
-aaa
+gjG
 gjG
 gjG
 wPc
