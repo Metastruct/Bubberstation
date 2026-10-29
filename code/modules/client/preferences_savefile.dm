@@ -445,10 +445,11 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 	save_data["randomise"] = randomise
 
 	//Write prefs
-	save_data["job_preferences"] = job_preferences
+	// META EDIT - CHANGE - SAVE_TREE_SLOT_ALIAS_FIX - json_savefile keeps list references, so store copies
+	save_data["job_preferences"] = deep_copy_nested_list(job_preferences)
 
 	//Quirks
-	save_data["all_quirks"] = all_quirks
+	save_data["all_quirks"] = deep_copy_nested_list(all_quirks) // META EDIT - CHANGE - SAVE_TREE_SLOT_ALIAS_FIX
 	save_character_skyrat(save_data, update) // SKYRAT EDIT ADDITION
 
 	return TRUE

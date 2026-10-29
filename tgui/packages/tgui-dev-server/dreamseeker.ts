@@ -63,7 +63,10 @@ export class DreamSeeker {
       return instances;
     }
 
+    // META EDIT - CHANGE - START - LINUX_TGUI_DEV
+    // ORIGINAL: const command = 'netstat -ano | findstr TCP | findstr 0.0.0.0:0';
     const command = getListCommand();
+    // META EDIT - CHANGE - END - LINUX_TGUI_DEV
 
     try {
       const { stdout } = await promisify(exec)(command, {
@@ -71,9 +74,12 @@ export class DreamSeeker {
         maxBuffer: 1024 * 1024,
       });
 
+      // META EDIT - CHANGE - START - LINUX_TGUI_DEV
+      // ORIGINAL: entries were parsed inline from stdout with the Windows-only parser.
       const entries = parseEntries(stdout).filter((entry) =>
         pidsToResolve.includes(entry.pid),
       );
+      // META EDIT - CHANGE - END - LINUX_TGUI_DEV
 
       const len = entries.length;
       logger.log('found', len, plural('instance', len));
@@ -99,6 +105,7 @@ function plural(word: string, n: number): string {
   return n !== 1 ? `${word}s` : word;
 }
 
+// META EDIT - ADDITION - START - LINUX_TGUI_DEV
 function getListCommand(): string {
   if (process.platform === 'win32') {
     return 'netstat -ano | findstr TCP | findstr 0.0.0.0:0';
@@ -138,3 +145,4 @@ function parseEntries(stdout: string): Entry[] {
   }
   return entries;
 }
+// META EDIT - ADDITION - END - LINUX_TGUI_DEV
