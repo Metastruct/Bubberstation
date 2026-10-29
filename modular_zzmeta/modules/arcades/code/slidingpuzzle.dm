@@ -331,7 +331,7 @@
 			current_source_title = chosen_painting.title || "an untitled painting"
 			current_source_author = chosen_painting.creator_name
 		if(!source_icon)
-			source_icon = icon('modular_zzmeta/modules/slidingpuzzle/icons/default.png')
+			source_icon = icon('modular_zzmeta/modules/arcades/icons/default.png')
 			current_source_title = "the default image"
 
 	generate_board(source_icon)

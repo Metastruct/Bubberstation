@@ -83,7 +83,7 @@
 		to_chat(owner, span_warning(block_reason))
 		return
 	owner.face_atom(target)
-	owner.changeNext_move(CLICK_CD_MELEE)
+	owner.changeNext_move(CLICK_CD_RAPID)
 	do_taste(target)
 
 /datum/status_effect/sensory/proc/do_taste(atom/target)
