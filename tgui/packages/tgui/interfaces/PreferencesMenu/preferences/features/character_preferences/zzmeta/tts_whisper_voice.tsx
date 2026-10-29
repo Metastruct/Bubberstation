@@ -1,10 +1,10 @@
 import { useBackend } from 'tgui/backend';
 import { Button, Stack } from 'tgui-core/components';
 
-import {
-  type FeatureChoiced,
-  type FeatureChoicedServerData,
-  type FeatureValueProps,
+import type {
+  FeatureChoiced,
+  FeatureChoicedServerData,
+  FeatureValueProps,
 } from '../../base';
 import { FeatureDropdownInput } from '../../dropdowns';
 
