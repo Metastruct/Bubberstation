@@ -10778,6 +10778,7 @@
 #include "modular_zzmeta\code\modules\client\client_procs.dm"
 #include "modular_zzmeta\code\modules\client\preferences\announcement_volume.dm"
 #include "modular_zzmeta\code\modules\client\preferences\blooper.dm"
+#include "modular_zzmeta\code\modules\client\preferences\commandbar_autocomplete.dm"
 #include "modular_zzmeta\code\modules\client\preferences\tgui.dm"
 #include "modular_zzmeta\code\modules\client\preferences\tts_custom_voice.dm"
 #include "modular_zzmeta\code\modules\client\preferences\tts_silicon_effect.dm"

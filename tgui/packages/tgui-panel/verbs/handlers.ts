@@ -7,6 +7,7 @@ import {
   clearCommandBarAtom,
   focusCommandBarAtom,
   hotkeysAtom,
+  tabAutocompleteAtom, // META EDIT COMMANDBAR_AUTOCOMPLETE
   initializeCommandBarAtom,
   type Target,
   typepathsAtom,
@@ -65,8 +66,22 @@ export function handleClearCommandBar() {
   store.set(clearCommandBarAtom, (n) => n + 1);
 }
 
-export function handleHotkeyMode(payload: { hotkeys?: number }) {
+// META EDIT - CHANGE - START - COMMANDBAR_AUTOCOMPLETE
+// Original:
+// export function handleHotkeyMode(payload: { hotkeys?: number }) {
+//  if (payload.hotkeys != null) {
+//    store.set(hotkeysAtom, !!payload.hotkeys);
+//  }
+//}
+export function handleHotkeyMode(payload: {
+  hotkeys?: number;
+  tab_autocomplete?: boolean;
+}) {
   if (payload.hotkeys != null) {
     store.set(hotkeysAtom, !!payload.hotkeys);
   }
+  if (payload.tab_autocomplete != null) {
+    store.set(tabAutocompleteAtom, payload.tab_autocomplete);
+  }
 }
+// META EDIT - CHANGE - END - COMMANDBAR_AUTOCOMPLETE
