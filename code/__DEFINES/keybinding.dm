@@ -75,6 +75,9 @@
 #define COMSIG_KB_MOB_CYCLEINTENTRIGHT_DOWN "keybinding_mob_cycleintentright_down"
 #define COMSIG_KB_MOB_CYCLEINTENTLEFT_DOWN "keybinding_mob_cycleintentleft_down"
 #define COMSIG_KB_MOB_SWAPHANDS_DOWN "keybinding_mob_swaphands_down"
+// META EDIT - ADDITION - START - SWAP_HANDS_REVERSE_KEYBIND
+#define COMSIG_KB_MOB_SWAPHANDSREVERSE_DOWN "keybinding_mob_swaphandsreverse_down"
+// META EDIT - ADDITION - END - SWAP_HANDS_REVERSE_KEYBIND
 #define COMSIG_KB_MOB_SELECTRIGHTHAND_DOWN "keybinding_mob_selectrighthand_down"
 #define COMSIG_KB_MOB_SELECTLEFTHAND_DOWN "keybinding_mob_selectlefthand_down"
 #define COMSIG_KB_MOB_ACTIVATEINHAND_DOWN "keybinding_mob_activateinhand_down"
