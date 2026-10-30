@@ -80,7 +80,7 @@
 /datum/bodypart_overlay/simple/emote/drool
 	icon_state = "drool"
 	layers = list(EXTERNAL_FRONT = BODY_FRONT_LAYER)
-	draw_color = COLOR_DARK_CYAN
+	draw_color = COLOR_BLUE_LIGHT
 	offset_key = OFFSET_FACE
 	attached_body_zone = BODY_ZONE_HEAD
 // META EDIT - ADDITION - END - DROOL
