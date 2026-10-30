@@ -144,6 +144,15 @@
 	key_third_person = "drools"
 	message = "drools."
 
+// META EDIT - ADDITION - START - DROOL
+/datum/emote/living/drool/run_emote(mob/user, params, type_override, intentional)
+	. = ..()
+	if(!ishuman(user))
+		return
+	var/mob/living/carbon/human/human_user = user
+	QDEL_IN(human_user.give_emote_overlay(/datum/bodypart_overlay/simple/emote/drool), 5.2 SECONDS)
+// META EDIT - ADDITION - END - DROOL
+
 /datum/emote/living/faint
 	key = "faint"
 	key_third_person = "faints"

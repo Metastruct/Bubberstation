@@ -75,3 +75,11 @@
 	draw_color = COLOR_DARK_CYAN
 	offset_key = OFFSET_FACE
 	attached_body_zone = BODY_ZONE_HEAD
+
+// META EDIT - ADDITION - START - DROOL
+/datum/bodypart_overlay/simple/emote/drool
+	icon_state = "drool"
+	draw_color = COLOR_DARK_CYAN
+	offset_key = OFFSET_FACE
+	attached_body_zone = BODY_ZONE_HEAD
+// META EDIT - ADDITION - END - DROOL
