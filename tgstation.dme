@@ -10759,6 +10759,7 @@
 #include "modular_zubbers\modules\wood_walls\code\new_floors.dm"
 #include "modular_zzmeta\code\__DEFINES\traits.dm"
 #include "modular_zzmeta\code\__HELPERS\lists.dm"
+#include "modular_zzmeta\code\controllers\subsystem\persistent_paintings.dm"
 #include "modular_zzmeta\code\controllers\subsystem\sounds.dm"
 #include "modular_zzmeta\code\controllers\subsystem\ticker.dm"
 #include "modular_zzmeta\code\datums\world_topic.dm"
