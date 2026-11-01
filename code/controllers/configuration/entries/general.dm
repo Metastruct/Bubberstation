@@ -401,6 +401,12 @@
 /datum/config_entry/string/request_internet_allowed
 	protection = CONFIG_ENTRY_LOCKED
 
+// META EDIT - ADDITION - START - HEADSHOT_HOST_CONFIG
+/datum/config_entry/string/headshot_allowed
+	protection = CONFIG_ENTRY_LOCKED
+	default = @"i\.gyazo\.com,.\.l3n\.co,static\.f-list\.net/images/,images2\.imgbox\.com,thumbs2\.imgbox\.com,files\.catbox\.moe"
+// META EDIT - ADDITION - END - HEADSHOT_HOST_CONFIG
+
 /datum/config_entry/flag/show_irc_name
 
 /datum/config_entry/flag/no_default_techweb_link

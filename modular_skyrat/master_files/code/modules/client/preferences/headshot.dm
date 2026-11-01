@@ -7,7 +7,11 @@
 	maximum_value_length = MAX_MESSAGE_LEN
 	/// Assoc list of ckeys and their link, used to cut down on chat spam
 	var/list/stored_link = list()
+	// META EDIT - CHANGE - HEADSHOT_HOST_CONFIG - START
+	/* ORIGINAL:
 	var/static/link_regex = regex(@"i\.gyazo.com|.\.l3n\.co|static\.f-list\.net/images/|images2\.imgbox\.com|thumbs2\.imgbox\.com|files\.catbox\.moe") // Catbox, Imgbox, Gyazo, Lensdump, or F-List
+	*/
+	// META EDIT - CHANGE - HEADSHOT_HOST_CONFIG - END
 	var/static/list/valid_extensions = list("jpg", "png", "jpeg") // Regex works fine, if you know how it works
 
 /datum/preference/text/headshot/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
@@ -33,10 +37,14 @@
 		to_chat(usr, span_warning("The image must be one of the following extensions: '[english_list(valid_extensions)]'"))
 		return
 
-	find_index = findtext(value, link_regex)
+	// META EDIT - CHANGE - HEADSHOT_HOST_CONFIG - START
+	find_index = findtext(value, get_allowed_link_regex())
+	// ORIGINAL: find_index = findtext(value, link_regex)
 	if(find_index != 9)
-		to_chat(usr, span_warning("The image must be hosted on one of the following sites: 'Catbox, Imgbox, Gyazo, Lensdump, F-List'"))
+		to_chat(usr, span_warning("The image must be hosted on one of the following sites: '[get_allowed_hosts()]'"))
+		// ORIGINAL: to_chat(usr, span_warning("The image must be hosted on one of the following sites: 'Catbox, Imgbox, Gyazo, Lensdump, F-List'"))
 		return
+	// META EDIT - CHANGE - HEADSHOT_HOST_CONFIG - END
 
 	apply_headshot(value)
 	return TRUE
@@ -49,3 +57,13 @@
 		log_game("[usr] has set their Headshot image to '[value]'.")
 	stored_link[usr.ckey] = value
 	return TRUE
+
+// META EDIT - ADDITION - START - HEADSHOT_HOST_CONFIG
+/// Builds the allowed-headshot-host regex from the HEADSHOT_ALLOWED config entry (comma separated).
+/datum/preference/text/headshot/proc/get_allowed_link_regex()
+	return regex(replacetext(CONFIG_GET(string/headshot_allowed), ",", "|"))
+
+/// Human readable list of the configured allowed hosts, for the rejection message.
+/datum/preference/text/headshot/proc/get_allowed_hosts()
+	return replacetext(replacetext(CONFIG_GET(string/headshot_allowed), "\\", ""), ",", ", ")
+// META EDIT - ADDITION - END - HEADSHOT_HOST_CONFIG

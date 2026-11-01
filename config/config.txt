@@ -254,6 +254,10 @@ REQUEST_INTERNET_SOUND
 ## Ensure . and / are escaped with \
 REQUEST_INTERNET_ALLOWED youtube\.com\/watch?v=,youtu\.be\/,soundcloud\.com\/,bandcamp\.com\/track\/
 
+## Allowed Headshots URL's comma separated list, similar to above.
+## Ensure . and / are escaped with \
+HEADSHOT_ALLOWED i\.gyazo\.com,.\.l3n\.co,static\.f-list\.net/images/,images2\.imgbox\.com,thumbs2\.imgbox\.com,files\.catbox\.moe
+
 ## In-game features
 
 ## Toggle for having jobs load up from the jobconfig.toml (or jobs.txt) file. Will use codebase defaults if commented out.
