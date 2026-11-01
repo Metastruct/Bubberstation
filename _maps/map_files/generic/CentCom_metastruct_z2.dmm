@@ -4137,7 +4137,7 @@
 /area/centcom/holding/cafe/station/command/cap/private)
 "cAT" = (
 /obj/structure/fake_stairs/wood/directional/north,
-/turf/open/misc/dirt/planet,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "cBe" = (
 /obj/structure/flora/rock/pile/jungle/style_random{
@@ -5556,7 +5556,7 @@
 /obj/structure/chair/sofa/bamboo/right{
 	dir = 4
 	},
-/turf/open/water/hot_spring/icemoon_atmos,
+/turf/open/water/hot_spring/cafe,
 /area/centcom/holding/cafe/ruin/icemoon)
 "dFa" = (
 /obj/structure/window/reinforced/shuttle/indestructible,
@@ -6227,7 +6227,7 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
 	},
-/turf/open/misc/dirt/icemoon,
+/turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
 "ect" = (
 /obj/effect/turf_decal/siding/yellow{
@@ -8412,14 +8412,14 @@
 	pixel_x = 1
 	},
 /obj/structure/wall_torch/spawns_lit/directional/east,
-/turf/open/floor/wood/icemoon,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "fMJ" = (
 /obj/structure/railing/wooden_fencing{
 	dir = 8
 	},
 /obj/structure/fake_stairs/wood/directional/north,
-/turf/open/misc/dirt/planet,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "fMK" = (
 /obj/effect/turf_decal/tile/dark_red/fourcorners,
@@ -9774,7 +9774,7 @@
 	},
 /area/centcom/holding/cafe)
 "gIS" = (
-/turf/open/water/hot_spring/icemoon_atmos,
+/turf/open/water/hot_spring/cafe,
 /area/centcom/holding/cafe/ruin/icemoon)
 "gIT" = (
 /obj/machinery/light/directional/west,
@@ -11026,7 +11026,7 @@
 /obj/structure/chair/sofa/bamboo/right{
 	dir = 8
 	},
-/turf/open/water/hot_spring/icemoon_atmos,
+/turf/open/water/hot_spring/cafe,
 /area/centcom/holding/cafe/ruin/icemoon)
 "hyO" = (
 /obj/effect/turf_decal/box/corners,
@@ -14744,7 +14744,7 @@
 /obj/item/bedsheet/black/double{
 	dir = 1
 	},
-/turf/open/floor/wood,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "kbC" = (
 /obj/structure/bookcase/random/reference,
@@ -15996,7 +15996,7 @@
 /area/centcom/holding/cafe/station/command/cap)
 "lfT" = (
 /obj/structure/flora/ash/leaf_shroom,
-/turf/open/misc/dirt/icemoon,
+/turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
 "lfZ" = (
 /obj/structure/sign/poster/abductor/ayy_recruitment,
@@ -16121,7 +16121,7 @@
 /area/centcom/interlink)
 "llJ" = (
 /obj/structure/wall_torch/spawns_lit/directional/south,
-/turf/open/water/hot_spring/icemoon_atmos,
+/turf/open/water/hot_spring/cafe,
 /area/centcom/holding/cafe/ruin/icemoon)
 "llX" = (
 /obj/structure/flora/grass/jungle,
@@ -17434,7 +17434,7 @@
 	pixel_x = -5;
 	pixel_y = 2
 	},
-/turf/open/floor/wood,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "mhI" = (
 /obj/machinery/atmospherics/pipe/smart/simple/yellow/visible{
@@ -17676,7 +17676,7 @@
 /turf/open/floor/iron,
 /area/centcom/interlink)
 "muA" = (
-/turf/open/floor/wood,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "muV" = (
 /turf/open/indestructible/stone,
@@ -19108,7 +19108,7 @@
 /obj/structure/chair/wood{
 	dir = 4
 	},
-/turf/open/floor/wood,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "nBY" = (
 /obj/structure/chair/sofa/right/brown,
@@ -19789,7 +19789,7 @@
 	pixel_x = -2;
 	pixel_y = 8
 	},
-/turf/open/misc/dirt/icemoon,
+/turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
 "obP" = (
 /obj/effect/turf_decal/box/corners{
@@ -20899,7 +20899,7 @@
 	pixel_y = 3
 	},
 /obj/structure/wall_torch/spawns_lit/directional/south,
-/turf/open/misc/dirt/icemoon,
+/turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
 "oRU" = (
 /obj/machinery/disposal/bin,
@@ -20983,7 +20983,7 @@
 /obj/structure/chair/sofa/bamboo/left{
 	dir = 4
 	},
-/turf/open/water/hot_spring/icemoon_atmos,
+/turf/open/water/hot_spring/cafe,
 /area/centcom/holding/cafe/ruin/icemoon)
 "oWF" = (
 /obj/effect/turf_decal/tile/blue/half/contrasted{
@@ -23140,7 +23140,7 @@
 /area/centcom/holding/cafe/station/service/kitchen)
 "qzE" = (
 /obj/structure/railing/wooden_fencing,
-/turf/open/floor/wood,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "qzK" = (
 /obj/effect/turf_decal/tile/purple/opposingcorners,
@@ -24284,7 +24284,7 @@
 	pixel_y = 7
 	},
 /obj/structure/wall_torch/spawns_lit/directional/west,
-/turf/open/floor/wood/icemoon,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "rxZ" = (
 /obj/effect/turf_decal/siding/wood{
@@ -25980,7 +25980,7 @@
 	pixel_y = 9;
 	pixel_x = 5
 	},
-/turf/open/floor/wood/icemoon,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "sNJ" = (
 /obj/machinery/smartfridge/drying,
@@ -27322,7 +27322,7 @@
 /obj/structure/chair/sofa/bamboo/left{
 	dir = 8
 	},
-/turf/open/water/hot_spring/icemoon_atmos,
+/turf/open/water/hot_spring/cafe,
 /area/centcom/holding/cafe/ruin/icemoon)
 "tLK" = (
 /obj/effect/turf_decal/weather/dirt{
@@ -27545,7 +27545,7 @@
 	pixel_y = -3;
 	pixel_x = 7
 	},
-/turf/open/misc/dirt/icemoon,
+/turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
 "tXz" = (
 /obj/effect/turf_decal/tile/dark_blue/anticorner/contrasted{
@@ -29645,7 +29645,7 @@
 	dir = 1
 	},
 /obj/structure/wall_torch/spawns_lit/directional/east,
-/turf/open/floor/wood,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "vqW" = (
 /obj/structure/table/wood,
@@ -32884,7 +32884,7 @@
 /obj/item/towel{
 	pixel_x = 5
 	},
-/turf/open/floor/wood/icemoon,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "xMY" = (
 /obj/effect/turf_decal/tile/green{
@@ -33111,7 +33111,7 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
 	},
-/turf/open/misc/dirt/icemoon,
+/turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
 "xQE" = (
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
@@ -33143,7 +33143,7 @@
 /obj/item/towel{
 	pixel_x = 5
 	},
-/turf/open/floor/wood/icemoon,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/ruin/icemoon)
 "xSr" = (
 /obj/effect/turf_decal/tile/red/opposingcorners,
