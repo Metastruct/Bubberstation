@@ -4148,7 +4148,7 @@
 "cBg" = (
 /obj/structure/fake_stairs/wood/directional/north,
 /obj/structure/wall_torch/spawns_lit/directional/east,
-/turf/open/space/basic,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/park)
 "cBq" = (
 /obj/effect/turf_decal/trimline/green/filled/arrow_ccw,
@@ -12220,7 +12220,7 @@
 "ilX" = (
 /obj/structure/fake_stairs/wood/directional/north,
 /obj/structure/wall_torch/spawns_lit/directional/west,
-/turf/open/space/basic,
+/turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/park)
 "imd" = (
 /obj/structure/flora/rock/pile/jungle/style_random,
@@ -17052,6 +17052,10 @@
 	dir = 9
 	},
 /area/centcom/holding/cafe)
+"lUk" = (
+/obj/effect/light_emitter/fake_outdoors,
+/turf/open/misc/dirt/planet,
+/area/centcom/holding/cafe/park)
 "lUy" = (
 /obj/structure/rack/wooden,
 /obj/item/reagent_containers/cup/glass/trophy{
@@ -18814,6 +18818,7 @@
 /area/centcom/holding/cafe/station/command)
 "npV" = (
 /obj/structure/flora/grass/jungle/a/style_random,
+/obj/effect/light_emitter/fake_outdoors,
 /turf/open/misc/grass/planet{
 	smoothing_flags = 0
 	},
@@ -28918,6 +28923,11 @@
 	icon_state = "darkfull"
 	},
 /area/centcom/holding/cafe/station/command)
+"uSd" = (
+/obj/structure/flora/grass/jungle/b/style_random,
+/obj/effect/light_emitter/fake_outdoors,
+/turf/open/misc/grass/planet,
+/area/centcom/holding/cafe/park)
 "uSB" = (
 /obj/structure/table,
 /obj/machinery/processor{
@@ -84015,7 +84025,7 @@ ayI
 aeR
 aCU
 ayI
-ayI
+lUk
 ayI
 uDu
 uYt
@@ -84784,7 +84794,7 @@ ayI
 aeR
 tSX
 iHv
-kWr
+uSd
 aCU
 ayI
 ayI
