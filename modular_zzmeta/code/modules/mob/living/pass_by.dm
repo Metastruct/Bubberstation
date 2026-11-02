@@ -2,9 +2,8 @@
 #define MOB_PASSBY_OFFSET 8
 /// How far each mob is offset when squeezing past in a gap.
 #define MOB_PASSBY_SQUEEZE_OFFSET 4
-/// How long the offset takes to slide in/out, in deciseconds.
+#define MOB_PASSBY_OFFSET_SOURCE "meta_passby_offset"
 #define MOB_PASSBY_SLIDE_TIME 1
-#define MOB_PASSBY_ANIM_TAG "meta_passby_offset"
 /// cooldown like it used to have
 #define MOB_SHOVE_COOLDOWN (5 SECONDS)
 
@@ -106,16 +105,13 @@
 	if(offset_x == passby_offset_x && offset_y == passby_offset_y)
 		return
 
-	var/base_x = pixel_x - passby_offset_x
-	var/base_y = pixel_y - passby_offset_y
-	animate(src, tag = MOB_PASSBY_ANIM_TAG)
-	pixel_x = base_x
-	pixel_y = base_y
+	var/was_offset = passby_offset_x || passby_offset_y
 	passby_offset_x = offset_x
 	passby_offset_y = offset_y
-	animate(src, pixel_x = base_x + offset_x, pixel_y = base_y + offset_y, time = MOB_PASSBY_SLIDE_TIME, easing = SINE_EASING, tag = MOB_PASSBY_ANIM_TAG)
+	add_offsets(MOB_PASSBY_OFFSET_SOURCE, x_add = offset_x, y_add = offset_y, animate_time = MOB_PASSBY_SLIDE_TIME)
 
-	RegisterSignal(src, COMSIG_MOVABLE_MOVED, PROC_REF(on_passby_moved))
+	if(!was_offset)
+		RegisterSignal(src, COMSIG_MOVABLE_MOVED, PROC_REF(on_passby_moved))
 
 /mob/living/proc/pick_passby_side(travel_dir)
 	var/left = turn(travel_dir, 90)
@@ -152,12 +148,12 @@
 	if(!passby_offset_x && !passby_offset_y)
 		return
 	UnregisterSignal(src, COMSIG_MOVABLE_MOVED)
-	animate(src, pixel_x = pixel_x - passby_offset_x, pixel_y = pixel_y - passby_offset_y, time = MOB_PASSBY_SLIDE_TIME, easing = SINE_EASING, tag = MOB_PASSBY_ANIM_TAG)
 	passby_offset_x = 0
 	passby_offset_y = 0
+	remove_offsets(MOB_PASSBY_OFFSET_SOURCE, animate_time = MOB_PASSBY_SLIDE_TIME)
 
 #undef MOB_PASSBY_OFFSET
 #undef MOB_PASSBY_SQUEEZE_OFFSET
+#undef MOB_PASSBY_OFFSET_SOURCE
 #undef MOB_PASSBY_SLIDE_TIME
-#undef MOB_PASSBY_ANIM_TAG
 #undef MOB_SHOVE_COOLDOWN
