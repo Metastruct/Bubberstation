@@ -5,7 +5,7 @@
 	item_slot = ITEM_SLOT_UNDERWEAR
 
 /datum/strippable_item/mob_item_slot/underwear/should_show(atom/source, mob/user)
-	return ..() && !is_groin_covered(source)
+	return ..() && !is_groin_covered(source, user)
 
 /datum/strippable_item/mob_item_slot/bra
 	key = STRIPPABLE_ITEM_BRA

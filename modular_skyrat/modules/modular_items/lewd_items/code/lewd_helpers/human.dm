@@ -20,25 +20,28 @@
 */
 
 /// Are we wearing something that covers our chest?
-/mob/living/carbon/human/proc/is_topless()
-	// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/is_topless()
+/mob/living/carbon/human/proc/is_topless(mob/living/viewer = null)
 	// ORIGINAL: return (!(wear_suit) || !(wear_suit.body_parts_covered & CHEST)) && (!(w_uniform) || !(w_uniform.body_parts_covered & CHEST))
-	return !is_body_zone_covered(CHEST)
-	// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
+	return !is_body_zone_covered(CHEST, viewer = viewer)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 
 /// Are we wearing something that covers our groin?
-/mob/living/carbon/human/proc/is_bottomless()
-	// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/is_bottomless()
+/mob/living/carbon/human/proc/is_bottomless(mob/living/viewer = null)
 	// ORIGINAL: return (!(wear_suit) || !(wear_suit.body_parts_covered & GROIN)) && (!(w_uniform) || !(w_uniform.body_parts_covered & GROIN) || is_groin_exposing_uniform(w_uniform))
-	return !is_body_zone_covered(GROIN)
-	// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
+	return !is_body_zone_covered(GROIN, viewer = viewer)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 
 /// Are we wearing something that covers our shoes?
-/mob/living/carbon/human/proc/is_barefoot()
-	// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/is_barefoot()
+/mob/living/carbon/human/proc/is_barefoot(mob/living/viewer = null)
 	// ORIGINAL: return (!(wear_suit) || !(wear_suit.body_parts_covered & FEET)) && (!(shoes) || !(shoes.body_parts_covered & FEET))
-	return !is_body_zone_covered(FEET)
-	// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
+	return !is_body_zone_covered(FEET, viewer = viewer)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 
 /mob/living/carbon/human/proc/is_hands_uncovered()
 	return (gloves?.body_parts_covered & ARMS)
@@ -47,7 +50,10 @@
 	return (head?.body_parts_covered & HEAD)
 
 /// Returns true if the human has an accessible penis for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
-/mob/living/carbon/human/proc/has_penis(required_state = REQUIRE_GENITAL_ANY)
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/has_penis(required_state = REQUIRE_GENITAL_ANY)
+/mob/living/carbon/human/proc/has_penis(required_state = REQUIRE_GENITAL_ANY, mob/living/viewer = null)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 	var/obj/item/organ/genital/genital = get_organ_slot(ORGAN_SLOT_PENIS)
 	if(!genital)
 		return FALSE
@@ -58,18 +64,21 @@
 		if(REQUIRE_GENITAL_EXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
-			return genital.is_exposed()
+			return genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
-			return !genital.is_exposed()
+			return !genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
 /// Returns true if the human has a accessible balls for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
-/mob/living/carbon/human/proc/has_balls(required_state = REQUIRE_GENITAL_ANY)
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/has_balls(required_state = REQUIRE_GENITAL_ANY)
+/mob/living/carbon/human/proc/has_balls(required_state = REQUIRE_GENITAL_ANY, mob/living/viewer = null)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 	var/obj/item/organ/genital/genital = get_organ_slot(ORGAN_SLOT_TESTICLES)
 	if(!genital)
 		return FALSE
@@ -80,18 +89,21 @@
 		if(REQUIRE_GENITAL_EXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
-			return genital.is_exposed()
+			return genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// META EDIT - CHANGE - UNIFIED_EXPOSURE - ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
-			return !genital.is_exposed()
+			return !genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
 /// Returns true if the human has an accessible vagina for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
-/mob/living/carbon/human/proc/has_vagina(required_state = REQUIRE_GENITAL_ANY)
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/has_vagina(required_state = REQUIRE_GENITAL_ANY)
+/mob/living/carbon/human/proc/has_vagina(required_state = REQUIRE_GENITAL_ANY, mob/living/viewer = null)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 	var/obj/item/organ/genital/genital = get_organ_slot(ORGAN_SLOT_VAGINA)
 	if(!genital)
 		return FALSE
@@ -102,18 +114,21 @@
 		if(REQUIRE_GENITAL_EXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// META EDIT - CHANGE - UNIFIED_EXPOSURE - ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
-			return genital.is_exposed()
+			return genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// META EDIT - CHANGE - UNIFIED_EXPOSURE - ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
-			return !genital.is_exposed()
+			return !genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
 /// Returns true if the human has a accessible breasts for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
-/mob/living/carbon/human/proc/has_breasts(required_state = REQUIRE_GENITAL_ANY)
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/has_breasts(required_state = REQUIRE_GENITAL_ANY)
+/mob/living/carbon/human/proc/has_breasts(required_state = REQUIRE_GENITAL_ANY, mob/living/viewer = null)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 	var/obj/item/organ/genital/genital = get_organ_slot(ORGAN_SLOT_BREASTS)
 	if(!genital)
 		return FALSE
@@ -124,18 +139,21 @@
 		if(REQUIRE_GENITAL_EXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_topless()
-			return genital.is_exposed()
+			return genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_topless()
-			return !genital.is_exposed()
+			return !genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
 /// Returns true if the human has an accessible anus for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
-/mob/living/carbon/human/proc/has_anus(required_state = REQUIRE_GENITAL_ANY)
+// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+// ORIGINAL: /mob/living/carbon/human/proc/has_anus(required_state = REQUIRE_GENITAL_ANY)
+/mob/living/carbon/human/proc/has_anus(required_state = REQUIRE_GENITAL_ANY, mob/living/viewer = null)
+// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 	if(issilicon(src))
 		return TRUE
 	var/obj/item/organ/genital/genital = get_organ_slot(ORGAN_SLOT_ANUS)
@@ -148,12 +166,12 @@
 		if(REQUIRE_GENITAL_EXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
-			return genital.is_exposed()
+			return genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
 			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
 			// ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
-			return !genital.is_exposed()
+			return !genital.is_exposed(viewer)
 			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE

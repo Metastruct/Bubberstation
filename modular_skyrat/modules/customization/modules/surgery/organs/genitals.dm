@@ -75,7 +75,7 @@
 /obj/item/organ/genital/proc/build_from_accessory(datum/sprite_accessory/genital/accessory, datum/dna/DNA)
 	return
 
-/obj/item/organ/genital/proc/is_exposed()
+/obj/item/organ/genital/proc/is_exposed(mob/living/viewer = null)  // META EDIT - CHANGE - UNIFIED_EXPOSURE added viewer
 	if(!owner)
 		return TRUE
 
@@ -88,7 +88,7 @@
 		if(GENITAL_ALWAYS_SHOW)
 			return TRUE
 		if(GENITAL_HIDDEN_BY_CLOTHES)
-			return !human.is_body_zone_covered(genital_location) // META EDIT - CHANGE - UNIFIED_EXPOSURE
+			return !human.is_body_zone_covered(genital_location, viewer = viewer) // META EDIT - CHANGE - UNIFIED_EXPOSURE
 		else
 			return FALSE
 

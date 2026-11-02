@@ -120,7 +120,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			var/obj/item/organ/genital/required_part = user.get_organ_slot(thing)
 			if(isnull(required_part))
 				return FALSE
-			if(!required_part.is_exposed())
+			if(!required_part.is_exposed(target))
 				return FALSE
 
 	if(target_required_parts.len)
@@ -128,7 +128,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			var/obj/item/organ/genital/required_part = target.get_organ_slot(thing)
 			if(isnull(required_part))
 				return FALSE
-			if(!required_part.is_exposed())
+			if(!required_part.is_exposed(user))
 				return FALSE
 
 	for(var/requirement in interaction_requires)

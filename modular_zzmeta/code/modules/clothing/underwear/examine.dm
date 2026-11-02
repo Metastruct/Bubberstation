@@ -5,11 +5,7 @@
 	var/t_He = p_They()
 	var/t_is = p_are()
 
-	var/groin_visible = !is_groin_covered(src)
-	if(groin_visible && w_uniform)
-		groin_visible = (body_position == LYING_DOWN) || (user.body_position == LYING_DOWN)
-
-	if(w_underwear && groin_visible && !HAS_TRAIT(w_underwear, TRAIT_EXAMINE_SKIP))
+	if(w_underwear && !is_groin_covered(src, user) && !HAS_TRAIT(w_underwear, TRAIT_EXAMINE_SKIP))
 		. += "[t_He] [t_is] wearing [w_underwear.examine_title_worn(user)]."
 	if(w_bra && !is_chest_covered(src) && !HAS_TRAIT(w_bra, TRAIT_EXAMINE_SKIP))
 		. += "[t_He] [t_is] wearing [w_bra.examine_title_worn(user)]."
