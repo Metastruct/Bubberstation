@@ -4,6 +4,7 @@
  * @license MIT
  */
 
+import { chatRenderer } from '../chat/renderer'; // META EDIT - ADDITION - CHAT_REPEAT_SCALE
 import { FONTS_DISABLED } from './constants';
 import { setClientTheme } from './themes';
 import type { SettingsState } from './types';
@@ -84,4 +85,12 @@ export function generalSettingsHandler(update: SettingsState): void {
   // META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS, LOOC_NAME_COLOR
   setChatNameColorMix(update.chatNameColorMixSay, update.chatNameColorMixRadio, update.chatNameColorMixLooc);
   // META EDIT - ADDITION - END
+
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  chatRenderer.setMessageScaling(
+    update.chatScaling,
+    update.chatScalingMax,
+    update.chatScalingRepeats,
+  );
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
 }

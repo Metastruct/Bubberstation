@@ -4,6 +4,7 @@
  * @license MIT
  */
 
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { createLogger } from 'tgui/logging';
 import { Tooltip } from 'tgui-core/components';
@@ -87,12 +88,14 @@ function handleImageError(e) {
 /**
  * Assigns a "times-repeated" badge to the message.
  */
-function updateMessageBadge(message) {
+function updateMessageBadge(message, scale = 1) {
+  // META EDIT - CHANGE - CHAT_REPEAT_SCALE
   const { node, times } = message;
   if (!node || !times) {
     // Nothing to update
     return;
   }
+  node.style.fontSize = scale > 1 ? `${scale * 100}%` : ''; // META EDIT - CHANGE - CHAT_REPEAT_SCALE
   const foundBadge = node.querySelector('.Chat__badge');
   const badge = foundBadge || document.createElement('div');
   badge.textContent = times;
@@ -103,6 +106,56 @@ function updateMessageBadge(message) {
   if (!foundBadge) {
     node.appendChild(badge);
   }
+}
+
+/**
+ * Highlight chat sounds - Cooldown check + play sound for client.
+ */
+const HIGHLIGHT_SOUND_COOLDOWN_SECONDS = 3;
+let lastHighlightSoundAt = 0;
+
+function playHighlightSound(soundFile: string, volume: number) {
+  const now = Date.now();
+  if (now - lastHighlightSoundAt < HIGHLIGHT_SOUND_COOLDOWN_SECONDS * 1000) {
+    return;
+  }
+
+  lastHighlightSoundAt = now;
+  Byond.command(`.sound '${soundFile}' volume=${Math.round(volume * 100)}`);
+}
+
+const RADIO_CHANNEL_LABEL = /^\[[^\]]+\]\s*/;
+
+// Check if a text node is a radio channel name, e.g. "[Radio] ".
+function isRadioChannelName(node: Text): boolean {
+  const text = node.textContent || '';
+  const match = RADIO_CHANNEL_LABEL.exec(text);
+  return Boolean(
+    node.parentElement?.classList.contains('name') &&
+    match &&
+    match[0].length === text.length,
+  );
+}
+
+// Split the radio channel label from the name node so that it can be highlighted separately. (used to avoid highlighting radio channel names)
+function splitRadioChannelLabel(root: HTMLElement): void {
+  const nameNodes = root.querySelectorAll('.name');
+  for (let i = 0; i < nameNodes.length; i++) {
+    const firstChild = nameNodes[i].firstChild;
+    if (firstChild?.nodeType !== Node.TEXT_NODE) {
+      continue;
+    }
+    const text = firstChild.textContent || '';
+    const match = RADIO_CHANNEL_LABEL.exec(text);
+    if (match && match[0].length < text.length) {
+      (firstChild as Text).splitText(match[0].length);
+    }
+  }
+}
+
+// Check if a message is a self-action message, such as "You put on your helmet.", we don't want to highlight it as, it's you doing the action.
+function isSelfActionMessage(text: string): boolean {
+  return /^\s*You\b/.test(text);
 }
 
 class ChatRenderer {
@@ -119,6 +172,11 @@ class ChatRenderer {
   highlightParsers: Array<any> | null;
   currentJob: string | null;
   currentCharacter: string | null;
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  messageScaling: boolean;
+  messageScalingMax: number;
+  messageScalingRepeats: number;
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
   handleScroll: (type: any) => void;
 
   constructor() {
@@ -134,6 +192,11 @@ class ChatRenderer {
     this.scrollNode = null;
     this.currentJob = null;
     this.currentCharacter = null;
+    // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+    this.messageScaling = true;
+    this.messageScalingMax = 300;
+    this.messageScalingRepeats = 20;
+    // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
     this.scrollTracking = true;
     this.lastScrollHeight = 0;
     this.handleScroll = (evt) => {
@@ -186,7 +249,9 @@ class ChatRenderer {
 
   tryFlushQueue() {
     if (this.isReady() && this.queue.length > 0) {
-      this.processBatch(this.queue);
+      this.processBatch(this.queue, {
+        suppressHighlightSound: true,
+      });
       this.queue = [];
     }
   }
@@ -196,6 +261,33 @@ class ChatRenderer {
       this.rootNode!.style.setProperty(key, style[key]);
     }
   }
+
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  getRepeatScale(times: number): number {
+    if (!this.messageScaling) {
+      return 1;
+    }
+    const max = this.messageScalingMax / 100;
+    if (max <= 1) {
+      return 1;
+    }
+    const repeats = Math.max(2, this.messageScalingRepeats);
+    return Math.min(1 + ((times - 1) * (max - 1)) / (repeats - 1), max);
+  }
+
+  /** Applies the scaling settings and resizes already-combined messages. */
+  setMessageScaling(enabled: boolean, maxScale: number, maxRepeats: number) {
+    this.messageScaling = enabled;
+    this.messageScalingMax = maxScale;
+    this.messageScalingRepeats = maxRepeats;
+    for (const message of this.messages) {
+      if (message.times && message.node) {
+        const scale = this.getRepeatScale(message.times);
+        message.node.style.fontSize = scale > 1 ? `${scale * 100}%` : '';
+      }
+    }
+  }
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
 
   setJob(title) {
     this.currentJob =
@@ -239,6 +331,10 @@ class ChatRenderer {
       const matchWord = setting.matchWord;
       const matchCase = setting.matchCase;
       const enabled = setting.enabled;
+      const playSound = Boolean(setting.playSound);
+      const soundFile =
+        setting.soundFile || 'sound/misc/highlight_sounds/Beep.ogg';
+      const soundVolume = Number(setting.soundVolume ?? 0.5);
       const jobs = String(setting.jobFilter || '')
         .split(',')
         .map((str) => str.trim().toLowerCase())
@@ -321,6 +417,9 @@ class ChatRenderer {
         highlightRegex,
         highlightColor,
         highlightWholeMessage,
+        playSound,
+        soundFile,
+        soundVolume,
         jobs,
         characters,
       });
@@ -383,9 +482,17 @@ class ChatRenderer {
 
   processBatch(
     batch,
-    options: { prepend?: boolean; notifyListeners?: boolean } = {},
+    options: {
+      prepend?: boolean;
+      notifyListeners?: boolean;
+      suppressHighlightSound?: boolean;
+    } = {},
   ) {
-    const { prepend, notifyListeners = true } = options;
+    const {
+      prepend,
+      notifyListeners = true,
+      suppressHighlightSound = false,
+    } = options;
     const now = Date.now();
     // Queue up messages until chat is ready
     if (!this.isReady()) {
@@ -410,7 +517,13 @@ class ChatRenderer {
       const combinable = this.getCombinableMessage(message);
       if (combinable) {
         combinable.times = (combinable.times || 1) + 1;
-        updateMessageBadge(combinable);
+        updateMessageBadge(combinable, this.getRepeatScale(combinable.times)); // META EDIT - CHANGE - CHAT_REPEAT_SCALE
+        // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+        // The message just grew, which pushes it below the Chatinput.
+        if (this.scrollTracking) {
+          this.scrollToBottom();
+        }
+        // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
         continue;
       }
       // Reuse message node
@@ -480,15 +593,21 @@ class ChatRenderer {
 
           const reactRoot = createRoot(childNode);
 
-          reactRoot.render(
-            <Element {...outputProps}>
-              <span dangerouslySetInnerHTML={oldHtml} />
-            </Element>,
-          );
+          // `flushSync()` because of a chat scroll issue where whether or not
+          // the line wraps was being decided before the name loaded
+          flushSync(() => {
+            reactRoot.render(
+              <Element {...outputProps}>
+                <span dangerouslySetInnerHTML={oldHtml} />
+              </Element>,
+            );
+          });
         }
 
         // Highlight text
         if (!message.avoidHighlighting && this.highlightParsers) {
+          splitRadioChannelLabel(node);
+          let messageHighlighted = false;
           this.highlightParsers
             .filter((parser) => parser.enabled && this.matchesFilters(parser))
             .forEach((parser) => {
@@ -497,6 +616,7 @@ class ChatRenderer {
                 parser.highlightRegex,
                 parser.highlightWords,
                 (text) => createHighlightNode(text, parser.highlightColor),
+                (textNode) => !isRadioChannelName(textNode), // Exclude radio channel names from highlighting
               );
               if (highlighted && parser.highlightWholeMessage) {
                 node.className += ' ChatMessage--highlighted';
@@ -504,6 +624,19 @@ class ChatRenderer {
                   '--highlight-color',
                   parser.highlightColor,
                 );
+              }
+              // Highlight sounds - Plays a sound once per message if enabled, will not play if the text was prased. (aka when relogging or reapplying chat).
+              if (highlighted && parser.playSound && !messageHighlighted) {
+                messageHighlighted = true;
+                if (
+                  !suppressHighlightSound &&
+                  !isSelfActionMessage(node.textContent || '')
+                ) {
+                  playHighlightSound(
+                    parser.soundFile,
+                    parser.soundVolume ?? 0.5,
+                  );
+                }
               }
             });
         }
@@ -530,7 +663,7 @@ class ChatRenderer {
         );
         message.type = typeDef?.type || MESSAGE_TYPE_UNKNOWN;
       }
-      updateMessageBadge(message);
+      updateMessageBadge(message, this.getRepeatScale(message.times || 1)); // META EDIT - CHANGE - CHAT_REPEAT_SCALE
       if (!countByType[message.type]) {
         countByType[message.type] = 0;
       }
@@ -623,6 +756,7 @@ class ChatRenderer {
     // Repopulate the chat log
     this.processBatch(messages, {
       notifyListeners: false,
+      suppressHighlightSound: true,
     });
   }
 

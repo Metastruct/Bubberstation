@@ -206,6 +206,48 @@ export function SettingsGeneral(props) {
           />
         </LabeledList.Item>
         {/* META EDIT - ADDITION - END */}
+        {/* META EDIT - ADDITION - START - CHAT_REPEAT_SCALE */}
+        <LabeledList.Item label="Repeated messages">
+          <Button.Checkbox
+            checked={settings.chatScaling}
+            tooltip="Grow a message's size as it gets repeated"
+            onClick={() =>
+              updateSettings({ chatScaling: !settings.chatScaling })
+            }
+          >
+            Scale with repeat count
+          </Button.Checkbox>
+        </LabeledList.Item>
+        <LabeledList.Item label="Max repeat size">
+          <Slider
+            width="100%"
+            step={10}
+            stepPixelSize={10}
+            minValue={100}
+            maxValue={500}
+            value={settings.chatScalingMax}
+            unit="%"
+            disabled={!settings.chatScaling}
+            format={(value) => toFixed(value)}
+            onChange={(e, value) => updateSettings({ chatScalingMax: value })}
+          />
+        </LabeledList.Item>
+        <LabeledList.Item label="Repeats to max">
+          <Slider
+            width="100%"
+            step={1}
+            stepPixelSize={10}
+            minValue={2}
+            maxValue={50}
+            value={settings.chatScalingRepeats}
+            disabled={!settings.chatScaling}
+            format={(value) => toFixed(value)}
+            onChange={(e, value) =>
+              updateSettings({ chatScalingRepeats: value })
+            }
+          />
+        </LabeledList.Item>
+        {/* META EDIT - ADDITION - END - CHAT_REPEAT_SCALE */}
       </LabeledList>
       <Divider />
       {/* META EDIT - CHANGE - START - LAYOUT_HORIZONTAL_OVERFLOW */}

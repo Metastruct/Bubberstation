@@ -13,6 +13,11 @@ export const settingsSchema = z.object({
   chatNameColorMixRadio: z.number(),
   chatNameColorMixLooc: z.number(),
   // META EDIT - ADDITION - END
+  // META EDIT - ADDITION - START - CHAT_REPEAT_SCALE
+  chatScaling: z.boolean(),
+  chatScalingMax: z.number(),
+  chatScalingRepeats: z.number(),
+  // META EDIT - ADDITION - END - CHAT_REPEAT_SCALE
   fontFamily: z.string(),
   fontSize: z.number(),
   initialized: z.boolean(),
@@ -35,6 +40,9 @@ export type HighlightSetting = {
   matchCase: boolean;
   matchWord: boolean;
   enabled: boolean;
+  playSound: boolean;
+  soundFile: string;
+  soundVolume: number;
   /** Comma-separated job titles this highlight is limited to. Empty = all jobs. */
   jobFilter: string;
   /** Character names this highlight is limited to. Empty = all characters. */

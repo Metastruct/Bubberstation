@@ -63,6 +63,18 @@
 /datum/preference_middleware/limbs_and_markings/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
 	target.dna.species.body_markings = LAZYCOPY(preferences.body_markings)
 
+	// META EDIT - ADDITION - START - EYE_PREVIEW_RESET
+	// regenerate_organs sees the same eyes and basically never replaces the fake eyes.
+	if(visuals_only)
+		var/obj/item/organ/eyes/preview_eyes = target.get_organ_slot(ORGAN_SLOT_EYES)
+		if(preview_eyes)
+			preview_eyes.icon_state = initial(preview_eyes.icon_state)
+			preview_eyes.eye_icon = initial(preview_eyes.eye_icon)
+			preview_eyes.eye_icon_state = initial(preview_eyes.eye_icon_state)
+			preview_eyes.iris_overlay = initial(preview_eyes.iris_overlay)
+			preview_eyes.blink_animation = initial(preview_eyes.blink_animation)
+	// META EDIT - ADDITION - END - EYE_PREVIEW_RESET
+
 	var/list/visited_body_zones = list()
 	for(var/key in preferences.augments)
 		var/datum/augment_item/aug = GLOB.augment_items[preferences.augments[key]]

@@ -86,9 +86,16 @@ export async function reloadByondCache(bundleDir: string): Promise<void> {
     return;
   }
 
-  const pids = cacheDirs.map((cacheDir) => {
-    return parseInt(cacheDir.split('\\cache\\tmp')[1], 10);
-  });
+  // META EDIT - CHANGE - START - WINE_CACHE_PID
+  // ORIGINAL: const pids = cacheDirs.map((cacheDir) => {
+  // ORIGINAL:   return parseInt(cacheDir.split('\\cache\\tmp')[1], 10);
+  // ORIGINAL: });
+  const pids = cacheDirs
+    .map((cacheDir) =>
+      parseInt(path.basename(cacheDir).replace(/^tmp/, ''), 10),
+    )
+    .filter((pid) => Number.isInteger(pid) && pid > 0);
+  // META EDIT - CHANGE - END - WINE_CACHE_PID
 
   const dssPromise = DreamSeeker.getInstancesByPids(pids);
   // Copy assets

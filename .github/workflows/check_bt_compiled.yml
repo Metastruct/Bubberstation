@@ -11,6 +11,7 @@ on:
       - "modular_skyrat/**/*.bt.json"
       - "modular_zubbers/**/*.bt.json"
       # BUBBER EDIT END
+      - "modular_zzmeta/**/*.bt.json" # META EDIT - ADDITION - BEHAVIOR_TREE_COMPILER
       - "tools/build_bt.py"
 
 jobs:

@@ -182,7 +182,6 @@ DEFINE_BITFIELD(smoothing_junction, list(
 #define SMOOTH_GROUP_CONCRETE_WALLS S_OBJ(18) ///turf/closed/wall/concrete
 
 // BUBBER EDIT ADDITION
-#define SMOOTH_GROUP_SHIPWALLS S_OBJ(19)	///turf/closed/wall/mineral/titanium/spaceship
 #define SMOOTH_GROUP_STONE_WALLS S_OBJ(20) ///turf/closed/wall/mineral/stone, /obj/structure/falsewall/stone
 //BUBBER EDIT END
 
@@ -192,6 +191,7 @@ DEFINE_BITFIELD(smoothing_junction, list(
 #define SMOOTH_GROUP_WINDOW_FULLTILE_BRONZE S_OBJ(23) ///obj/structure/window/bronze/fulltile
 #define SMOOTH_GROUP_WINDOW_FULLTILE_PLASTITANIUM S_OBJ(24) ///turf/closed/indestructible/opsglass, /obj/structure/window/reinforced/plasma/plastitanium
 #define SMOOTH_GROUP_WINDOW_FULLTILE_SHUTTLE S_OBJ(25) ///obj/structure/window/reinforced/shuttle
+#define SMOOTH_GROUP_WINDOW_FULLTILE_CULT  S_OBJ(26) ///obj/structure/window/cult/fulltile
 
 #define SMOOTH_GROUP_LATTICE S_OBJ(31) ///obj/structure/lattice
 #define SMOOTH_GROUP_CATWALK S_OBJ(32) ///obj/structure/lattice/catwalk

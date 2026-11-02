@@ -63,9 +63,6 @@
 	 * do NOT add channels to this for little reason as it can add considerable memory usage.
 	 */
 	var/list/important_recursive_contents
-	///contains every client mob corresponding to every client eye in this container. lazily updated by SSparallax and is sparse:
-	///only the last container of a client eye has this list assuming no movement since SSparallax's last fire
-	var/list/client_mobs_in_contents
 
 	/// String representing the spatial grid groups we want to be held in.
 	/// acts as a key to the list of spatial grid contents types we exist in via SSspatial_grid.spatial_grid_categories.
@@ -121,6 +118,19 @@
 
 	/// The blip variant to use for blip calculation.
 	var/blip_number = "1"
+
+	// META EDIT - ADDITION - START - TTS_ESPEAK_CUSTOM_VOICE
+	/// Free-form eSpeak spec ("<voice> [speed=] [pitch=] [amplitude=]"), only
+	/// honored when the selected TTS voice is an eSpeak one. See tools/tts-sam.
+	var/tts_custom_voice = ""
+	// META EDIT - ADDITION - END - TTS_ESPEAK_CUSTOM_VOICE
+
+	// META EDIT - ADDITION - START - TTS_WHISPER_VOICE
+	/// TTS voice used only while whispering. Empty means "same as normal voice".
+	var/tts_whisper_voice = ""
+	/// Free-form eSpeak spec used only while whispering (see tts_custom_voice).
+	var/tts_whisper_custom = ""
+	// META EDIT - ADDITION - END - TTS_WHISPER_VOICE
 
 	/// Datum that keeps all data related to zero-g drifting and handles related code/comsigs
 	var/datum/drift_handler/drift_handler
@@ -252,8 +262,6 @@
 
 	if(spatial_grid_key)
 		SSspatial_grid.force_remove_from_grid(src)
-
-	LAZYNULL(client_mobs_in_contents)
 
 #ifndef DISABLE_DREAMLUAU
 	// These lists cease existing when src does, so we need to clear any lua refs to them that exist.
@@ -832,8 +840,6 @@
 					setDir(first_step_dir)
 				else if(!inertia_moving)
 					newtonian_move(dir2angle(direct))
-				if(client_mobs_in_contents)
-					update_parallax_contents()
 			moving_diagonally = 0
 			return
 
@@ -907,11 +913,6 @@
 
 	if (!moving_diagonally && !inertia_moving && momentum_change && movement_dir)
 		newtonian_move(dir2angle(movement_dir))
-	// If we ain't moving diagonally right now, update our parallax
-	// We don't do this all the time because diag movements should trigger one call to this, not two
-	// Waste of cpu time, and it fucks the animate
-	if (!moving_diagonally && client_mobs_in_contents)
-		update_parallax_contents()
 
 	SEND_SIGNAL(src, COMSIG_MOVABLE_MOVED, old_loc, movement_dir, forced, old_locs, momentum_change)
 
@@ -1000,8 +1001,8 @@
 	if(!QDELETED(throwing))
 		throwing.finalize(hit = TRUE, target = bumped_atom)
 		. = TRUE
-		if(QDELETED(bumped_atom))
-			return
+	if(QDELETED(bumped_atom))
+		return TRUE
 	bumped_atom.Bumped(src)
 
 /atom/movable/Exited(atom/movable/gone, direction)
@@ -1756,9 +1757,10 @@
 /atom/movable/proc/setGrabState(newstate)
 	if(newstate == grab_state)
 		return
-	SEND_SIGNAL(src, COMSIG_MOVABLE_SET_GRAB_STATE, newstate)
 	. = grab_state
 	grab_state = newstate
+	SEND_SIGNAL(src, COMSIG_MOVABLE_SET_GRAB_STATE, grab_state)
+	SEND_SIGNAL(pulling, COMSIG_MOVABLE_CHANGED_GRABBED_STATE, grab_state)
 	switch(grab_state) // Current state.
 		if(GRAB_PASSIVE)
 			pulling.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED), CHOKEHOLD_TRAIT)

@@ -179,7 +179,7 @@ GLOBAL_LIST_INIT(message_modes_stat_limits, list(
 			message_range = 1
 			// this is where deathgasping is processed
 			if(stat == HARD_CRIT)
-				var/health_diff = round(-HEALTH_THRESHOLD_DEAD + health)
+				var/health_diff = round(-dead_threshold + health)
 				// If we cut our message short, abruptly end it with a-..
 				var/message_len = length_char(message)
 				message = copytext_char(message, 1, health_diff) + "[message_len > health_diff ? "-.." : "..."]"
@@ -357,7 +357,8 @@ GLOBAL_LIST_INIT(message_modes_stat_limits, list(
 			if(deaf_message)
 				deaf_type = MSG_VISUAL
 				message = deaf_message
-				return show_message(message, MSG_VISUAL, deaf_message, deaf_type, avoid_highlight)
+				show_message(message, MSG_VISUAL, deaf_message, deaf_type, avoid_highlight)
+				return FALSE // Return false so TTS doesn't attempt to read this message.
 			return FALSE
 		// Out of message range but within eavesdrop range - alter displayed message
 		if(outside_dist > 0)
@@ -504,7 +505,10 @@ GLOBAL_LIST_INIT(message_modes_stat_limits, list(
 
 /mob/living/silicon/get_tts_voice(list/filter, list/special_filter)
 	. = ..()
-	special_filter |= TTS_FILTER_SILICON
+	// META EDIT - CHANGE - TTS_SILICON_EFFECT
+	// ORIGINAL: special_filter |= TTS_FILTER_SILICON
+	var/silicon_effect = client?.prefs.read_preference(/datum/preference/choiced/tts_silicon_effect) || "blend"
+	special_filter |= "[TTS_FILTER_SILICON]:[silicon_effect]"
 
 /mob/living/proc/clear_saypopup(image/say_popup)
 	LAZYREMOVE(update_on_z, say_popup)

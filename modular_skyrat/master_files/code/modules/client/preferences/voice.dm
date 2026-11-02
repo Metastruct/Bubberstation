@@ -14,6 +14,20 @@
 
 	return list("invalid")
 
+// META EDIT - ADDITION - START - TTS_DEFAULT_NONE
+/datum/preference/choiced/voice/create_default_value()
+	if(SStts.tts_enabled)
+		return TTS_VOICE_NONE
+	return ..() // TTS off: choices are just list("invalid")
+
+/datum/preference/choiced/voice/create_random_value(datum/preferences/preferences)
+	if(!SStts.tts_enabled)
+		return ..(preferences)
+	if(!length(SStts.available_speakers))
+		return TTS_VOICE_NONE
+	return pick(SStts.available_speakers)
+// META EDIT - ADDITION - END - TTS_DEFAULT_NONE
+
 /datum/preference/choiced/voice/apply_to_human(mob/living/carbon/human/target, value)
 	if(SStts.tts_enabled && !(value in cached_values))
 		value = pick(SStts.available_speakers) // As a failsafe

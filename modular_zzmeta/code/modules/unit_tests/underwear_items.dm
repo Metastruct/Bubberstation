@@ -69,8 +69,6 @@
 	if(acc_icon != default_icon)
 		lines += "\ticon = '[acc_icon]'"
 		lines += "\tworn_icon = '[acc_icon]'"
-		lines += "\tlefthand_file = '[acc_icon]'"
-		lines += "\trighthand_file = '[acc_icon]'"
 
 	var/acc_gender = initial(accessory_type.gender)
 	if(acc_gender == MALE)

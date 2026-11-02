@@ -1,6 +1,6 @@
 // THIS IS A SKYRAT UI FILE
 // META EDIT - ADDITION - START - MARKINGS_PRESET_DROPDOWN_STATE
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 // META EDIT - ADDITION - END - MARKINGS_PRESET_DROPDOWN_STATE
 import {
   Box,
@@ -223,11 +223,15 @@ export const LimbsPage = (props) => {
   const { act } = useBackend<PreferencesMenuData>();
   const markings = data.marking_presets ? data.marking_presets : [];
   const balance = -data.quirks_balance;
-  // META EDIT - ADDITION - START - MARKINGS_PRESET_DROPDOWN_STATE
+  // META EDIT - ADDITION - START - MARKINGS_PRESET_RESET_ON_SLOT_CHANGE
   const [selectedPreset, setSelectedPreset] = useState<string | undefined>(
     undefined,
   );
-  // META EDIT - ADDITION - END - MARKINGS_PRESET_DROPDOWN_STATE
+  // clear presets when switching characters to prevent marking copying over
+  useEffect(() => {
+    setSelectedPreset(undefined);
+  }, [data.active_slot]);
+  // META EDIT - ADDITION - END - MARKINGS_PRESET_RESET_ON_SLOT_CHANGE
   return (
     <Stack minHeight="100%">
       <Stack.Item minWidth="33%" minHeight="100%">

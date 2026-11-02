@@ -55,21 +55,21 @@ function FeatureTTSDropdownInput(
 }
 
 export const tts_voice: FeatureChoiced = {
-  name: 'Voice',
+  name: 'TTS Voice', // META EDIT - CHANGE - TTS_RELABEL (was 'Voice')
   component: FeatureTTSDropdownInput,
 };
 
 export const tts_voice_pitch: FeatureNumeric = {
-  name: 'Voice Pitch Adjustment',
+  name: 'TTS Voice Pitch Adjustment', // META EDIT - CHANGE - TTS_RELABEL (was 'Voice Pitch Adjustment')
   component: FeatureSliderInput,
 };
 
 export const tts_blip_base: FeatureChoiced = {
-  name: 'Voice Blip Base',
+  name: 'TTS Voice Blip Base', // META EDIT - CHANGE - TTS_RELABEL (was 'Voice Blip Base')
   component: FeatureDropdownInput,
 };
 
 export const tts_blip_number: FeatureNumeric = {
-  name: 'Voice Blip Variant',
+  name: 'TTS Voice Blip Variant', // META EDIT - CHANGE - TTS_RELABEL (was 'Voice Blip Variant')
   component: FeatureSliderInput,
 };

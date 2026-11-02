@@ -1,7 +1,7 @@
 /datum/quirk/wet_dog
 	name = "Wet Dog"
 	desc = "Something in your instincts knows exactly how to shake water and other liquids off your fur. Click the alert that appears when you're covered in liquid to shake it off, dumping it on the floor (and anyone standing too close)."
-	icon = FA_ICON_DOG
+	icon = FA_ICON_SHOWER
 	value = 6
 	hardcore_value = 0
 	mob_trait = TRAIT_WET_DOG_SHAKE

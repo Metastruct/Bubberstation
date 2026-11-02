@@ -1,11 +1,17 @@
 /mob/living
 	var/afk_indicator = FALSE
 
-/mob/living/Initialize(mapload)
+/mob/living/Login()
 	. = ..()
-	RegisterSignal(src, COMSIG_LIVING_LIFE, PROC_REF(evaluate_afk_indicator))
-	RegisterSignal(src, COMSIG_MOB_LOGIN, PROC_REF(on_login_clear_afk))
-	RegisterSignal(src, COMSIG_MOB_LOGOUT, PROC_REF(on_logout_clear_afk))
+	set_afk_indicator(FALSE)
+
+/mob/living/Logout()
+	. = ..()
+	set_afk_indicator(FALSE)
+
+/mob/living/Life(seconds_per_tick = SSMOBS_DT)
+	. = ..()
+	evaluate_afk_indicator()
 
 /// Builds the AFK indicator overlay tinted with this mob's own chat name color (see modular_zzmeta/modules/chat_colors), instead of a fixed color.
 /mob/living/proc/generate_afk_indicator_overlay()
@@ -28,16 +34,7 @@
 	afk_indicator = state
 	update_appearance(UPDATE_OVERLAYS)
 
-/mob/living/proc/on_login_clear_afk()
-	SIGNAL_HANDLER
-	set_afk_indicator(FALSE)
-
-/mob/living/proc/on_logout_clear_afk()
-	SIGNAL_HANDLER
-	set_afk_indicator(FALSE)
-
 /mob/living/proc/evaluate_afk_indicator()
-	SIGNAL_HANDLER
 	if(client == null) // don't bother with disconnected people shoudld already be handled
 		return
 	if(client.is_afk())

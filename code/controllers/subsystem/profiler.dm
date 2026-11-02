@@ -12,6 +12,14 @@ SUBSYSTEM_DEF(profiler)
 	return msg
 
 /datum/controller/subsystem/profiler/Initialize()
+	// META EDIT - ADDITION - START - FORBID_ALL_PROFILING
+	// world/Profile() only blocks new PROFILE_START calls once config is loaded, the profiler
+	// Genesis() starts before that and would otherwise keep running all round when AUTO_PROFILE is on.
+	if(CONFIG_GET(flag/forbid_all_profiling))
+		StopProfiling()
+		can_fire = FALSE
+		return SS_INIT_SUCCESS
+	// META EDIT - ADDITION - END - FORBID_ALL_PROFILING
 	if(CONFIG_GET(flag/auto_profile))
 		StartProfiling()
 	else
@@ -20,6 +28,14 @@ SUBSYSTEM_DEF(profiler)
 	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/profiler/OnConfigLoad()
+	// META EDIT - ADDITION - START - FORBID_ALL_PROFILING
+	// StartProfiling() is a no-op under the world/Profile guard, so the Genesis session must be
+	// stopped explicitly rather than simply not restarted.
+	if(CONFIG_GET(flag/forbid_all_profiling))
+		StopProfiling()
+		can_fire = FALSE
+		return
+	// META EDIT - ADDITION - END - FORBID_ALL_PROFILING
 	if(CONFIG_GET(flag/auto_profile))
 		StartProfiling()
 		can_fire = TRUE
@@ -45,6 +61,11 @@ SUBSYSTEM_DEF(profiler)
 	world.Profile(PROFILE_STOP, type = "sendmaps")
 
 /datum/controller/subsystem/profiler/proc/DumpFile(allow_yield = TRUE)
+	// META EDIT - ADDITION - START - FORBID_ALL_PROFILING
+	// Single choke point for every dump path (fire, Shutdown, AttemptProfileDump, timers).
+	if(CONFIG_GET(flag/forbid_all_profiling))
+		return
+	// META EDIT - ADDITION - END - FORBID_ALL_PROFILING
 	var/timer = TICK_USAGE_REAL
 	var/current_profile_data = world.Profile(PROFILE_REFRESH, format = "json")
 	var/current_sendmaps_data = world.Profile(PROFILE_REFRESH, type = "sendmaps", format="json")

@@ -2,7 +2,7 @@
 /datum/preference/choiced/voice
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "tts_voice"
-	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES // BUBBER EDIT: PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_CHARACTER_BASICS // META EDIT - CHANGE - TTS_PREF_GROUPING (Bubber: SECONDARY_FEATURES; original: NON_CONTEXTUAL)
 	priority = PREFERENCE_PRIORITY_BODY_TYPE
 	should_update_preview = FALSE
 
@@ -30,7 +30,7 @@
 /datum/preference/numeric/tts_voice_pitch
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "tts_voice_pitch"
-	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES // BUBBER EDIT: PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_CHARACTER_BASICS // META EDIT - CHANGE - TTS_PREF_GROUPING (Bubber: SECONDARY_FEATURES; original: NON_CONTEXTUAL)
 	minimum = -12
 	maximum = 12
 	should_update_preview = FALSE
@@ -50,7 +50,7 @@
 /datum/preference/choiced/tts_blip_base
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "tts_blip_base"
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_CHARACTER_BASICS // META EDIT - CHANGE - TTS_PREF_GROUPING (was PREFERENCE_CATEGORY_NON_CONTEXTUAL)
 	should_update_preview = FALSE
 
 /datum/preference/choiced/tts_blip_base/is_accessible(datum/preferences/preferences)
@@ -76,7 +76,7 @@
 /datum/preference/numeric/tts_blip_number
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "tts_blip_number"
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_CHARACTER_BASICS // META EDIT - CHANGE - TTS_PREF_GROUPING (was PREFERENCE_CATEGORY_NON_CONTEXTUAL)
 	minimum = 1
 	maximum = 4
 	should_update_preview = FALSE

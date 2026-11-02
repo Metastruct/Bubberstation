@@ -129,7 +129,15 @@ GLOBAL_LIST_INIT(freqtospan, list(
 	if(length(tts_filter) > 0)
 		filter += tts_filter.Join(",")
 	var/list/special_filter = list()
-	INVOKE_ASYNC(SStts, TYPE_PROC_REF(/datum/controller/subsystem/tts, queue_tts_message), src, html_decode(message), language, get_tts_voice(filter, special_filter), filter.Join(","), hearers, message_range = 7, pitch = pitch, special_filters = special_filter.Join("|"), blip_base = blip_base, blip_number = blip_number, identifier = message_mods[MODE_TTS_IDENTIFIER])
+	// META EDIT - CHANGE - START - TTS_WHISPER_VOICE
+	// Use a separate voice/customization while whispering, if one is set and valid.
+	var/tts_speaker = get_tts_voice(filter, special_filter)
+	var/tts_custom = tts_custom_voice
+	if(message_mods[WHISPER_MODE] && length(tts_whisper_voice) && (tts_whisper_voice in SStts.available_speakers))
+		tts_speaker = tts_whisper_voice
+		tts_custom = tts_whisper_custom
+	// META EDIT - CHANGE - END - TTS_WHISPER_VOICE
+	INVOKE_ASYNC(SStts, TYPE_PROC_REF(/datum/controller/subsystem/tts, queue_tts_message), src, html_decode(message), language, tts_speaker, filter.Join(","), hearers, message_range = 7, pitch = pitch, special_filters = special_filter.Join("|"), blip_base = blip_base, blip_number = blip_number, identifier = message_mods[MODE_TTS_IDENTIFIER], custom_voice = tts_custom)
 
 /atom/movable/proc/get_tts_voice(list/filter, list/special_filter)
 	. = voice
@@ -175,7 +183,8 @@ GLOBAL_LIST_INIT(freqtospan, list(
 		var/dialect_icon_type = dialect?.display_icon_type(src, message_mods) || DISPLAY_LANGUAGE_ICON_NONE
 		if(dialect_icon_type != DISPLAY_LANGUAGE_ICON_NONE)
 			var/datum/asset/spritesheet_batched/sheet = get_asset_datum(/datum/asset/spritesheet_batched/chat)
-			languageicon = sheet.icon_tag("language-[dialect.icon_state][dialect_icon_type == DISPLAY_LANGUAGE_ICON_PARTIAL ? "-partial" : ""]") + " "
+			var/icon_tag = sheet.icon_tag("language-[dialect.icon_state][dialect_icon_type == DISPLAY_LANGUAGE_ICON_PARTIAL ? "-partial" : ""]")
+			languageicon = span_tooltip_subtle(dialect.name, icon_tag) + " "
 	//Start name span.
 	// META EDIT - ADDITION - START - CHAT_LOG_NAME_COLORS
 	// Colors the speaker's name with their chat color so speakers stay distinguishable in the chat log.
@@ -199,7 +208,9 @@ GLOBAL_LIST_INIT(freqtospan, list(
 	var/messagepart = speaker.generate_messagepart(raw_message, spans, message_mods)
 	messagepart = " <span class='message'>[messagepart]</span></span>"
 
-	return "[spanpart1][freqpart][languageicon][spanpart2][compose_track_href(speaker, namepart)][namepart][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
+	var/speaker_voice_description = message_mods[MODE_SPEAKER_GENDER_OVERRIDE] || speaker.get_voice_description()
+
+	return "[spanpart1][freqpart][languageicon][spanpart2][compose_track_href(speaker, namepart)][span_tooltip_subtle(speaker_voice_description, namepart)][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
 
 /atom/movable/proc/compose_track_href(atom/movable/speaker, message_langs, raw_message, radio_freq)
 	return ""
@@ -269,6 +280,17 @@ GLOBAL_LIST_INIT(freqtospan, list(
 	var/processed_say_mod = apply_message_emphasis(say_mod)
 
 	return "[processed_say_mod], \"[processed_input]\""
+
+/atom/movable/proc/get_voice_description()
+	switch(gender)
+		if(MALE)
+			return VOICE_DESCRIPTION_MASCULINE
+		if(FEMALE)
+			return VOICE_DESCRIPTION_FEMININE
+		if(PLURAL)
+			return VOICE_DESCRIPTION_PLURAL
+		else
+			return VOICE_DESCRIPTION_NEUTER
 
 /// Transforms the message emphasis mods from [/atom/proc/apply_message_emphasis] into the appropriate HTML tags. Includes escaping.
 #define ENCODE_HTML_EMPHASIS(input, char, html, varname) \
@@ -392,6 +414,7 @@ INITIALIZE_IMMEDIATE(/atom/movable/virtualspeaker)
 	source = M
 	if(istype(M))
 		name = radio?.anonymize ? "Unknown" : M.get_voice(add_id_name = TRUE)
+		gender = M.gender
 		verb_say = M.get_default_say_verb()
 		verb_ask = M.verb_ask
 		verb_exclaim = M.verb_exclaim
@@ -403,6 +426,7 @@ INITIALIZE_IMMEDIATE(/atom/movable/virtualspeaker)
 		// can know their job even if they don't carry an ID.
 		var/datum/record/crew/found_record = find_record(name)
 		if(found_record)
+			gender = found_record.get_byond_gender()
 			job = found_record.rank
 		else
 			job = "Unknown"

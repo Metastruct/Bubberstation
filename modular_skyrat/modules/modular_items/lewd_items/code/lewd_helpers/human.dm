@@ -21,15 +21,24 @@
 
 /// Are we wearing something that covers our chest?
 /mob/living/carbon/human/proc/is_topless()
-	return (!(wear_suit) || !(wear_suit.body_parts_covered & CHEST)) && (!(w_uniform) || !(w_uniform.body_parts_covered & CHEST))
+	// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+	// ORIGINAL: return (!(wear_suit) || !(wear_suit.body_parts_covered & CHEST)) && (!(w_uniform) || !(w_uniform.body_parts_covered & CHEST))
+	return !is_body_zone_covered(CHEST)
+	// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 
 /// Are we wearing something that covers our groin?
 /mob/living/carbon/human/proc/is_bottomless()
-	return (!(wear_suit) || !(wear_suit.body_parts_covered & GROIN)) && (!(w_uniform) || !(w_uniform.body_parts_covered & GROIN) || is_groin_exposing_uniform(w_uniform)) // META EDIT - CHANGE - GROIN_EXPOSING_UNIFORM
+	// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+	// ORIGINAL: return (!(wear_suit) || !(wear_suit.body_parts_covered & GROIN)) && (!(w_uniform) || !(w_uniform.body_parts_covered & GROIN) || is_groin_exposing_uniform(w_uniform))
+	return !is_body_zone_covered(GROIN)
+	// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 
 /// Are we wearing something that covers our shoes?
 /mob/living/carbon/human/proc/is_barefoot()
-	return (!(wear_suit) || !(wear_suit.body_parts_covered & FEET)) && (!(shoes) || !(shoes.body_parts_covered & FEET)) // META EDIT - CHANGE - was checking GROIN instead of FEET
+	// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+	// ORIGINAL: return (!(wear_suit) || !(wear_suit.body_parts_covered & FEET)) && (!(shoes) || !(shoes.body_parts_covered & FEET))
+	return !is_body_zone_covered(FEET)
+	// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 
 /mob/living/carbon/human/proc/is_hands_uncovered()
 	return (gloves?.body_parts_covered & ARMS)
@@ -47,9 +56,15 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
@@ -63,9 +78,15 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// META EDIT - CHANGE - UNIFIED_EXPOSURE - ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
@@ -79,9 +100,15 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// META EDIT - CHANGE - UNIFIED_EXPOSURE - ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// META EDIT - CHANGE - UNIFIED_EXPOSURE - ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
@@ -95,9 +122,15 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_topless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_topless()
+			return genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_topless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_topless()
+			return !genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
@@ -113,9 +146,15 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			// META EDIT - CHANGE - START - UNIFIED_EXPOSURE
+			// ORIGINAL: return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_exposed()
+			// META EDIT - CHANGE - END - UNIFIED_EXPOSURE
 		else
 			return TRUE
 
