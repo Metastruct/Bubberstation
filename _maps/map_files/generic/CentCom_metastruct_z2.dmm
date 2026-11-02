@@ -9891,14 +9891,6 @@
 /turf/open/floor/iron/dark,
 /area/centcom/interlink)
 "gAM" = (
-/obj/item/gun/energy/floragun,
-/obj/item/geneshears,
-/obj/machinery/smartfridge/disks{
-	pixel_y = 2
-	},
-/obj/item/storage/fancy/rollingpapers,
-/obj/item/secateurs,
-/obj/item/hatchet,
 /obj/structure/table/glass,
 /obj/structure/window/spawner/directional/west,
 /obj/effect/turf_decal/siding/thinplating_new/dark{
@@ -9908,6 +9900,12 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/tile/blue/opposingcorners,
+/obj/structure/fluff/dnamod{
+	pixel_y = 4
+	},
+/obj/item/storage/box/disks_plantgene,
+/obj/item/gun/energy/floragun,
+/obj/item/geneshears,
 /turf/open/indestructible,
 /area/centcom/holding/cafe/station/service/hydroponics)
 "gAV" = (
@@ -18521,6 +18519,7 @@
 	pixel_x = 3;
 	pixel_y = 6
 	},
+/obj/item/storage/fancy/rollingpapers,
 /turf/open/indestructible/dark,
 /area/centcom/holding/cafe/station/service/hydroponics)
 "mzO" = (
@@ -32955,6 +32954,8 @@
 /obj/item/watertank,
 /obj/structure/closet/crate/hydroponics,
 /obj/item/wrench,
+/obj/item/hatchet,
+/obj/item/secateurs,
 /turf/open/indestructible/dark,
 /area/centcom/holding/cafe/station/service/hydroponics)
 "wUC" = (
