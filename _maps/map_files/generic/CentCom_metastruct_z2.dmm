@@ -2426,10 +2426,8 @@
 /turf/open/floor/engine/co2,
 /area/centcom/holding/cafe/station/engineering)
 "bmO" = (
-/obj/machinery/vending/wardrobe/viro_wardrobe/ghost_cafe{
-	shut_up = 1
-	},
 /obj/effect/turf_decal/tile/blue/fourcorners,
+/obj/machinery/atmospherics/components/unary/thermomachine/freezer,
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "bmU" = (
@@ -4368,16 +4366,16 @@
 	},
 /area/centcom/holding/cafe/station/commons/lounge)
 "cDp" = (
-/obj/effect/turf_decal/tile/blue{
-	dir = 4
-	},
 /obj/structure/disposalpipe/segment{
 	dir = 8
+	},
+/obj/effect/turf_decal/tile/blue/half/contrasted{
+	dir = 4
 	},
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_edge";
-	dir = 5
+	dir = 4
 	},
 /area/centcom/holding/cafe/station/medical)
 "cDw" = (
@@ -5080,6 +5078,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white{
 	icon_state = "white_half";
 	dir = 1
@@ -5350,6 +5349,7 @@
 /obj/effect/turf_decal/tile/yellow/half{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible{
 	icon_state = "floor_half";
 	dir = 1
@@ -6252,6 +6252,7 @@
 /obj/structure/disposalpipe/junction/yjunction{
 	dir = 4
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "dVu" = (
@@ -6633,12 +6634,11 @@
 /turf/open/floor/grass,
 /area/centcom/holding/cafe)
 "ejd" = (
-/obj/effect/turf_decal/tile/blue/anticorner/contrasted,
-/turf/open/indestructible/white/textured{
-	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
-	icon_state = "white_small_corner";
-	dir = 1
+/obj/effect/turf_decal/tile/blue/fourcorners,
+/obj/machinery/vending/wardrobe/viro_wardrobe/ghost_cafe{
+	shut_up = 1
 	},
+/turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "eji" = (
 /obj/effect/turf_decal/siding/thinplating_new{
@@ -6902,6 +6902,7 @@
 	name = "Engineering Foyer"
 	},
 /obj/machinery/door/firedoor,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible{
 	icon_state = "floor_half"
 	},
@@ -7693,6 +7694,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/large{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "small_edge";
@@ -8006,6 +8008,17 @@
 	icon_state = "wood_large"
 	},
 /area/centcom/holding/cafe/station/commons/fitness/recreation/sauna)
+"flp" = (
+/obj/structure/disposalpipe/segment,
+/obj/effect/turf_decal/tile/blue{
+	dir = 8
+	},
+/turf/open/indestructible/white/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "white_small_edge";
+	dir = 10
+	},
+/area/centcom/holding/cafe/station/medical)
 "fmv" = (
 /obj/effect/turf_decal/tile/brown/half/contrasted{
 	dir = 8
@@ -8410,6 +8423,20 @@
 	dir = 8
 	},
 /area/centcom/holding/cafe/dorms)
+"fCK" = (
+/obj/effect/turf_decal/tile/blue/half/contrasted{
+	dir = 8
+	},
+/obj/structure/disposalpipe/segment{
+	dir = 8
+	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/turf/open/indestructible/white/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "white_small_edge";
+	dir = 8
+	},
+/area/centcom/holding/cafe/station/medical)
 "fDj" = (
 /obj/structure/wall_torch/spawns_lit/directional/east,
 /obj/structure/flora/rock/pile/style_random,
@@ -8510,6 +8537,7 @@
 	dir = 4
 	},
 /obj/structure/disposalpipe/segment,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/large{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "small_edge";
@@ -8650,6 +8678,12 @@
 /obj/structure/flora/bush/fullgrass/style_random,
 /turf/open/floor/grass,
 /area/centcom/interlink)
+"fKg" = (
+/obj/machinery/light/cold/no_nightlight/directional/west,
+/obj/effect/turf_decal/tile/blue/fourcorners,
+/obj/machinery/limbgrower/fullupgrade,
+/turf/open/indestructible/white,
+/area/centcom/holding/cafe/station/medical)
 "fKp" = (
 /turf/open/indestructible/dark{
 	icon_state = "chapel"
@@ -9121,6 +9155,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_corner";
@@ -9557,17 +9592,11 @@
 /turf/open/floor/plating,
 /area/centcom/interlink)
 "grn" = (
-/obj/effect/turf_decal/tile/blue/anticorner/contrasted{
-	dir = 4
-	},
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
-/turf/open/indestructible/white/textured{
-	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
-	icon_state = "white_small_corner";
-	dir = 8
-	},
+/obj/effect/turf_decal/tile/blue/fourcorners,
+/turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "grx" = (
 /obj/structure/table/wood,
@@ -10135,6 +10164,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white{
 	icon_state = "white_half";
 	dir = 1
@@ -10489,6 +10519,7 @@
 /obj/structure/disposalpipe/junction/flip{
 	dir = 1
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible,
 /area/centcom/holding/cafe)
 "gVD" = (
@@ -10688,6 +10719,11 @@
 	},
 /turf/open/indestructible,
 /area/centcom/holding/cafe/beach)
+"hbD" = (
+/obj/structure/disposalpipe/segment,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/turf/open/indestructible,
+/area/centcom/holding/cafe/station/engineering)
 "hcE" = (
 /obj/structure/stone_tile,
 /obj/structure/stone_tile/block/burnt{
@@ -12030,6 +12066,7 @@
 /area/centcom/holding/cafe/park)
 "hUV" = (
 /obj/effect/turf_decal/tile/yellow/fourcorners,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible,
 /area/centcom/holding/cafe)
 "hVf" = (
@@ -14326,6 +14363,7 @@
 /obj/effect/turf_decal/tile/blue{
 	dir = 4
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/visible,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_edge";
@@ -14711,6 +14749,14 @@
 	dir = 4
 	},
 /area/centcom/holding/cafe/station/engineering)
+"jLH" = (
+/obj/effect/turf_decal/tile/yellow/half/contrasted,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/turf/open/indestructible/large{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "small_edge"
+	},
+/area/centcom/holding/cafe)
 "jLL" = (
 /obj/structure/chair/sofa/bench/right{
 	dir = 1
@@ -15081,7 +15127,8 @@
 /area/centcom/interlink)
 "jWp" = (
 /obj/effect/turf_decal/tile/blue/fourcorners,
-/obj/machinery/limbgrower/fullupgrade,
+/obj/machinery/portable_atmospherics/canister/anesthetic_mix,
+/obj/machinery/atmospherics/components/unary/portables_connector/visible,
 /obj/machinery/status_display/evac/directional/north,
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
@@ -16483,10 +16530,8 @@
 /turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/park)
 "ldp" = (
-/obj/machinery/vending/wardrobe/medi_wardrobe/ghost_cafe{
-	shut_up = 1
-	},
 /obj/effect/turf_decal/tile/blue/fourcorners,
+/obj/machinery/cryo_cell,
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "leB" = (
@@ -16586,7 +16631,14 @@
 /obj/structure/disposalpipe/segment{
 	dir = 5
 	},
-/turf/open/indestructible/white,
+/obj/effect/turf_decal/tile/blue/half/contrasted{
+	dir = 8
+	},
+/turf/open/indestructible/white/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "white_small_edge";
+	dir = 8
+	},
 /area/centcom/holding/cafe/station/medical)
 "ljS" = (
 /obj/effect/turf_decal/siding/white{
@@ -18523,12 +18575,16 @@
 /turf/open/indestructible/dark,
 /area/centcom/holding/cafe/station/service/hydroponics)
 "mzO" = (
-/turf/open/indestructible/white/textured{
-	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
-	icon_state = "white_small_edge";
+/obj/effect/turf_decal/tile/yellow/half/contrasted{
 	dir = 4
 	},
-/area/centcom/holding/cafe/station/medical)
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/turf/open/indestructible/large{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "small_edge";
+	dir = 4
+	},
+/area/centcom/holding/cafe)
 "mAs" = (
 /obj/structure/spacevine,
 /obj/structure/spacevine,
@@ -18696,6 +18752,9 @@
 "mHo" = (
 /obj/structure/disposalpipe/segment{
 	dir = 10
+	},
+/obj/machinery/atmospherics/components/trinary/filter/atmos/co2{
+	dir = 4
 	},
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
@@ -19279,6 +19338,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "nka" = (
@@ -19779,14 +19839,14 @@
 	},
 /area/centcom/holding/cafe/dorms)
 "nCM" = (
-/obj/machinery/atmospherics/pipe/smart/simple/supply/visible,
-/turf/open/floor/mineral/plastitanium/pod/light/corner{
-	dir = 1
-	},
-/area/centcom/holding/cafe/station/engineering)
+/obj/structure/disposalpipe/segment,
+/obj/machinery/atmospherics/pipe/layer_manifold/scrubbers/hidden,
+/turf/open/indestructible/white,
+/area/centcom/holding/cafe/station/medical)
 "nCX" = (
 /obj/effect/turf_decal/tile/yellow/half/contrasted,
 /obj/structure/disposalpipe/segment,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/large{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "small_edge"
@@ -23067,6 +23127,24 @@
 	},
 /turf/open/indestructible,
 /area/centcom/holding/cafe)
+"pRy" = (
+/obj/effect/turf_decal/tile/blue/anticorner/contrasted{
+	dir = 1
+	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/visible,
+/obj/structure/closet/generic/wall/directional/west{
+	name = "cryo supplies"
+	},
+/obj/item/reagent_containers/cup/beaker/cryoxadone,
+/obj/item/reagent_containers/cup/beaker/cryoxadone,
+/obj/item/reagent_containers/cup/beaker/cryoxadone,
+/obj/item/reagent_containers/cup/beaker/cryoxadone,
+/obj/item/wrench/medical,
+/turf/open/indestructible/white/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "white_small_corner"
+	},
+/area/centcom/holding/cafe/station/medical)
 "pRA" = (
 /obj/effect/turf_decal/siding/dark{
 	dir = 4
@@ -25085,6 +25163,10 @@
 /obj/structure/sign/flag/syndicate/directional/east,
 /turf/open/floor/carpet/red,
 /area/centcom/holding/cafe/station/commons/fitness/locker_room)
+"rtD" = (
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/turf/open/indestructible,
+/area/centcom/holding/cafe/station/engineering)
 "rtM" = (
 /obj/machinery/disposal/bin,
 /obj/effect/turf_decal/bot,
@@ -26759,6 +26841,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_corner"
@@ -27903,6 +27986,20 @@
 	icon_state = "wood_tile"
 	},
 /area/centcom/holding/cafe/station/command/cap/private)
+"ttw" = (
+/obj/effect/turf_decal/tile/blue/half/contrasted{
+	dir = 8
+	},
+/obj/structure/disposalpipe/segment{
+	dir = 8
+	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/visible,
+/turf/open/indestructible/white/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "white_small_edge";
+	dir = 8
+	},
+/area/centcom/holding/cafe/station/medical)
 "ttx" = (
 /obj/structure/table,
 /obj/item/storage/fancy/candle_box{
@@ -28483,6 +28580,17 @@
 /obj/structure/wall_torch/spawns_lit/directional/west,
 /turf/open/misc/asteroid/basalt,
 /area/centcom/holding/cafe/ruin/caves)
+"tUO" = (
+/obj/effect/turf_decal/tile/blue/half/contrasted{
+	dir = 1
+	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/visible,
+/turf/open/indestructible/white/textured{
+	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
+	icon_state = "white_small_edge";
+	dir = 1
+	},
+/area/centcom/holding/cafe/station/medical)
 "tUU" = (
 /obj/machinery/hydroponics/constructable/fullupgrade,
 /obj/machinery/light/warm/no_nightlight/directional/north,
@@ -28839,6 +28947,13 @@
 	icon_state = "hierophant_floor-255"
 	},
 /area/centcom/holding/cafe/beach)
+"uhs" = (
+/obj/effect/turf_decal/tile/blue/fourcorners,
+/obj/machinery/vending/wardrobe/medi_wardrobe/ghost_cafe{
+	shut_up = 1
+	},
+/turf/open/indestructible/white,
+/area/centcom/holding/cafe/station/medical)
 "uhC" = (
 /obj/effect/baseturf_helper/asteroid,
 /turf/closed/indestructible/syndicate,
@@ -30996,6 +31111,7 @@
 /obj/effect/turf_decal/tile/blue/anticorner/contrasted{
 	dir = 4
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/visible,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_corner";
@@ -31416,6 +31532,7 @@
 	dir = 4
 	},
 /obj/structure/sign/warning/no_smoking/directional/east,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/large{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "small_edge";
@@ -33169,6 +33286,7 @@
 /obj/structure/disposalpipe/junction{
 	dir = 4
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_edge";
@@ -33238,12 +33356,12 @@
 /turf/open/indestructible/cobble,
 /area/centcom/holding/cafe/park)
 "xgU" = (
-/turf/open/indestructible/white/textured{
+/obj/machinery/status_display/evac/directional/north,
+/turf/open/indestructible/large{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
-	icon_state = "white_small_edge";
-	dir = 8
+	icon_state = "small_edge"
 	},
-/area/centcom/holding/cafe/station/medical)
+/area/centcom/holding/cafe)
 "xhu" = (
 /obj/machinery/smartfridge/wooden/produce_bin,
 /obj/structure/wall_torch/spawns_lit/directional/south,
@@ -33694,6 +33812,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 8
 	},
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/indestructible/white/textured{
 	icon = 'modular_zubbers/icons/turf/floors/floors_misc.dmi';
 	icon_state = "white_small_edge";
@@ -82894,16 +83013,16 @@ jek
 bSo
 vTT
 bmO
-mZf
-nbB
+pRy
+ttw
 wOC
 mrp
 lDB
 mrp
 nbB
-mrp
-wOC
 eNI
+fKg
+uhs
 kwD
 kRj
 vUV
@@ -83151,16 +83270,16 @@ jek
 bSo
 vTT
 jWp
-eDm
+tUO
 mHo
-iux
+nCM
 dVs
 iux
 iux
 gUv
-iux
+flp
 liW
-mzO
+mrp
 qkU
 bqp
 vUV
@@ -83403,7 +83522,7 @@ hvI
 aSS
 vTT
 ilx
-iir
+xgU
 jek
 gzd
 vTT
@@ -83417,7 +83536,7 @@ snn
 qQz
 qQz
 cDp
-xgU
+qQz
 qkU
 bqp
 vUV
@@ -83925,7 +84044,7 @@ kwD
 azV
 mrp
 nBd
-nbB
+fCK
 bWk
 kwD
 nIT
@@ -85981,7 +86100,7 @@ pOL
 jgk
 kwr
 jgk
-jgk
+mzO
 iSM
 jgk
 jgk
@@ -86752,7 +86871,7 @@ rSS
 cHl
 hJP
 aLQ
-avt
+jLH
 dNB
 axA
 anQ
@@ -87012,8 +87131,8 @@ dOl
 nCX
 evg
 fGF
-gLq
-gLq
+hbD
+hbD
 gLq
 lXw
 mza
@@ -87270,7 +87389,7 @@ phl
 dNB
 qiI
 ppR
-ppR
+rtD
 ppR
 pQE
 dNB
@@ -90108,7 +90227,7 @@ nlm
 drY
 hse
 dLc
-nCM
+xDr
 hrx
 vYT
 gYg
