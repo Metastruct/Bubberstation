@@ -802,7 +802,7 @@
  * Will shove the target mob back, and drop them if they're in front of something dense
  * or another carbon.
 */
-/mob/living/proc/disarm(mob/living/target, obj/item/weapon)
+/mob/living/proc/disarm(mob/living/target, obj/item/weapon, forced_shove_dir) // META EDIT - CHANGE - MOB_PASSBY (forced_shove_dir)
 	if(!can_disarm(target))
 		return
 	var/shove_flags = target.get_shove_flags(src, weapon)
@@ -817,7 +817,11 @@
 		human_target.w_uniform?.add_fingerprint(src)
 
 	SEND_SIGNAL(target, COMSIG_LIVING_DISARM_HIT, src, zone_selected, weapon)
-	var/shove_dir = get_dir(loc, target.loc)
+	// META EDIT - CHANGE - START - MOB_PASSBY
+	// ORIGINAL: var/shove_dir = get_dir(loc, target.loc)
+	// forced_shove_dir lets the pass-by system shove a blocker to the side.
+	var/shove_dir = forced_shove_dir || get_dir(loc, target.loc)
+	// META EDIT - CHANGE - END - MOB_PASSBY
 	var/turf/target_shove_turf = get_step(target.loc, shove_dir)
 	var/turf/target_old_turf = target.loc
 
