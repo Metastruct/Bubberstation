@@ -1274,6 +1274,13 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 8
 	},
+/obj/machinery/button/door{
+	id = "ghostcafecabinb";
+	name = "Dorm Bolt Control";
+	normaldoorcontrol = 1;
+	pixel_x = -25;
+	specialfunctions = 4
+	},
 /turf/open/indestructible/hotelwood,
 /area/centcom/holding/cafe/dorms)
 "aGo" = (
@@ -8504,7 +8511,6 @@
 /turf/open/indestructible/white,
 /area/centcom/holding/cafe/station/medical)
 "fOa" = (
-/obj/machinery/firealarm/directional/south,
 /obj/effect/turf_decal/tile/yellow{
 	dir = 1
 	},
@@ -8782,6 +8788,10 @@
 	dir = 1
 	},
 /area/centcom/holding/cafe/station/medical)
+"fXj" = (
+/obj/effect/light_emitter/fake_outdoors,
+/turf/open/water/hot_spring/cafe,
+/area/centcom/holding/cafe/ruin/icemoon)
 "fYz" = (
 /obj/structure/table/reinforced/plastitaniumglass,
 /obj/item/paper_bin{
@@ -15501,6 +15511,11 @@
 	icon_state = "small_corner"
 	},
 /area/centcom/holding/cafe/station/service/janitor)
+"kHB" = (
+/obj/structure/flora/grass/jungle/b/style_random,
+/obj/effect/light_emitter/fake_outdoors,
+/turf/open/misc/grass/planet,
+/area/centcom/holding/cafe/park)
 "kHP" = (
 /obj/structure/chair/sofa/corp/left,
 /obj/effect/turf_decal/siding/wood,
@@ -17052,10 +17067,6 @@
 	dir = 9
 	},
 /area/centcom/holding/cafe)
-"lUk" = (
-/obj/effect/light_emitter/fake_outdoors,
-/turf/open/misc/dirt/planet,
-/area/centcom/holding/cafe/park)
 "lUy" = (
 /obj/structure/rack/wooden,
 /obj/item/reagent_containers/cup/glass/trophy{
@@ -21525,6 +21536,10 @@
 	},
 /turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/icemoon)
+"pqT" = (
+/obj/effect/light_emitter/fake_outdoors,
+/turf/open/misc/dirt/planet,
+/area/centcom/holding/cafe/park)
 "pqX" = (
 /turf/open/floor/iron/stairs/left,
 /area/cruiser_dock)
@@ -28923,11 +28938,6 @@
 	icon_state = "darkfull"
 	},
 /area/centcom/holding/cafe/station/command)
-"uSd" = (
-/obj/structure/flora/grass/jungle/b/style_random,
-/obj/effect/light_emitter/fake_outdoors,
-/turf/open/misc/grass/planet,
-/area/centcom/holding/cafe/park)
 "uSB" = (
 /obj/structure/table,
 /obj/machinery/processor{
@@ -84025,7 +84035,7 @@ ayI
 aeR
 aCU
 ayI
-lUk
+pqT
 ayI
 uDu
 uYt
@@ -84565,7 +84575,7 @@ ker
 uCR
 tlF
 gIS
-gIS
+fXj
 gIS
 gIS
 anp
@@ -84794,7 +84804,7 @@ ayI
 aeR
 tSX
 iHv
-uSd
+kHB
 aCU
 ayI
 ayI
