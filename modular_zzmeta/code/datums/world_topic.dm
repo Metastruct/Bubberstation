@@ -21,6 +21,7 @@
 		entry["name"] = character.real_name || character.name
 		entry["job"] = character.mind.assigned_role?.title
 		entry["afk"] = !!C.is_afk()
+		entry["ckey"] = C.ckey
 
 		if(C.prefs?.read_preference(/datum/preference/toggle/chat_examine_headshot))
 			var/headshot = meta_playerlist_headshot(character)
