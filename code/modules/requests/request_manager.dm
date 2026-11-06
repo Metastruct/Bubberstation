@@ -201,6 +201,10 @@ GLOBAL_DATUM_INIT(requests, /datum/request_manager, new)
 				return TRUE
 
 		if ("logs")
+			// META EDIT - ADDITION - START - LOGS_PERMISSION
+			if(!check_rights(R_LOGS))
+				return TRUE
+			// META EDIT - ADDITION - END - LOGS_PERMISSION
 			var/mob/M = request.owner?.mob
 			if(!ismob(M))
 				to_chat(usr, "This can only be used on instances of type /mob.", confidential = TRUE)

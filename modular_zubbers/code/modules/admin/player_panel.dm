@@ -55,6 +55,7 @@ GLOBAL_LIST_INIT(pp_limbs, list(
 	.["mob_type"] = target_mob.type
 	.["admin_mob_type"] = user.client?.mob.type
 	.["godmode"] = HAS_TRAIT(target_mob, TRAIT_GODMODE)
+	.["can_view_logs"] = !!user.client?.holder?.check_for_rights(R_LOGS) // META EDIT - ADDITION - LOGS_PERMISSION
 
 	var/mob/living/living_mob = target_mob
 	if (istype(living_mob))
@@ -437,6 +438,10 @@ GLOBAL_LIST_INIT(pp_limbs, list(
 
 		/// Opens selected target's logs
 		if ("logs")
+			// META EDIT - ADDITION - START - LOGS_PERMISSION
+			if(!check_rights(R_LOGS))
+				return FALSE
+			// META EDIT - ADDITION - END - LOGS_PERMISSION
 			var/source = target_mob.client ? LOGSRC_CKEY : LOGSRC_MOB
 			show_individual_logging_panel(target_mob, source)
 			return TRUE

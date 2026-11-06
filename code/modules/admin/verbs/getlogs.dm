@@ -1,8 +1,12 @@
-ADMIN_VERB(get_server_logs, R_ADMIN, "Get Server Logs", "View or retrieve logfiles.", ADMIN_CATEGORY_MAIN)
+// META EDIT - CHANGE - START - LOGS_PERMISSION
+// ORIGINAL: ADMIN_VERB(get_server_logs, R_ADMIN, "Get Server Logs", "View or retrieve logfiles.", ADMIN_CATEGORY_MAIN)
+ADMIN_VERB(get_server_logs, R_LOGS, "Get Server Logs", "View or retrieve logfiles.", ADMIN_CATEGORY_MAIN)
 	user.browseserverlogs()
 
-ADMIN_VERB(get_current_logs, R_ADMIN, "Get Current Logs", "View or retrieve logfiles for the current round.", ADMIN_CATEGORY_MAIN)
+// ORIGINAL: ADMIN_VERB(get_current_logs, R_ADMIN, "Get Current Logs", "View or retrieve logfiles for the current round.", ADMIN_CATEGORY_MAIN)
+ADMIN_VERB(get_current_logs, R_LOGS, "Get Current Logs", "View or retrieve logfiles for the current round.", ADMIN_CATEGORY_MAIN)
 	user.browseserverlogs(current=TRUE)
+// META EDIT - CHANGE - END - LOGS_PERMISSION
 
 /client/proc/browseserverlogs(current=FALSE)
 	var/path = browse_files(current ? BROWSE_ROOT_CURRENT_LOGS : BROWSE_ROOT_ALL_LOGS)

@@ -172,6 +172,10 @@ GLOBAL_LIST_INIT(modulo_angle_to_dir, list(NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,
 		. += "[seperator]AUTOLOGIN"
 	if(rights & R_DBRANKS)
 		. += "[seperator]DBRANKS"
+	// META EDIT - ADDITION - START - LOGS_PERMISSION
+	if(rights & R_LOGS)
+		. += "[seperator]LOGS"
+	// META EDIT - ADDITION - END - LOGS_PERMISSION
 	if(!.)
 		. = "NONE"
 	return .

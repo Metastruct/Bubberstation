@@ -45,8 +45,14 @@ ADMIN_VERB(secrets, R_NONE, "Secrets", "Abuse harder than you ever have before w
 	. = ..()
 	if(.)
 		return
-	if((action != "admin_log" || action != "show_admins") && !check_rights(R_ADMIN))
+	// META EDIT - CHANGE - START - LOGS_PERMISSION
+	// ORIGINAL: if((action != "admin_log" || action != "show_admins") && !check_rights(R_ADMIN))
+	// The original condition was always true (a value cannot differ from both strings),
+	// so every action required R_ADMIN. Keep that for everything except the Admin Log
+	// viewer, which is now its own log permission.
+	if(action == "admin_log" ? !check_rights(R_LOGS) : !check_rights(R_ADMIN))
 		return
+	// META EDIT - CHANGE - END - LOGS_PERMISSION
 	switch(action)
 		//Generic Buttons anyone can use.
 		if("admin_log")

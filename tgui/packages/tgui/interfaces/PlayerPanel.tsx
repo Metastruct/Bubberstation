@@ -45,6 +45,7 @@ type Data = {
   mob_scale: number;
   mob_status_flags: number;
   current_faction: string[];
+  can_view_logs: boolean; // META EDIT - ADDITION - LOGS_PERMISSION
 
   glob_mute_bits: {
     name: string;
@@ -293,7 +294,7 @@ export const PlayerPanel = () => {
 
 const GeneralActions = () => {
   const { act, data } = useBackend<Data>();
-  const { client_ckey, mob_type, admin_mob_type } = data;
+  const { client_ckey, mob_type, admin_mob_type, can_view_logs } = data; // META EDIT - CHANGE - LOGS_PERMISSION
   return (
     <Section>
       <Section title="Damage">
@@ -394,16 +395,20 @@ const GeneralActions = () => {
           >
             Send To Cryo
           </Button.Confirm>
-          <Button
-            width="100%"
-            height="100%"
-            icon="clipboard-list"
-            color="orange"
-            textAlign="center"
-            onClick={() => act('logs')}
-          >
-            Logs
-          </Button>
+          {/* META EDIT - CHANGE - START - LOGS_PERMISSION */}
+          {!!can_view_logs && (
+            <Button
+              width="100%"
+              height="100%"
+              icon="clipboard-list"
+              color="orange"
+              textAlign="center"
+              onClick={() => act('logs')}
+            >
+              Logs
+            </Button>
+          )}
+          {/* META EDIT - CHANGE - END - LOGS_PERMISSION */}
           <Button.Confirm
             width="100%"
             height="100%"

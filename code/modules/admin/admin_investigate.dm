@@ -12,7 +12,7 @@
 
 	WRITE_FILE(F, "[server_timestamp(format = "YYYY-MM-DD hh:mm:ss")] [REF(src)] ([x],[y],[z]) || [source] [message]<br>")
 
-ADMIN_VERB(investigate_show, R_NONE, "Investigate", "Browse various detailed logs.", ADMIN_CATEGORY_GAME)
+ADMIN_VERB(investigate_show, R_LOGS, "Investigate", "Browse various detailed logs.", ADMIN_CATEGORY_GAME) // META EDIT - CHANGE - LOGS_PERMISSION (was R_NONE)
 	var/static/list/investigates = list(
 		INVESTIGATE_ACCESSCHANGES,
 		INVESTIGATE_ATMOS,
@@ -34,7 +34,12 @@ ADMIN_VERB(investigate_show, R_NONE, "Investigate", "Browse various detailed log
 		INVESTIGATE_NANITES, // BUBBER ADDITION - NANITES
 	)
 
-	var/list/logs_present = list("notes, memos, watchlist")
+	// META EDIT - CHANGE - START - LOGS_PERMISSION
+	// ORIGINAL: var/list/logs_present = list("notes, memos, watchlist")
+	var/list/logs_present = list()
+	if(check_rights(R_ADMIN, show_msg = FALSE)) // memos/watchlist are an R_ADMIN feature, not a log surface
+		logs_present += "notes, memos, watchlist"
+	// META EDIT - CHANGE - END - LOGS_PERMISSION
 	var/list/logs_missing = list("---")
 
 	for(var/subject in investigates)

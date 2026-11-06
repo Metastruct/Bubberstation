@@ -2,6 +2,11 @@
 	if(!M || !ismob(M))
 		return
 
+	// META EDIT - ADDITION - START - LOGS_PERMISSION
+	if(!check_rights(R_LOGS))
+		return
+	// META EDIT - ADDITION - END - LOGS_PERMISSION
+
 	var/ntype = text2num(type)
 
 	//Add client links

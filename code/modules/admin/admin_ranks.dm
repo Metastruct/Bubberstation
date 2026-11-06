@@ -100,6 +100,10 @@ GLOBAL_PROTECT(protected_ranks)
 				flag = R_AUTOADMIN
 			if("DBRANKS")
 				flag = R_DBRANKS
+			// META EDIT - ADDITION - START - LOGS_PERMISSION
+			if("LOGS")
+				flag = R_LOGS
+			// META EDIT - ADDITION - END - LOGS_PERMISSION
 			if("@")
 				if(previous_rank)
 					switch(group_count)

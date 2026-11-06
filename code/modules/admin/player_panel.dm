@@ -1,6 +1,9 @@
 /datum/admins/proc/player_panel_new()//The new one
 	if(!check_rights())
 		return
+	// META EDIT - ADDITION - START - LOGS_PERMISSION
+	var/can_view_logs = check_rights(R_LOGS, show_msg = FALSE)
+	// META EDIT - ADDITION - END - LOGS_PERMISSION
 	log_admin("[key_name(usr)] checked the player panel.")
 	var/dat = "<html><head><meta http-equiv='X-UA-Compatible' content='IE=edge' charset='UTF-8'/><title>Player Panel</title></head>"
 
@@ -94,7 +97,12 @@
 					body += "<a href='byond://?priv_msg="+ckey+"'>PM</a> - "
 					body += "<a href='byond://?_src_=holder;[HrefToken()];subtlemessage="+ref+"'>SM</a> - "
 					body += "<a href='byond://?_src_=holder;[HrefToken()];adminplayerobservefollow="+ref+"'>FLW</a> - "
-					body += "<a href='byond://?_src_=holder;[HrefToken()];individuallog="+ref+"'>LOGS</a><br>"
+					// META EDIT - CHANGE - START - LOGS_PERMISSION
+					// ORIGINAL: body += "<a href='byond://?_src_=holder;[HrefToken()];individuallog="+ref+"'>LOGS</a><br>"
+					if([can_view_logs])
+						body += "<a href='byond://?_src_=holder;[HrefToken()];individuallog="+ref+"'>LOGS</a>"
+					body += "<br>"
+					// META EDIT - CHANGE - END - LOGS_PERMISSION
 					if(antagonist > 0)
 						body += "<font size='2'><a href='byond://?_src_=holder;[HrefToken()];check_antagonist=1'><font color='red'><b>Antagonist</b></font></a></font>";
 

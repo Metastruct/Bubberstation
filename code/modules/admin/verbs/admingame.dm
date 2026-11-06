@@ -85,7 +85,12 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(show_player_panel, R_ADMIN, "Show Player Panel", /m
 	var/source = LOGSRC_MOB
 	if(player.ckey)
 		source = LOGSRC_CKEY
-	body += "<a href='byond://?_src_=holder;[HrefToken()];individuallog=[REF(player)];log_src=[source]'>LOGS</a>\] <br>"
+	// META EDIT - CHANGE - START - LOGS_PERMISSION
+	// ORIGINAL: body += "<a href='byond://?_src_=holder;[HrefToken()];individuallog=[REF(player)];log_src=[source]'>LOGS</a>\] <br>"
+	if(check_rights(R_LOGS, show_msg = FALSE))
+		body += "<a href='byond://?_src_=holder;[HrefToken()];individuallog=[REF(player)];log_src=[source]'>LOGS</a>\] "
+	body += "<br>"
+	// META EDIT - CHANGE - END - LOGS_PERMISSION
 
 	body += "<b>Mob type</b> = [player.type]<br><br>"
 

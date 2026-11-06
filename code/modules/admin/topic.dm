@@ -921,7 +921,7 @@
 			SSadmin_verbs.dynamic_invoke_verb(usr.client, /datum/admin_verb/play_direct_mob_sound, S, M)
 
 	else if(href_list["individuallog"])
-		if(!check_rights(R_ADMIN))
+		if(!check_rights(R_LOGS)) // META EDIT - CHANGE - LOGS_PERMISSION (was R_ADMIN)
 			return
 
 		var/mob/M = locate(href_list["individuallog"]) in GLOB.mob_list
