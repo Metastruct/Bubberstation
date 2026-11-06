@@ -226,6 +226,13 @@
 
 	if(!M.buckled && !M.has_buckled_mobs())
 		if(can_mobswap_with(M))
+			// META EDIT - CHANGE - START - MOB_PASSBY
+			// see modular_zzmeta/code/modules/mob/living/pass_by.dm
+			if(loc && !loc.Adjacent(M.loc))
+				return TRUE
+			if(try_mob_pass_by(M))
+				return TRUE
+			/* ORIGINAL:
 			//switch our position with M
 			if(loc && !loc.Adjacent(M.loc))
 				return TRUE
@@ -253,6 +260,8 @@
 
 			if(!move_failed)
 				return TRUE
+			*/
+			// META EDIT - CHANGE - END - MOB_PASSBY
 
 	//okay, so we didn't switch. but should we push?
 	//not if he's not CANPUSH of course
