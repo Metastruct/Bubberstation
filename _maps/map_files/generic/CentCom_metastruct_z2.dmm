@@ -4342,11 +4342,6 @@
 	},
 /turf/open/misc/dirt/planet,
 /area/centcom/holding/cafe/ruin/caves)
-"cBf" = (
-/obj/structure/flora/grass/jungle/b/style_random,
-/obj/structure/flora/bush/flowers_pp/style_random,
-/turf/open/misc/grass/planet,
-/area/centcom/holding/cafe/park)
 "cBg" = (
 /obj/structure/fake_stairs/wood/directional/north,
 /obj/structure/wall_torch/spawns_lit/directional/east,
@@ -4906,6 +4901,10 @@
 	icon_state = "darkfull"
 	},
 /area/centcom/holding/cafe/station/command)
+"cUP" = (
+/obj/structure/flora/bush/jungle/b/style_random,
+/turf/open/misc/grass/planet,
+/area/centcom/holding/cafe/park)
 "cVn" = (
 /obj/structure/chair/comfy/black{
 	dir = 4
@@ -8781,7 +8780,8 @@
 /turf/open/indestructible/plating,
 /area/centcom/holding/cafe/station/maint)
 "fNP" = (
-/obj/structure/flora/bush/jungle/b/style_random,
+/obj/structure/flora/grass/jungle/b/style_random,
+/obj/structure/flora/bush/flowers_pp/style_random,
 /turf/open/misc/grass/planet,
 /area/centcom/holding/cafe/park)
 "fNQ" = (
@@ -21854,6 +21854,10 @@
 /obj/effect/turf_decal/sand/plating/volcanic,
 /turf/open/indestructible/plating,
 /area/centcom/holding/cafe/ruin/ash_walkers)
+"oPn" = (
+/obj/structure/flora/grass/jungle/a/style_2,
+/turf/open/misc/grass/planet,
+/area/centcom/holding/cafe/park)
 "oPH" = (
 /obj/structure/cable,
 /turf/open/floor/catwalk_floor/iron_dark,
@@ -31101,9 +31105,28 @@
 	},
 /area/centcom/holding/cafe/station/security)
 "vtd" = (
-/obj/structure/flora/grass/jungle/a/style_2,
-/turf/open/misc/grass/planet,
-/area/centcom/holding/cafe/park)
+/obj/structure/table/reinforced/plastitaniumglass,
+/obj/effect/turf_decal/siding/wideplating_new/dark,
+/obj/effect/turf_decal/siding/wideplating_new/dark{
+	dir = 1
+	},
+/obj/machinery/door/firedoor,
+/obj/item/storage/fancy/candle_box{
+	spawn_type = /obj/item/flashlight/flare/candle/infinite;
+	pixel_x = 7
+	},
+/obj/item/storage/fancy/candle_box{
+	spawn_type = /obj/item/flashlight/flare/candle/infinite;
+	pixel_x = 7
+	},
+/obj/item/storage/fancy/candle_box{
+	spawn_type = /obj/item/flashlight/flare/candle/infinite;
+	pixel_x = 7
+	},
+/turf/open/indestructible/dark{
+	icon_state = "dark_half"
+	},
+/area/centcom/holding/cafe/station/commons/lounge)
 "vtY" = (
 /obj/structure/marker_beacon/burgundy,
 /turf/open/indestructible/plating{
@@ -31311,7 +31334,9 @@
 	},
 /obj/structure/table/wood,
 /obj/effect/turf_decal/tile/neutral/fourcorners,
-/obj/item/storage/fancy/candle_box,
+/obj/item/storage/fancy/candle_box{
+	spawn_type = /obj/item/flashlight/flare/candle/infinite
+	},
 /obj/item/storage/fancy/candle_box{
 	pixel_x = -2;
 	pixel_y = 2
@@ -85784,7 +85809,7 @@ ayI
 ayI
 kWr
 eEo
-fNP
+cUP
 kWr
 ayI
 fPU
@@ -86040,7 +86065,7 @@ xyn
 cos
 aFP
 kWr
-vtd
+oPn
 azk
 eEo
 cos
@@ -86516,7 +86541,7 @@ awf
 hXD
 qWT
 xBi
-iLE
+vtd
 opQ
 uWE
 sFN
@@ -86555,7 +86580,7 @@ fPU
 ayI
 kWr
 kWr
-cBf
+fNP
 ayI
 ayI
 yar
