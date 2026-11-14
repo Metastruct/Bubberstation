@@ -11,7 +11,10 @@
 
 /datum/quirk/defensive/add(client/client_source)
 	. = ..()
-	RegisterSignal(quirk_holder, COMSIG_LIVING_MOB_BUMP, PROC_REF(on_bump))
+	// META EDIT - REMOVAL - START - MOB_PASSBY
+	// see modular_zzmeta/code/modules/mob/living/pass_by.dm
+	//RegisterSignal(quirk_holder, COMSIG_LIVING_MOB_BUMP, PROC_REF(on_bump))
+	// META EDIT - REMOVAL - END - MOB_PASSBY
 
 /datum/quirk/defensive/proc/on_bump(mob/living/bumped)
 	SIGNAL_HANDLER
