@@ -11,18 +11,55 @@
 /mob/proc/get_inactive_held_item() as /obj/item
 	return get_item_for_held_index(get_inactive_hand_index())
 
+/// Returns a list of all our hand slots, which could contain nulls.
+/mob/proc/get_hand_slots() as /list
+	RETURN_TYPE(/list/obj/item)
 
-//Finds the opposite index for the active one (eg: upper left arm will find the item in upper right arm)
-//So we're treating each "pair" of limbs as a team, so "both" refers to them
+	return held_items.Copy()
+
+/// Returns a list of all held items that are a given type
+/mob/proc/get_held_items_of_type(typepath) as /list
+	RETURN_TYPE(/list/obj/item)
+
+	. = list()
+	for(var/obj/item/item as anything in get_hand_slots())
+		if(istype(item, typepath))
+			. += item
+
+// Doing is_type_in_list *halves* the efficiency of the proc, so this has to be a separate thing
+/// Returns a list of all held items that are a given *list* of types
+/mob/proc/get_held_items_of_typelist(list/typepaths) as /list
+	RETURN_TYPE(/list/obj/item)
+
+	. = list()
+	for(var/obj/item/item as anything in get_hand_slots())
+		if(is_type_in_list(item, typepaths))
+			. += item
+
+/// Returns the number of available hand slots
+/mob/proc/get_num_hand_slots() as num
+	return held_items.len
+
+/// Returns the items in your "active hand set", essentially your active hand and offhand
+/mob/proc/get_active_handset_items() as /list
+	RETURN_TYPE(/list/obj/item)
+	
+	var/list/ret = list(get_active_held_item(), get_inactive_held_item())
+	ret.RemoveAll(null)
+	return ret
+
 /mob/proc/get_inactive_hand_index()
-	var/other_hand = 0
-	if(IS_RIGHT_INDEX(active_hand_index))
-		other_hand = active_hand_index-1 //finding the matching "left" limb
+	return get_offhand_index(active_hand_index)
+
+//Finds the opposite index for the given hand index (eg: upper left arm will find the item in upper right arm)
+//So we're treating each "pair" of limbs as a team, so "both" refers to them
+/mob/proc/get_offhand_index(hand_index)
+	if(hand_index > held_items.len || hand_index <= 0)
+		return 0
+	if(IS_RIGHT_INDEX(hand_index))
+		return hand_index-1 //finding the matching "left" limb
 	else
-		other_hand = active_hand_index+1 //finding the matching "right" limb
-	if(other_hand < 0 || other_hand > held_items.len)
-		other_hand = 0
-	return other_hand
+		return hand_index+1 //finding the matching "right" limb
 
 
 /mob/proc/get_item_for_held_index(i)
@@ -670,10 +707,9 @@ GAME_VERB_HIDDEN(/mob, quick_equip, "quick-equip")
 
 //Inventory.dm is -kind of- an ok place for this I guess
 
-//This is NOT for dismemberment, as the user still technically has 2 "hands"
-//This is for multi-handed mobs, such as a human with a third limb installed
-//This is a very rare proc to call (besides admin fuckery) so
-//any cost it has isn't a worry
+/// Changes the amount of hands that a mob thinks it can have.
+/// Note that this does not change the amount of hands that it actually has,
+/// Just the amount that it thinks it can hold.
 /mob/proc/change_number_of_hands(amt)
 	if(amt < held_items.len)
 		for(var/i in held_items.len to amt step -1)

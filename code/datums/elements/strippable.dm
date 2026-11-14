@@ -195,6 +195,17 @@
 		SEND_SIGNAL(item, COMSIG_ITEM_GET_STRIPPABLE_ALT_ACTIONS, source, user, alt_actions)
 	return alt_actions
 
+// META EDIT - ADDITION - START - UPSTREAM_97789_MOTH_ARMS
+/**
+ * Returns an assoc list of alternate action keys to base64 icons shown in place of the action's default icon.
+ * You can also return null to keep the default icons.
+ * The item is null when the slot is empty.
+ */
+/datum/strippable_item/proc/get_alternate_action_icons(atom/source, mob/user, obj/item/item)
+	RETURN_TYPE(/list)
+	return null
+// META EDIT - ADDITION - END - UPSTREAM_97789_MOTH_ARMS
+
 /**
  * Performs an alternate action on this strippable_item.
  * - source: The source of the action.
@@ -392,6 +403,9 @@
 		result["name"] = item.name
 		result["alternate"] = item_data.get_alternate_actions(owner, user, item)
 		list_clear_nulls(result["alternate"])
+		// META EDIT - ADDITION - START - UPSTREAM_97789_MOTH_ARMS
+		result["alternate_icons"] = item_data.get_alternate_action_icons(owner, user, item)
+		// META EDIT - ADDITION - END - UPSTREAM_97789_MOTH_ARMS
 		var/static/list/already_cried = list()
 		if(length(result["alternate"]) > 3 && !(type in already_cried))
 			stack_trace("Too many alternate actions for [type]! Only three are supported at the moment! This will look bad!")
