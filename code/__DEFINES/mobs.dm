@@ -845,11 +845,11 @@ GLOBAL_ALIST_INIT(human_heights_to_offsets, alist(
 // BUBBER EDIT BEGIN
 // META EDIT - CHANGE - START - Fucked up layering
 // ORIGINAL: 5.1 / 5.2 / 5.3 / 5.4 / 5.5. Those sat above UNIFORM_LAYER (24), so exposed
-#define PENIS_LAYER_FRONT 25.1
 #define BREASTS_FRONT_LAYER 25.2
 #define BELLY_FRONT_LAYER 25.3
-#define VAGINA_FRONT_LAYER 25.4
+#define PENIS_LAYER_FRONT 25.1
 #define BALLS_LAYER_FRONT 25.5
+#define VAGINA_FRONT_LAYER 25.4
 // META EDIT - CHANGE - END - Fucked up layering
 // BUBBER EDIT END
 	/// Hair that layers out above clothing, including hats (high ponytails and such)

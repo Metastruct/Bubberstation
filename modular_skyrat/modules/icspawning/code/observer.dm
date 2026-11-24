@@ -24,8 +24,8 @@
 	/// Initial list of outfits
 	var/list/outfit_options = list(
 		"Underwear" = /datum/outfit/underwear, // META EDIT - UNDERWEAR_ITEMS
-		"Bluespace Tech (Admin)" = /datum/outfit/admin/bst,
 		"Bluespace Tech (Admin) (MODSuit)" = /datum/outfit/admin/bst/mod,
+		"Bluespace Tech (Admin)" = /datum/outfit/admin/bst,
 		"Naked" = /datum/outfit,
 		"Show All" = "Show All",
 	)

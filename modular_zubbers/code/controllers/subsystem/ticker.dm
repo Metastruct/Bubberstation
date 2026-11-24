@@ -30,10 +30,8 @@
 	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/ticker/declare_completion(was_forced = END_ROUND_AS_NORMAL)
-	handle_antag_tickets()
 	handle_quote_of_the_round()
 	handle_credits()
-
 	. = ..()
 
 /datum/controller/subsystem/ticker/proc/get_job_estimation(list/players)
@@ -74,15 +72,6 @@
 		player_ready_data.Insert(1, "Job Estimation:")
 		player_ready_data.Insert(1, "")
 	return player_ready_data
-
-/datum/controller/subsystem/ticker/proc/handle_antag_tickets()
-	set waitfor = FALSE
-
-	for(var/ckey in GLOB.preferences_datums)
-		var/datum/preferences/prefs = GLOB.preferences_datums[ckey]
-		if(prefs.antag_tickets == prefs.antag_tickets_old)
-			continue //Only save if there has been a change.
-		prefs.save_preferences()
 
 /datum/controller/subsystem/ticker/proc/handle_credits()
 	if(!GLOB.end_titles)

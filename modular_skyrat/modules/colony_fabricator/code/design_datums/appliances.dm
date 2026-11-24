@@ -17,6 +17,8 @@
 		/datum/design/portable_gas_pump,
 		/datum/design/portable_gas_scrubber,
 		/datum/design/survival_knife, // I just don't want to make a whole new node for this one sorry
+		/datum/design/colony_soup_pot,
+		/datum/design/frontier_radio_headset,
 		/datum/design/water_synthesizer,
 		/datum/design/hydro_synthesizer,
 		/datum/design/frontier_sustenance_dispenser,
@@ -29,22 +31,23 @@
 		/datum/design/tabletop_griddle,
 	)
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = INFINITY) // God save you
-	node_flags = TECHWEB_NODE_HIDDEN | TECHWEB_NODE_EXPERIMENTAL | TECHWEB_NODE_STARTER
+	node_flags = TECHWEB_NODE_HIDDEN | TECHWEB_NODE_EXPERIMENTAL
 
 /// Wall mountable multi cell charger
 /datum/design/wall_mounted_multi_charger
 	name = "Mounted Multi-Cell Charging Rack"
-	build_type = COLONY_FABRICATOR
+	build_type = COLONY_FABRICATOR | PROTOLATHE
 	materials = list(
 		/datum/material/iron = SHEET_MATERIAL_AMOUNT * 2,
 		/datum/material/silver = SHEET_MATERIAL_AMOUNT * 1,
 	)
 	build_path = /obj/item/wallframe/cell_charger_multi
 	category = list(
-		RND_CATEGORY_INITIAL,
+		RND_CATEGORY_MACHINE + RND_SUBCATEGORY_MACHINE_ENGINEERING,
 		FABRICATOR_CATEGORY_APPLIANCES + FABRICATOR_SUBCATEGORY_POWER,
 	)
 	construction_time = 15 SECONDS
+	departmental_flags = DEPARTMENT_BITFLAG_SCIENCE | DEPARTMENT_BITFLAG_ENGINEERING
 
 /// Portable scrubber and pumps for all your construction atmospherics needs
 /datum/design/portable_gas_pump
@@ -80,7 +83,7 @@
 /// Space heater, but it mounts on walls
 /datum/design/wall_mounted_space_heater
 	name = "Mounted Heater"
-	build_type = COLONY_FABRICATOR
+	build_type = COLONY_FABRICATOR | PROTOLATHE
 	materials = list(
 		/datum/material/iron = SHEET_MATERIAL_AMOUNT * 4,
 		/datum/material/silver = SHEET_MATERIAL_AMOUNT * 1,
@@ -88,9 +91,10 @@
 	)
 	build_path = /obj/item/wallframe/wall_heater
 	category = list(
-		RND_CATEGORY_INITIAL,
+		RND_CATEGORY_MACHINE + RND_SUBCATEGORY_MACHINE_ENGINEERING,
 		FABRICATOR_CATEGORY_APPLIANCES + FABRICATOR_SUBCATEGORY_ATMOS,
 	)
+	departmental_flags = DEPARTMENT_BITFLAG_SCIENCE | DEPARTMENT_BITFLAG_ENGINEERING
 	construction_time = 15 SECONDS
 
 /// Plumbable chem machine that makes nothing but water

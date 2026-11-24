@@ -199,18 +199,25 @@ GLOBAL_LIST_INIT(freqtospan, list(
 	var/spanpart2 = "<span class='name[name_color ? " [name_color_class]" : ""]' [name_style ? "style='[name_style]'" : ""]>"
 	// META EDIT - ADDITION - END
 	//Speaker name
-	var/namepart = message_mods[MODE_SPEAKER_NAME_OVERRIDE] || speaker.get_message_voice(visible_name)
+	// META EDIT - CHANGE - START - CHAT_LOG_NAME_COLORS
+	// Upstream's BUBBER name lines (PR #6278, NTSL) kept verbatim, but placed after our
+	// colored spanpart2 so the speaker name still gets the chat color.
+	var/realnamepart = "[speaker.get_voice(TRUE)][speaker.get_alt_name()]" // BUBBER EDIT ADDITION
+	var/namepart = "[speaker.get_voice()][speaker.get_alt_name()]" // BUBBER EDIT
+	// var/namepart = message_mods[MODE_SPEAKER_NAME_OVERRIDE] || speaker.get_message_voice(visible_name) BUBBER EDIT ORIGINAL
+	// META EDIT - CHANGE - END - CHAT_LOG_NAME_COLORS
 
 	//End name span.
-	var/endspanpart = "</span>"
+	var/endspanpart = "</span></a>" //BUBBER EDIT ADD the </a>
 
 	// The actual message part.
 	var/messagepart = speaker.generate_messagepart(raw_message, spans, message_mods)
 	messagepart = " <span class='message'>[messagepart]</span></span>"
 
 	var/speaker_voice_description = message_mods[MODE_SPEAKER_GENDER_OVERRIDE] || speaker.get_voice_description()
-
-	return "[spanpart1][freqpart][languageicon][spanpart2][compose_track_href(speaker, namepart)][span_tooltip_subtle(speaker_voice_description, namepart)][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
+	// return "[spanpart1][spanpart2][freqpart][languageicon][compose_track_href(speaker, realnamepart)][span_tooltip_subtle(speaker_voice_description, namepart)][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
+	// META EDIT - CHANGE - CHAT_LOG_NAME_COLORS - spanpart2 stays after freqpart/languageicon so those stay uncolored
+	return "[spanpart1][freqpart][languageicon][spanpart2][compose_track_href(speaker, realnamepart)][span_tooltip_subtle(speaker_voice_description, namepart)][compose_job(speaker, message_language, raw_message, radio_freq)][endspanpart][messagepart]"
 
 /atom/movable/proc/compose_track_href(atom/movable/speaker, message_langs, raw_message, radio_freq)
 	return ""
@@ -414,6 +421,7 @@ INITIALIZE_IMMEDIATE(/atom/movable/virtualspeaker)
 	source = M
 	if(istype(M))
 		name = radio?.anonymize ? "Unknown" : M.get_voice(add_id_name = TRUE)
+		realvoice = name // BUBBER ADDITION -- NTSL
 		gender = M.gender
 		verb_say = M.get_default_say_verb()
 		verb_ask = M.verb_ask
