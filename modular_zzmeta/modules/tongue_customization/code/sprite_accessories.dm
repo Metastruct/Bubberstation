@@ -59,6 +59,11 @@
 	icon_state = "longer_a"
 	allowed_species = list(SPECIES_INSECT, SPECIES_FLYPERSON, SPECIES_MAMMAL, SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
 
+/datum/sprite_accessory/custom_tongue/moth
+	name = "Moth"
+	icon_state = "moth"
+	allowed_species = list(SPECIES_INSECT, SPECIES_FLYPERSON, SPECIES_MAMMAL, SPECIES_MOTH, SPECIES_LIZARD, SPECIES_LIZARD_ASH, SPECIES_LIZARD_SILVER, SPECIES_UNATHI)
+
 /datum/sprite_accessory/custom_tongue/anteater
 	name = "Anteater"
 	icon_state = "anteater"
